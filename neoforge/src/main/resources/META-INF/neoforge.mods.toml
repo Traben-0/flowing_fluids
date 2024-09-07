@@ -1,0 +1,32 @@
+modLoader = "javafml"
+loaderVersion = "[2,)"
+#issueTrackerURL = ""
+license = "GNU LGPL 3.0"
+
+[[mods]]
+modId = "waterly"
+version = "${version}"
+displayName = "Waterly"
+authors = ""
+description = '''
+
+'''
+#logoFile = ""
+
+[[dependencies.waterly]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.waterly]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1,)"
+ordering = "NONE"
+side = "BOTH"
+
+
+[[mixins]]
+config = "waterly.mixins.json"
