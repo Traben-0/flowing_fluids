@@ -6,7 +6,10 @@
   "client": [
   ],
   "mixins": [
-    "MixinWaterTicking"
+    "MixinBucketItemPickup",
+    "MixinBucketPickup",
+    "MixinFluidTicking",
+    "MixinWaterPuddleTicks"
   ],
   "injectors": {
     "defaultRequire": 1
