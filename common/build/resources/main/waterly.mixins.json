@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "traben.waterly.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "minVersion": "0.8",
+  "client": [
+  ],
+  "mixins": [
+    "MixinWaterTicking"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
