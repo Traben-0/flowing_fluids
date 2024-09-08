@@ -10,5 +10,5 @@ import org.spongepowered.asm.mixin.Unique;
 
 public interface FluidGetterByAmount {
     @Unique
-    FluidState waterly$getOfAmount(LevelAccessor level, BlockPos blockPos, BlockState blockState, int amount) ;
+    FluidState waterly$getOfAmount(/*LevelAccessor level, BlockPos blockPos, BlockState blockState,*/ int amount) ;
 }

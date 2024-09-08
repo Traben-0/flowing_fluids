@@ -3,10 +3,14 @@ package traben.waterly.mixin;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
@@ -45,7 +49,7 @@ public abstract class MixinBucketPickup extends Block implements BucketPickup {
 
     @Inject(method = "pickupBlock", at = @At(value = "RETURN"), cancellable = true)
     private void waterly$modifyBucket(final Player player, final LevelAccessor levelAccessor, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<ItemStack> cir) {
-        System.out.println("pickup");
+//        System.out.println("pickup");
         if (cir.getReturnValue().isEmpty() && true) {//enabled
             int level = levelAccessor.getFluidState(blockPos).getAmount();
             if (level > 0) {
@@ -83,12 +87,19 @@ public abstract class MixinBucketPickup extends Block implements BucketPickup {
                         }
                     }
                 }
-
+                //todo setting for if they even want partial buckets
+                levelAccessor.setBlock(blockPos, Blocks.AIR.defaultBlockState(), 11);
+                onSuccessAirSetters.forEach(Runnable::run);
                 if(level>=8){
-                    //success
-                    levelAccessor.setBlock(blockPos, Blocks.AIR.defaultBlockState(), 11);
-                    onSuccessAirSetters.forEach(Runnable::run);
+                    //success for full vanilla friendly bucket
                     cir.setReturnValue(new ItemStack(this.fluid.getBucket()));
+                }else{
+                    //add damage flag
+                    var stack =new ItemStack(this.fluid.getBucket());
+                    stack.applyComponents(DataComponentMap.builder()
+                            .set(DataComponents.DAMAGE, 8-level)
+                            .set(DataComponents.MAX_DAMAGE,8).build());
+                    cir.setReturnValue(stack);
                 }
             }
         }

@@ -1,6 +1,11 @@
 package traben.waterly;
 
 import net.minecraft.core.Direction;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Unique;
 
 import java.util.ArrayList;
@@ -34,4 +39,6 @@ public final class Waterly {
         Collections.shuffle(CARDINALS_AND_DOWN);
         return CARDINALS_AND_DOWN;
     }
+
+    public static ItemStack lastBucketUsed = ItemStack.EMPTY;
 }
