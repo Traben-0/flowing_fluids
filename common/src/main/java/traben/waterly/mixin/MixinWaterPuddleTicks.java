@@ -3,12 +3,14 @@ package traben.waterly.mixin;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.tags.BiomeTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BucketPickup;
 import net.minecraft.world.level.block.LiquidBlockContainer;
@@ -33,24 +35,45 @@ public abstract class MixinWaterPuddleTicks extends FlowingFluid implements Flui
 
     @Shadow public abstract int getDropOff(final LevelReader levelReader);
 
-    @Unique
-//    private final Random waterly$random = new Random();
+
 
     @Override
     protected void randomTick(final Level level, final BlockPos blockPos, final FluidState fluidState, final RandomSource randomSource) {
         super.randomTick(level, blockPos, fluidState, randomSource);
 
-        if(true ){
+        if(true && !fluidState.isEmpty()){
             int amount = fluidState.getAmount();
-            if(amount > 0 && amount <= getDropOff(level)
-//                    && waterly$random.nextInt(20) == 0
-            ){
-                if (level.isRaining() && level.canSeeSky(blockPos)) {
-                    if (amount < 8) level.setBlockAndUpdate(blockPos, waterly$getOfAmount(level, blockPos, level.getBlockState(blockPos), amount + 1).createLegacyBlock());
-                } else {
-                    level.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());
-                }
+            if (!waterly$increase(level, blockPos, amount))
+                waterly$decrease(level, blockPos, amount);
+        }
+    }
+
+    @Unique
+    private boolean waterly$increase(final Level level, final BlockPos blockPos, int amount){
+        if (amount < 8 && level.canSeeSky(blockPos)) {
+            if (level.isRaining()) {//can see sky and raining
+                level.setBlockAndUpdate(blockPos, waterly$getOfAmount(level, blockPos, level.getBlockState(blockPos), amount + 1).createLegacyBlock());
+                return true;
             }
+            //if in ocean or river and below or at sea level and above 0
+            var biome = level.getBiome(blockPos);
+            if (level.getSeaLevel() >= blockPos.getY()
+                    && (biome.is(BiomeTags.IS_OCEAN)
+                    || biome.is(BiomeTags.IS_RIVER)
+                    || biome.is(BiomeTags.IS_BEACH)
+                    || biome.is(Biomes.SWAMP)
+                    || biome.is(Biomes.MANGROVE_SWAMP))) {
+                level.setBlockAndUpdate(blockPos, waterly$getOfAmount(level, blockPos, level.getBlockState(blockPos), amount + 1).createLegacyBlock());
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Unique
+    private void waterly$decrease(final Level level, final BlockPos blockPos, int amount){
+        if(amount > 0 && amount <= getDropOff(level)){
+            level.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());
         }
     }
 }
