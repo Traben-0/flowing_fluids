@@ -3,13 +3,9 @@ package traben.waterly.mixin;
 
 
 import com.mojang.datafixers.util.Pair;
-import it.unimi.dsi.fastutil.ints.Int2BooleanMap;
-import it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2BooleanFunction;
-import it.unimi.dsi.fastutil.shorts.Short2BooleanMap;
-import it.unimi.dsi.fastutil.shorts.Short2BooleanOpenHashMap;
-import it.unimi.dsi.fastutil.shorts.Short2ObjectMap;
-import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import it.unimi.dsi.fastutil.shorts.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;
@@ -70,12 +66,19 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     @Inject(method = "tick", at = @At(value = "HEAD"), cancellable = true)
     private void waterly$tickMixin(final Level level, final BlockPos blockPos, final FluidState fluidState, final CallbackInfo ci) {
         if (true) {
+            if (level.isClientSide()) {
+                ci.cancel();
+                return;
+            }
+
             if (!fluidState.isEmpty() && fluidState.getAmount() == level.getFluidState(blockPos).getAmount()) {
                 BlockState thisState = level.getBlockState(blockPos);
                 BlockPos posDown = blockPos.below();
                 BlockState stateDown = level.getBlockState(posDown);
 
                 int originalAmount = fluidState.getAmount();
+
+
 
                 int remainingAmount = waterly$checkAndFlowDown(level, blockPos, fluidState, thisState, posDown, stateDown, originalAmount);
 //                boolean flowedDown = amount != originalAmount;
@@ -191,13 +194,22 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
         }
     }
 
+    private static int depthDebug = 0;
+
+
 
     @Unique
     private @Nullable Direction waterly$getLowestSpreadableLookingFor4BlockDrops(Level level, BlockPos blockPos, FluidState fluidState, int amount, boolean requiresSlope){
 
+        if (Waterly.fastmode){//fast mode
+            return requiresSlope ? waterly$getFastLowestSpreadableEdge(level, blockPos, fluidState, amount)
+                    : waterly$getFastLowestSpreadable(level, blockPos, fluidState, amount);
+        }
+        depthDebug =0;
+
+
+
         Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos = new Short2ObjectOpenHashMap<>();
-        Short2BooleanMap posCanFlowDown = new Short2BooleanOpenHashMap();
-        posCanFlowDown.put(getCacheKey(blockPos, blockPos), false);//set not to flow back into source
 
         ToIntFunction<Direction> dirToAmount = (dir) ->level.getFluidState(blockPos.relative(dir)).getAmount();
 
@@ -216,22 +228,40 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
         if (byAmounts.isEmpty()) {
             return null;
         }
+
+
+
+        Short2BooleanMap posCanFlowDown = new Short2BooleanOpenHashMap();
+        posCanFlowDown.put(getCacheKey(blockPos, blockPos), false);//set not to flow back into source
+
+        Object2IntMap<Waterly.CheckedDirFromPosKey> previousResults = new Object2IntOpenHashMap<>(){{defRetValue = -1;}};
+
+
+        int slopeFindDistance = getSlopeFindDistance(level);
+//        System.out.println("///WATER_TICK///////////////////////");
         var ret = byAmounts.stream()
                 .map(dir -> {
+                    depthDebug++;
                     var posDir = blockPos.relative(dir);
                     short key = getCacheKey(blockPos, posDir);
                     boolean canFlowBelow = waterly$getSetFlowDownMap(key, level, posCanFlowDown, posDir, fluidState.getType());
+//                    System.out.println("check: "+dir + " -> "+ posDir.toShortString());
                     if (canFlowBelow) {
+//                        System.out.println("return_ez: "+ posDir.toShortString() + " -> found ez below");
                         return Pair.of(dir, 0);
                     } else {
-                        return Pair.of(dir, waterly$getSlopeDistance(
+                        var pr = Pair.of(dir, waterly$getSlopeDistance(
                                 level, blockPos, 1, dir.getOpposite(),
-                                fluidState.getType(), amount + 1, posDir, statesAtPos, posCanFlowDown));
+                                fluidState.getType(), amount + 1, posDir, statesAtPos, posCanFlowDown, previousResults));
+//                        System.out.println("return_deep: "+ posDir.toShortString() + " -> " + pr.getSecond()+"\n\n"+dir+" depth: "+depthDebug);
+                        return pr;
                     }
                 })
-                .filter(pair -> !requiresSlope || pair.getSecond() < getSlopeFindDistance(level))
+                .filter(pair -> !requiresSlope || pair.getSecond() < slopeFindDistance)
                 .min(Comparator.comparingInt(Pair::getSecond))
                 .map(Pair::getFirst).orElse(null);
+
+//        System.out.println("\n\ntotal tick depth: "+depthDebug);//original was 880 all up, 341 with simple result cache, 306 with custom equality cache
 
         if (ret == null && !requiresSlope){
             return byAmounts.getFirst();
@@ -241,23 +271,47 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
 
     @Unique
     protected int waterly$getSlopeDistance(LevelReader level, BlockPos sourcePosForKey, int distance, Direction fromDir, Fluid sourceFluid, int sourceAmount,
-                                           BlockPos newPos, Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos, Short2BooleanMap posCanFlowDown) {
+                                           BlockPos newPos, Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos, Short2BooleanMap posCanFlowDown,
+                                           Object2IntMap<Waterly.CheckedDirFromPosKey> previousResults) {
+        String indent = "-".repeat(distance);
+        var upperKey = new Waterly.CheckedDirFromPosKey(newPos.relative(fromDir), fromDir.getOpposite(), distance);
+        int prev = previousResults.getInt(upperKey);
+        if (prev != -1) {
+//            System.out.println(indent + "return_cache: "+ newPos.toShortString() + " -> " + prev);
+            return prev;
+        }
+
         int smallest = 1000;
+        int slopeFindDistance = getSlopeFindDistance(level);
+        //indent by distance
+
+
 
         for (final Direction searchDir : Direction.Plane.HORIZONTAL) {
             if (searchDir != fromDir) {
+                int prev2 = previousResults.getInt(new Waterly.CheckedDirFromPosKey(newPos, searchDir, distance));
+                if (prev2 != -1) {
+//                    System.out.println(indent + "return_cache: "+ newPos.toShortString() + " -> " + prev2);
+                    return prev2;
+                }
+                depthDebug++;
                 var searchPos = newPos.relative(searchDir);
                 var searchKey = getCacheKey(sourcePosForKey, searchPos);
                 var searchStates = waterly$getSetPosMap(searchKey, level, statesAtPos, searchPos);
+//                System.out.println(indent + "check: "+searchDir + " -> "+ searchPos.toShortString());
                 if(waterly$canSpreadTo2(sourceFluid, sourceAmount, level, newPos,
                         level.getBlockState(newPos), searchDir, searchPos,
                         searchStates.getFirst(), searchStates.getSecond())){
                     boolean canFlowBelow = waterly$getSetFlowDownMap(searchKey, level, posCanFlowDown, searchPos, sourceFluid);
                     if (canFlowBelow){
+//                        System.out.println(indent + "return_here: "+ searchPos.toShortString() + " -> " + distance);
+
+                        //cache the result
+                        previousResults.put(new Waterly.CheckedDirFromPosKey(newPos, searchDir,distance), distance);
                         return distance;
                     }
-                    if (distance <= getSlopeFindDistance(level)) {
-                        int next = waterly$getSlopeDistance(level, sourcePosForKey, distance + 1, searchDir.getOpposite(), sourceFluid, sourceAmount, searchPos, statesAtPos, posCanFlowDown);
+                    if (distance <= slopeFindDistance) {
+                        int next = waterly$getSlopeDistance(level, sourcePosForKey, distance + 1, searchDir.getOpposite(), sourceFluid, sourceAmount, searchPos, statesAtPos, posCanFlowDown, previousResults);
                         if (next < smallest) {
                             smallest = next;
                         }
@@ -265,6 +319,9 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
                 }
             }
         }
+        //cache the result
+        previousResults.put(upperKey, smallest);
+//        System.out.println(indent + "return_deep: "+ newPos.toShortString() + " -> " + smallest);
         return smallest;
     }
 
@@ -289,7 +346,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     private final Random waterly$randomBool = new Random();
 
     @Unique
-    private @Nullable Direction waterly$getLowestSpreadableEdge(Level level, BlockPos blockPos, FluidState fluidState, int amount){
+    private @Nullable Direction waterly$getFastLowestSpreadableEdge(Level level, BlockPos blockPos, FluidState fluidState, int amount){
         ToIntFunction<Direction> func = (dir) -> level.getFluidState(blockPos.relative(dir).below()).getAmount();
 
         return Waterly.getCardinalsShuffle().stream()
@@ -308,7 +365,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     }
 
     @Unique
-    private @Nullable Direction waterly$getLowestSpreadable(Level level, BlockPos blockPos, FluidState fluidState, int amount){
+    private @Nullable Direction waterly$getFastLowestSpreadable(Level level, BlockPos blockPos, FluidState fluidState, int amount){
         ToIntFunction<Direction> func = (dir) ->level.getFluidState(blockPos.relative(dir)).getAmount();
 
         return Waterly.getCardinalsShuffle().stream()
@@ -328,21 +385,21 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
 
 
     public FluidState waterly$getOfAmount(/*LevelAccessor level, BlockPos blockPos, BlockState blockState,*/ int amount) {
-        if (amount > 8) System.out.println("amount > 8");
-
-//        BlockPos posUp = blockPos.above();
-//        BlockState bStateUp = level.getBlockState(posUp);
-//        FluidState fStateUp = bStateUp.getFluidState();
-//        if (!fStateUp.isEmpty() && fStateUp.getType().isSame(this) && this.canPassThroughWall(Direction.UP, level, blockPos, blockState, posUp, bStateUp)) {
-//            return amount == 8 ? this.getSource(false) : this.getFlowing(amount, false);//todo true here broke? redundant now?
-//        } else {
-            if (amount <= 0) {
-                System.out.println("AMOUNT <= 0!!!!!!!!!!!!!!");
-                return Fluids.EMPTY.defaultFluidState();
-            } else {
+//        if (amount > 8) System.out.println("amount > 8");
+//
+////        BlockPos posUp = blockPos.above();
+////        BlockState bStateUp = level.getBlockState(posUp);
+////        FluidState fStateUp = bStateUp.getFluidState();
+////        if (!fStateUp.isEmpty() && fStateUp.getType().isSame(this) && this.canPassThroughWall(Direction.UP, level, blockPos, blockState, posUp, bStateUp)) {
+////            return amount == 8 ? this.getSource(false) : this.getFlowing(amount, false);//todo true here broke? redundant now?
+////        } else {
+//            if (amount <= 0) {
+//                System.out.println("AMOUNT <= 0!!!!!!!!!!!!!!");
+//                return Fluids.EMPTY.defaultFluidState();
+//            } else {
                 return amount == 8 ? this.getSource(false) : this.getFlowing(amount, false);
-            }
-//        }
+//            }
+////        }
 
     }
 
@@ -367,7 +424,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
 
     @Unique
     private boolean waterly$canMoveIntoSelf(Fluid thisFluid, FluidState fluidStateTo, Direction direction, int amount) {
-        if (direction == Direction.UP) return false;
+//        if (direction == Direction.UP) return false;
 
         if (fluidStateTo.isEmpty()) return true;
 

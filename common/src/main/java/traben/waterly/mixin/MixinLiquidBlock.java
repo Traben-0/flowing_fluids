@@ -4,47 +4,47 @@ package traben.waterly.mixin;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BucketPickup;
 import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FlowingFluid;
-import net.minecraft.world.level.material.FluidState;
-import net.minecraft.world.level.material.WaterFluid;
+import net.minecraft.world.level.material.PushReaction;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import traben.waterly.FluidGetterByAmount;
 import traben.waterly.Waterly;
 
 import java.util.*;
 
-import static net.minecraft.world.level.block.LiquidBlock.LEVEL;
-
 
 @Mixin(LiquidBlock.class)
-public abstract class MixinBucketPickup extends Block implements BucketPickup {
+public abstract class MixinLiquidBlock extends Block implements BucketPickup {
 
     @Shadow @Final protected FlowingFluid fluid;
 
-    public MixinBucketPickup(final Properties properties) {
+    public MixinLiquidBlock(final Properties properties) {
         super(properties);
+    }
+
+    @ModifyArg(
+            method = "<init>",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/Block;<init>(Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V"),
+            index = 0
+    )
+    private static BlockBehaviour.Properties waterly$modifyBlockProperties(final BlockBehaviour.Properties properties) {
+        return true ? properties.pushReaction(PushReaction.PUSH_ONLY) : properties;//todo enable flag
     }
 
     @Inject(method = "pickupBlock", at = @At(value = "RETURN"), cancellable = true)
