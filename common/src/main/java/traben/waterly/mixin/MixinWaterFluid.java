@@ -33,6 +33,12 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
         }
     }
 
+    @Override
+    protected boolean isRandomlyTicking() {
+        if (true) return true;//todo enable flag
+        return super.isRandomlyTicking();
+    }
+
     @Unique
     private boolean waterly$increase(final Level level, final BlockPos blockPos, int amount){
         if (amount < 8 && level.canSeeSky(blockPos)) {

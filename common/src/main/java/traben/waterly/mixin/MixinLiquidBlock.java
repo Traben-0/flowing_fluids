@@ -44,7 +44,9 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
             index = 0
     )
     private static BlockBehaviour.Properties waterly$modifyBlockProperties(final BlockBehaviour.Properties properties) {
-        return true ? properties.pushReaction(PushReaction.PUSH_ONLY) : properties;//todo enable flag
+        return true ?
+                properties.pushReaction(PushReaction.PUSH_ONLY).randomTicks()
+                : properties;//todo enable flag
     }
 
     @Inject(method = "pickupBlock", at = @At(value = "RETURN"), cancellable = true)
