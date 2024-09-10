@@ -182,14 +182,14 @@ public abstract class MixinBucketItem extends Item {
                     int levelAtBlock = level.getBlockState(blockPos).getFluidState().getAmount();
                     int total = levelAtBlock + amount;
                     if (total > 8) {
-                        success = level.setBlock(blockPos, fluid.waterly$getOfAmount(8).createLegacyBlock(), 11);
+                        success = level.setBlock(blockPos, fluid.waterly$getFluidStateOfAmount(8).createLegacyBlock(), 11);
                         remainder = total - 8;
                     } else {
-                        success = level.setBlock(blockPos, fluid.waterly$getOfAmount(total).createLegacyBlock(), 11);
+                        success = level.setBlock(blockPos, fluid.waterly$getFluidStateOfAmount(total).createLegacyBlock(), 11);
                         remainder = 0;
                     }
                 } else {
-                    success = level.setBlock(blockPos, fluid.waterly$getOfAmount(amount).createLegacyBlock(), 11);
+                    success = level.setBlock(blockPos, fluid.waterly$getFluidStateOfAmount(amount).createLegacyBlock(), 11);
                     remainder = 0;
                 }
 

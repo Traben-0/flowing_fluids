@@ -24,7 +24,7 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
     @Shadow public abstract int getDropOff(final LevelReader levelReader);
 
     @Unique
-    private Random waterly$random = new Random();
+    private final Random waterly$random = new Random();
 
     @Override
     protected void randomTick(final Level level, final BlockPos blockPos, final FluidState fluidState, final RandomSource randomSource) {
@@ -48,7 +48,7 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
 
         if (amount < 8) {
             if (level.isRaining() && level.canSeeSky(blockPos)) {//can see sky and raining
-                level.setBlockAndUpdate(blockPos, waterly$getOfAmount(/*level, blockPos, level.getBlockState(blockPos),*/ amount + 1).createLegacyBlock());
+                level.setBlockAndUpdate(blockPos, waterly$getFluidStateOfAmount(/*level, blockPos, level.getBlockState(blockPos),*/ amount + 1).createLegacyBlock());
                 return true;
             }
             //if in ocean or river and below or at sea level and above 0
@@ -60,7 +60,7 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
                     || biome.is(BiomeTags.IS_BEACH)
                     || biome.is(Biomes.SWAMP)
                     || biome.is(Biomes.MANGROVE_SWAMP))) {
-                level.setBlockAndUpdate(blockPos, waterly$getOfAmount(/*level, blockPos, level.getBlockState(blockPos),*/ amount + 1).createLegacyBlock());
+                level.setBlockAndUpdate(blockPos, waterly$getFluidStateOfAmount(/*level, blockPos, level.getBlockState(blockPos),*/ amount + 1).createLegacyBlock());
                 return true;
             }
         }

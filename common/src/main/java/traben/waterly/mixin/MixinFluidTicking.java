@@ -24,16 +24,17 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import traben.waterly.CheckedDirFromPosKey;
 import traben.waterly.FluidGetterByAmount;
 import traben.waterly.Waterly;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.ToIntFunction;
 
 
 @Mixin(FlowingFluid.class)
 public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAmount {
-
 
 
     @Shadow
@@ -184,7 +185,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     @Inject(method = "getNewLiquid", at = @At(value = "HEAD"), cancellable = true)
     private void waterly$validateLiquidMixin(final Level level, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<FluidState> cir) {
         if (true) {
-            cir.setReturnValue(waterly$getOfAmount(level.getFluidState(blockPos).getAmount()));
+            cir.setReturnValue(waterly$getFluidStateOfAmount(level.getFluidState(blockPos).getAmount()));
         }
     }
 
@@ -209,7 +210,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
                 .filter(dir -> {
                     BlockPos posDir = blockPos.relative(dir);
                     short key = getCacheKey(blockPos, posDir);
-                    var statesDir = waterly$getSetPosMap(key, level, statesAtPos, posDir);
+                    var statesDir = waterly$getSetPosCache(key, level, statesAtPos, posDir);
                     BlockState stateDir = statesDir.getFirst();
                     var fluidStateDir = statesDir.getSecond();
                     return waterly$canSpreadToOptionallySameOrEmpty(fluidState.getType(), amount, level, blockPos,
@@ -217,104 +218,167 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
                 })
                 .toList();
 
+        //early escape if no valid neighbours to spread too
         if (directionsCanSpreadToSortedByAmount.isEmpty()) return null;
 
+        //perform a deep search for the best direction to spread to with the nearest slope
+        Direction spreadDirection = waterly$getValidDirectionFromDeepSpreadSearch(level, blockPos, fluidState, amount, requiresSlope, directionsCanSpreadToSortedByAmount, statesAtPos);
+
+        //if none, then choose from the initial sorted & filtered list
+        if (spreadDirection == null && !requiresSlope) {
+            return directionsCanSpreadToSortedByAmount.getFirst();
+        }
+        return spreadDirection;
+    }
+
+    @Unique
+    private static int waterly$debugCheckCountSpreads = 0;
+    @Unique
+    private static int waterly$debugCheckCountDowns = 0;
+
+    @Unique
+    private @Nullable Direction waterly$getValidDirectionFromDeepSpreadSearch(final Level level, final BlockPos blockPos, final FluidState fluidState, final int amount, final boolean requiresSlope, final List<Direction> directionsCanSpreadToSortedByAmount, final Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos) {
+
+        //vanilla slope distance factor
+        int slopeFindDistance = getSlopeFindDistance(level);
+        if (slopeFindDistance < 1) return null;
+
+        //cache for flowing down checks
         Short2BooleanMap posCanFlowDown = new Short2BooleanOpenHashMap();
         posCanFlowDown.put(getCacheKey(blockPos, blockPos), false);//set not to flow back into source
 
-        Object2IntMap<Waterly.CheckedDirFromPosKey> previousResults = new Object2IntOpenHashMap<>() {{
-            defRetValue = -1;
-        }};
+        //cache of previous results for slope calculations at the given position
+        //the key is a combination of the position and the direction that position was tested from
+        //the key also includes the distance from the source position when it last checked and overrides the
+        //equality methods to allow matching the same result if the distance remaining of the last result was greater or equal
+        //(meaning it searched further than the current search can)
+        Object2IntMap<CheckedDirFromPosKey> previousResults = new Object2IntOpenHashMap<>() {
+            {
+                defRetValue = -1;
+            }
 
-        int slopeFindDistance = getSlopeFindDistance(level);
-//        System.out.println("///WATER_TICK///////////////////////");
-        var ret = directionsCanSpreadToSortedByAmount.stream()
+            @Override
+            public int put(final CheckedDirFromPosKey checkedDirFromPosKey, final int v) {
+                if (Waterly.isDebugSpreadRemoveCaches) {
+                    return 0;
+                }
+                CheckedDirFromPosKey.puttingInCache = true;
+                super.put(checkedDirFromPosKey, v);
+                CheckedDirFromPosKey.puttingInCache = false;
+                return 0;
+            }
+        };
+        if (Waterly.debugSpread) {
+            waterly$debugCheckCountSpreads = 4;
+            waterly$debugCheckCountDowns = 0;
+        }
+        long start = System.nanoTime();
+
+        //perform a deep search for the best direction to spread to with the nearest slope
+        //filter out any directions that are too far away to be considered unless we don't require a slope, in which
+        //case we just sort by distance for preference of spreading
+        Direction finalDirection = directionsCanSpreadToSortedByAmount.stream()
                 .map(dir -> {
-//                    depthDebug++;
+                    //we already know we can spread to this direction, so we can just check if we can flow down or
+                    //if we need to perform a deeper search
                     var posDir = blockPos.relative(dir);
                     short key = getCacheKey(blockPos, posDir);
-                    boolean canFlowBelow = waterly$getSetFlowDownMap(key, level, posCanFlowDown, posDir, fluidState.getType(), requiresSlope);
-//                    System.out.println("check: "+dir + " -> "+ posDir.toShortString());
+                    //check if we can flow down here, if so, return the direction
+                    boolean canFlowBelow = waterly$getSetFlowDownCache(key, level, posCanFlowDown, posDir, fluidState.getType(), requiresSlope);
                     if (canFlowBelow) {
-//                        System.out.println("return_ez: "+ posDir.toShortString() + " -> found ez below");
                         return Pair.of(dir, 0);
                     } else {
-                        var pr = Pair.of(dir, waterly$getSlopeDistance(
+                        //else, perform a deep search for the nearest slope
+                        return Pair.of(dir, waterly$getSlopeDistance(
                                 level, blockPos, 1, dir.getOpposite(),
-                                fluidState.getType(), amount + 1, posDir, statesAtPos, posCanFlowDown, previousResults, requiresSlope));
-//                        System.out.println("return_deep: "+ posDir.toShortString() + " -> " + pr.getSecond()+"\n\n"+dir+" depth: "+depthDebug);
-                        return pr;
+                                fluidState.getType(), amount + 1, posDir, statesAtPos,
+                                posCanFlowDown, previousResults, requiresSlope, slopeFindDistance));
                     }
                 })
-                .filter(pair -> !requiresSlope || pair.getSecond() < slopeFindDistance)
+                .filter(pair -> {
+                    if (Waterly.debugSpread) Waterly.LOG.info("result: {}", pair);
+                    return !requiresSlope || pair.getSecond() <= slopeFindDistance;
+                })
                 .min(Comparator.comparingInt(Pair::getSecond))
                 .map(Pair::getFirst).orElse(null);
 
-//        System.out.println("\n\ntotal tick depth: "+depthDebug);//original was 880 all up, 341 with simple result cache, 306 with custom equality cache
-
-        if (ret == null && !requiresSlope) {
-            return directionsCanSpreadToSortedByAmount.getFirst();
+        if (Waterly.debugSpread) {
+            long time = System.nanoTime() - start;
+            Waterly.totalDebugTicks++;
+            Waterly.totalDebugMilliseconds = Waterly.totalDebugMilliseconds.add(BigDecimal.valueOf(time / 1000000D));
+            Waterly.LOG.info("Waterly spread tick:\n Position: {}\n Spread checks: {}\n Down checks: {}\n Result: {}\n Used result caching: {}\n time: {}\n avg time (since debug change): {}ms",
+                    blockPos.toShortString(), waterly$debugCheckCountSpreads, waterly$debugCheckCountDowns,
+                    finalDirection, !Waterly.isDebugSpreadRemoveCaches, time, Waterly.getAverageDebugMilliseconds());
         }
-        return ret;
+        return finalDirection;
     }
 
     @Unique
     protected int waterly$getSlopeDistance(LevelReader level, BlockPos sourcePosForKey, int distance, Direction fromDir, Fluid sourceFluid, int sourceAmount,
                                            BlockPos newPos, Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos, Short2BooleanMap posCanFlowDown,
-                                           Object2IntMap<Waterly.CheckedDirFromPosKey> previousResults, boolean forceSlopeDownSameOrEmpty) {
-//        String indent = "-".repeat(distance);
-        var upperKey = new Waterly.CheckedDirFromPosKey(newPos.relative(fromDir), fromDir.getOpposite(), distance);
-        int prev = previousResults.getInt(upperKey);
-        if (prev != -1) {
-//            System.out.println(indent + "return_cache: "+ newPos.toShortString() + " -> " + prev);
-            return prev;
+                                           Object2IntMap<CheckedDirFromPosKey> previousResults, boolean forceSlopeDownSameOrEmpty, int slopeFindDistance) {
+
+        //check if we have already calculated this result with a same or greater search distance
+        var outerKey = new CheckedDirFromPosKey(newPos.relative(fromDir), fromDir.getOpposite(), distance);
+        int previousOuterResult = previousResults.getInt(outerKey);
+        if (previousOuterResult != -1) {
+            return previousOuterResult;
         }
 
+        //default distance return
         int smallest = 1000;
-        int slopeFindDistance = getSlopeFindDistance(level);
-        //indent by distance
 
-
+        //check all directions except the one we came from
         for (final Direction searchDir : Direction.Plane.HORIZONTAL) {
             if (searchDir != fromDir) {
-                int prev2 = previousResults.getInt(new Waterly.CheckedDirFromPosKey(newPos, searchDir, distance));
-                if (prev2 != -1) {
-//                    System.out.println(indent + "return_cache: "+ newPos.toShortString() + " -> " + prev2);
-                    return prev2;
+                int searchDistance = distance + 1;
+                //check if we have already calculated this result with a same or greater search distance
+                var innerKey = new CheckedDirFromPosKey(newPos, searchDir, distance);
+                int previousInnerResult = previousResults.getInt(innerKey);
+                if (previousInnerResult != -1) {
+                    return previousInnerResult;
                 }
-//                depthDebug++;
+
+                //get search context
                 var searchPos = newPos.relative(searchDir);
                 var searchKey = getCacheKey(sourcePosForKey, searchPos);
-                var searchStates = waterly$getSetPosMap(searchKey, level, statesAtPos, searchPos);
-//                System.out.println(indent + "check: "+searchDir + " -> "+ searchPos.toShortString());
+                var searchStates = waterly$getSetPosCache(searchKey, level, statesAtPos, searchPos);
+
+                //if we can spread to the searched direction
+                if (Waterly.debugSpread) waterly$debugCheckCountSpreads++;
                 if (waterly$canSpreadToOptionallySameOrEmpty(sourceFluid, sourceAmount, level, newPos,
                         level.getBlockState(newPos), searchDir, searchPos,
                         searchStates.getFirst(), searchStates.getSecond(), forceSlopeDownSameOrEmpty)) {
-                    boolean canFlowBelow = waterly$getSetFlowDownMap(searchKey, level, posCanFlowDown, searchPos, sourceFluid, forceSlopeDownSameOrEmpty);
-                    if (canFlowBelow) {
-//                        System.out.println(indent + "return_here: "+ searchPos.toShortString() + " -> " + distance);
 
-                        //cache the result
-                        previousResults.put(new Waterly.CheckedDirFromPosKey(newPos, searchDir, distance), distance);
-                        return distance;
+                    //if we can flow down, cache the result of this and return this distance as it's the smallest
+                    if (waterly$getSetFlowDownCache(searchKey, level, posCanFlowDown, searchPos, sourceFluid, forceSlopeDownSameOrEmpty)) {
+                        //cache the result to both keys as we may also come back to this position from another direction
+                        previousResults.put(innerKey, searchDistance);
+                        previousResults.put(outerKey, searchDistance);
+                        return searchDistance;
                     }
-                    if (distance <= slopeFindDistance) {
-                        int next = waterly$getSlopeDistance(level, sourcePosForKey, distance + 1, searchDir.getOpposite(), sourceFluid, sourceAmount, searchPos, statesAtPos, posCanFlowDown, previousResults, forceSlopeDownSameOrEmpty);
+                    //if we can't flow down here, check the next distance via iteration as long as we are within the slope search distance
+                    if (searchDistance < slopeFindDistance) {
+                        int next = waterly$getSlopeDistance(level, sourcePosForKey, searchDistance,
+                                searchDir.getOpposite(), sourceFluid, sourceAmount, searchPos,
+                                statesAtPos, posCanFlowDown, previousResults, forceSlopeDownSameOrEmpty, slopeFindDistance);
+                        //if the next distance is less than the current smallest, update the smallest
                         if (next < smallest) {
                             smallest = next;
                         }
+                        //continue to check all directions for the smallest distance
                     }
                 }
             }
         }
-        //cache the result
-        previousResults.put(upperKey, smallest);
-//        System.out.println(indent + "return_deep: "+ newPos.toShortString() + " -> " + smallest);
+
+        //cache and return the final result
+        previousResults.put(outerKey, smallest);
         return smallest;
     }
 
     @Unique
-    private Pair<BlockState, FluidState> waterly$getSetPosMap(short key, LevelReader level, Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos, BlockPos pos) {
+    private Pair<BlockState, FluidState> waterly$getSetPosCache(short key, LevelReader level, Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos, BlockPos pos) {
         return statesAtPos.computeIfAbsent(key, (sx) -> {
             BlockState blockState = level.getBlockState(pos);
             return Pair.of(blockState, blockState.getFluidState());
@@ -322,8 +386,9 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     }
 
     @Unique
-    private boolean waterly$getSetFlowDownMap(short key, LevelReader level, Short2BooleanMap boolAtPos, BlockPos pos, Fluid sourceFluid, boolean forceSlopeDownSameOrEmpty) {
+    private boolean waterly$getSetFlowDownCache(short key, LevelReader level, Short2BooleanMap boolAtPos, BlockPos pos, Fluid sourceFluid, boolean forceSlopeDownSameOrEmpty) {
         return boolAtPos.computeIfAbsent(key, (sx) -> {
+            if (Waterly.debugSpread) waterly$debugCheckCountDowns++;
             var posDown = pos.below();
             return (waterly$canSpreadToOptionallySameOrEmpty(sourceFluid, 8, level, pos, level.getBlockState(pos),
                     Direction.DOWN, posDown, level.getBlockState(posDown), level.getFluidState(posDown),
@@ -334,7 +399,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     @Unique
     private @Nullable Direction waterly$getFastLowestSpreadableEdge(Level level, BlockPos blockPos, FluidState fluidState, int amount) {
         ToIntFunction<Direction> func = (dir) -> level.getFluidState(blockPos.relative(dir).below()).getAmount();
-
+        //just search neighbours for if we can spread to and below them
         return Waterly.getCardinalsShuffle().stream()
                 .filter(dir -> {
                     BlockPos pos = blockPos.relative(dir);
@@ -353,7 +418,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     @Unique
     private @Nullable Direction waterly$getFastLowestSpreadable(Level level, BlockPos blockPos, FluidState fluidState, int amount) {
         ToIntFunction<Direction> func = (dir) -> level.getFluidState(blockPos.relative(dir)).getAmount();
-
+        //just search neighbours for if we can spread to them
         return Waterly.getCardinalsShuffle().stream()
                 .filter(dir -> {
                     BlockPos pos = blockPos.relative(dir);
@@ -366,37 +431,28 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
 
     @Unique
     protected void waterly$spreadTo2(LevelAccessor levelAccessor, BlockPos blockPos, BlockState blockState, Direction direction, int amount) {
-        this.spreadTo(levelAccessor, blockPos, blockState, direction, waterly$getOfAmount(/*levelAccessor, blockPos, blockState,*/ amount));
+        this.spreadTo(levelAccessor, blockPos, blockState, direction, waterly$getFluidStateOfAmount(amount));
     }
 
-
-    public FluidState waterly$getOfAmount(/*LevelAccessor level, BlockPos blockPos, BlockState blockState,*/ int amount) {
-//        if (amount > 8) System.out.println("amount > 8");
-//
-////        BlockPos posUp = blockPos.above();
-////        BlockState bStateUp = level.getBlockState(posUp);
-////        FluidState fStateUp = bStateUp.getFluidState();
-////        if (!fStateUp.isEmpty() && fStateUp.getType().isSame(this) && this.canPassThroughWall(Direction.UP, level, blockPos, blockState, posUp, bStateUp)) {
-////            return amount == 8 ? this.getSource(false) : this.getFlowing(amount, false);//todo true here broke? redundant now?
-////        } else {
-//            if (amount <= 0) {
-//                System.out.println("AMOUNT <= 0!!!!!!!!!!!!!!");
-//                return Fluids.EMPTY.defaultFluidState();
-//            } else {
+    public FluidState waterly$getFluidStateOfAmount(int amount) {
+//        BlockPos posUp = blockPos.above();
+//        BlockState bStateUp = level.getBlockState(posUp);
+//        FluidState fStateUp = bStateUp.getFluidState();
+//        if (!fStateUp.isEmpty() && fStateUp.getType().isSame(this) && this.canPassThroughWall(Direction.UP, level, blockPos, blockState, posUp, bStateUp)) {
+//            return amount == 8 ? this.getSource(true) : this.getFlowing(amount, true);//todo true here broke? redundant now?
+//        } else {
         return amount == 8 ? this.getSource(false) : this.getFlowing(amount, false);
-//            }
-////        }
-
+//       }
     }
 
     @Unique
     protected void waterly$removeWater(LevelAccessor levelAccessor, BlockPos blockPos, BlockState blockState) {
-        if (blockState.getBlock() instanceof LiquidBlockContainer) {
-            ((BucketPickup) blockState.getBlock()).pickupBlock(null, levelAccessor, blockPos, blockState);
+        if (blockState.getBlock() instanceof LiquidBlockContainer
+                && blockState.getBlock() instanceof BucketPickup bucketPickup) {
+            bucketPickup.pickupBlock(null, levelAccessor, blockPos, blockState);
         } else {
             levelAccessor.setBlock(blockPos, Blocks.AIR.defaultBlockState(), 3);
         }
-
     }
 
     @Unique
@@ -404,7 +460,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
                                                              BlockPos blockPos, BlockState blockState, Direction direction,
                                                              BlockPos blockPos2, BlockState blockState2, FluidState fluidState2,
                                                              boolean enforceSameFluidOrEmpty) {
-        //add extra fluid check for replacing into self
+        //add extra fluid check for enforcing replacing into own fluid type, or empty, only
         if (enforceSameFluidOrEmpty && !(fluidState2.isEmpty() || fluidState2.getType().isSame(sourceFluid)))
             return false;
 
@@ -416,15 +472,13 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
                                         BlockPos blockPos, BlockState blockState, Direction direction,
                                         BlockPos blockPos2, BlockState blockState2, FluidState fluidState2) {
         //add extra fluid check for replacing into self
-        return (fluidState2.canBeReplacedWith(blockGetter, blockPos2, sourceFluid, direction) || waterly$canMoveIntoSelf(sourceFluid, fluidState2, direction, sourceAmount))
+        return (fluidState2.canBeReplacedWith(blockGetter, blockPos2, sourceFluid, direction) || waterly$canFitIntoFluid(sourceFluid, fluidState2, direction, sourceAmount))
                 && this.canPassThroughWall(direction, blockGetter, blockPos, blockState, blockPos2, blockState2)
                 && this.canHoldFluid(blockGetter, blockPos2, blockState2, sourceFluid);
     }
 
     @Unique
-    private boolean waterly$canMoveIntoSelf(Fluid thisFluid, FluidState fluidStateTo, Direction direction, int amount) {
-//        if (direction == Direction.UP) return false;
-
+    private boolean waterly$canFitIntoFluid(Fluid thisFluid, FluidState fluidStateTo, Direction direction, int amount) {
         if (fluidStateTo.isEmpty()) return true;
 
         if (fluidStateTo.getType().isSame(thisFluid)) {

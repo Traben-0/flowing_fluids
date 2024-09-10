@@ -1,30 +1,30 @@
 package traben.waterly;
 
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.BoolArgumentType;
-import com.mojang.brigadier.arguments.FloatArgumentType;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 public final class Waterly {
     public static final String MOD_ID = "waterly";
 
+    public final static Logger LOG = LoggerFactory.getLogger("Waterly");
+
     public static void init() {
-        // Write common init code here.
+        Waterly.LOG.info("Waterly initialising");
+
         CARDINALS.add(Direction.NORTH);
         CARDINALS.add(Direction.SOUTH);
         CARDINALS.add(Direction.EAST);
@@ -50,24 +50,14 @@ public final class Waterly {
 
     public static ItemStack lastBucketUsed = ItemStack.EMPTY;
 
-    public static record CheckedDirFromPosKey(BlockPos pos, Direction dir, int distance) {
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final CheckedDirFromPosKey that = (CheckedDirFromPosKey) o;
-            //larger than is important optimization
-            return distance >= that.distance && Objects.equals(pos, that.pos) && dir == that.dir;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(pos, dir);
-        }
-    }
-
     public static boolean fastmode = false;
-
+    public static boolean debugSpread = false;
+    public static boolean isDebugSpreadRemoveCaches = false;
+    public static BigDecimal totalDebugMilliseconds = BigDecimal.valueOf(0);
+    public static long totalDebugTicks = 0;
+    public static double getAverageDebugMilliseconds(){
+        return totalDebugMilliseconds.divide(BigDecimal.valueOf(totalDebugTicks), 2, RoundingMode.HALF_UP).doubleValue();
+    }
 
     private static void sendCommandFeedback(CommandContext<CommandSourceStack> context, String text) {
         String inputCommand = context.getInput();
@@ -85,6 +75,28 @@ public final class Waterly {
                     sendCommandFeedback(cont, "Fast mode is now " + (fastmode ? "enabled" : "disabled") + ".\nLiquids will no longer check if they can move further than 1 block away from itself and may pool more in places.\nThis reduces sideways positional checking from 4 - 306 times per update, down to only 4 times.");
                     return 1;
                 }))
+                .then(Commands.literal("debugSpread").executes(cont-> {
+                    debugSpread = !debugSpread;
+                    totalDebugMilliseconds = BigDecimal.valueOf(0);
+                    totalDebugTicks = 0;
+                    sendCommandFeedback(cont, "debugSpread is " + (debugSpread ? "enabled." : "disabled."));
+                    return 1;
+                }))
+                .then(Commands.literal("debugSpread_removeCaches").executes(cont-> {
+                    isDebugSpreadRemoveCaches = !isDebugSpreadRemoveCaches;
+                    totalDebugMilliseconds = BigDecimal.valueOf(0);
+                    totalDebugTicks = 0;
+                    sendCommandFeedback(cont, "cache use is " + (isDebugSpreadRemoveCaches ? "disabled." : "enabled."));
+                    return 1;
+                }))
+                        .then(Commands.literal("averageDebugTickLength").executes(cont-> {
+
+                            sendCommandFeedback(cont, "average water tick length is : " + getAverageDebugMilliseconds() + "ms");
+                            return 1;
+                        }))
+
+
+
 //                .then(CommandManager.literal("listRecentCollisions")
 //                        .executes(SolidMobsCommands::recentCollisionsQueryAll)
 //                        .then(CommandManager.literal("all").executes(SolidMobsCommands::recentCollisionsQueryAll))
@@ -99,8 +111,6 @@ public final class Waterly {
 //                        .then(CommandManager.literal("remove").then(CommandManager.argument("text", StringArgumentType.string()).executes(SolidMobsCommands::blacklistRemove)))
 //                        .then(CommandManager.literal("clear").executes(SolidMobsCommands::blacklistClear))
 //                )
-
-
         );
     }
 }
