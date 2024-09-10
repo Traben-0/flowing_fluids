@@ -247,27 +247,6 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
         Short2BooleanMap posCanFlowDown = new Short2BooleanOpenHashMap();
         posCanFlowDown.put(getCacheKey(blockPos, blockPos), false);//set not to flow back into source
 
-        //cache of previous results for slope calculations at the given position
-        //the key is a combination of the position and the direction that position was tested from
-        //the key also includes the distance from the source position when it last checked and overrides the
-        //equality methods to allow matching the same result if the distance remaining of the last result was greater or equal
-        //(meaning it searched further than the current search can)
-        Object2IntMap<CheckedDirFromPosKey> previousResults = new Object2IntOpenHashMap<>() {
-            {
-                defRetValue = -1;
-            }
-
-            @Override
-            public int put(final CheckedDirFromPosKey checkedDirFromPosKey, final int v) {
-                if (Waterly.isDebugSpreadRemoveCaches) {
-                    return 0;
-                }
-                CheckedDirFromPosKey.puttingInCache = true;
-                super.put(checkedDirFromPosKey, v);
-                CheckedDirFromPosKey.puttingInCache = false;
-                return 0;
-            }
-        };
         if (Waterly.debugSpread) {
             waterly$debugCheckCountSpreads = 4;
             waterly$debugCheckCountDowns = 0;
@@ -292,13 +271,10 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
                         return Pair.of(dir, waterly$getSlopeDistance(
                                 level, blockPos, 1, dir.getOpposite(),
                                 fluidState.getType(), amount + 1, posDir, statesAtPos,
-                                posCanFlowDown, previousResults, requiresSlope, slopeFindDistance));
+                                posCanFlowDown, requiresSlope, slopeFindDistance));
                     }
                 })
-                .filter(pair -> {
-                    if (Waterly.debugSpread) Waterly.LOG.info("result: {}", pair);
-                    return !requiresSlope || pair.getSecond() <= slopeFindDistance;
-                })
+                .filter(pair -> !requiresSlope || pair.getSecond() <= slopeFindDistance)
                 .min(Comparator.comparingInt(Pair::getSecond))
                 .map(Pair::getFirst).orElse(null);
 
@@ -306,9 +282,9 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
             long time = System.nanoTime() - start;
             Waterly.totalDebugTicks++;
             Waterly.totalDebugMilliseconds = Waterly.totalDebugMilliseconds.add(BigDecimal.valueOf(time / 1000000D));
-            Waterly.LOG.info("Waterly spread tick:\n Position: {}\n Spread checks: {}\n Down checks: {}\n Result: {}\n Used result caching: {}\n time: {}\n avg time (since debug change): {}ms",
+            Waterly.LOG.info("Waterly spread tick:\n Position: {}\n Spread checks: {}\n Down checks: {}\n Result: {}\n time: {}\n avg time (since debug change): {}ms",
                     blockPos.toShortString(), waterly$debugCheckCountSpreads, waterly$debugCheckCountDowns,
-                    finalDirection, !Waterly.isDebugSpreadRemoveCaches, time, Waterly.getAverageDebugMilliseconds());
+                    finalDirection, time, Waterly.getAverageDebugMilliseconds());
         }
         return finalDirection;
     }
@@ -316,29 +292,15 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     @Unique
     protected int waterly$getSlopeDistance(LevelReader level, BlockPos sourcePosForKey, int distance, Direction fromDir, Fluid sourceFluid, int sourceAmount,
                                            BlockPos newPos, Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos, Short2BooleanMap posCanFlowDown,
-                                           Object2IntMap<CheckedDirFromPosKey> previousResults, boolean forceSlopeDownSameOrEmpty, int slopeFindDistance) {
-
-        //check if we have already calculated this result with a same or greater search distance
-        var outerKey = new CheckedDirFromPosKey(newPos.relative(fromDir), fromDir.getOpposite(), distance);
-        int previousOuterResult = previousResults.getInt(outerKey);
-        if (previousOuterResult != -1) {
-            return previousOuterResult;
-        }
-
+                                           boolean forceSlopeDownSameOrEmpty, int slopeFindDistance) {
         //default distance return
         int smallest = 1000;
+
+        int searchDistance = distance + 1;
 
         //check all directions except the one we came from
         for (final Direction searchDir : Direction.Plane.HORIZONTAL) {
             if (searchDir != fromDir) {
-                int searchDistance = distance + 1;
-                //check if we have already calculated this result with a same or greater search distance
-                var innerKey = new CheckedDirFromPosKey(newPos, searchDir, distance);
-                int previousInnerResult = previousResults.getInt(innerKey);
-                if (previousInnerResult != -1) {
-                    return previousInnerResult;
-                }
-
                 //get search context
                 var searchPos = newPos.relative(searchDir);
                 var searchKey = getCacheKey(sourcePosForKey, searchPos);
@@ -353,15 +315,13 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
                     //if we can flow down, cache the result of this and return this distance as it's the smallest
                     if (waterly$getSetFlowDownCache(searchKey, level, posCanFlowDown, searchPos, sourceFluid, forceSlopeDownSameOrEmpty)) {
                         //cache the result to both keys as we may also come back to this position from another direction
-                        previousResults.put(innerKey, searchDistance);
-                        previousResults.put(outerKey, searchDistance);
                         return searchDistance;
                     }
                     //if we can't flow down here, check the next distance via iteration as long as we are within the slope search distance
                     if (searchDistance < slopeFindDistance) {
                         int next = waterly$getSlopeDistance(level, sourcePosForKey, searchDistance,
                                 searchDir.getOpposite(), sourceFluid, sourceAmount, searchPos,
-                                statesAtPos, posCanFlowDown, previousResults, forceSlopeDownSameOrEmpty, slopeFindDistance);
+                                statesAtPos, posCanFlowDown, forceSlopeDownSameOrEmpty, slopeFindDistance);
                         //if the next distance is less than the current smallest, update the smallest
                         if (next < smallest) {
                             smallest = next;
@@ -372,8 +332,6 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
             }
         }
 
-        //cache and return the final result
-        previousResults.put(outerKey, smallest);
         return smallest;
     }
 

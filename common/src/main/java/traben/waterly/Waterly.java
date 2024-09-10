@@ -52,7 +52,6 @@ public final class Waterly {
 
     public static boolean fastmode = false;
     public static boolean debugSpread = false;
-    public static boolean isDebugSpreadRemoveCaches = false;
     public static BigDecimal totalDebugMilliseconds = BigDecimal.valueOf(0);
     public static long totalDebugTicks = 0;
     public static double getAverageDebugMilliseconds(){
@@ -69,7 +68,6 @@ public final class Waterly {
                 .requires(source -> source.hasPermission(4)
                         || (source.getServer().isSingleplayer() && source.getPlayer() != null && source.getServer().isSingleplayerOwner(source.getPlayer().getGameProfile()))
                 )
-//                .executes(SolidMobsCommands::help)
                 .then(Commands.literal("toggle_fast_mode").executes(cont->{
                     fastmode = !fastmode;
                     sendCommandFeedback(cont, "Fast mode is now " + (fastmode ? "enabled" : "disabled") + ".\nLiquids will no longer check if they can move further than 1 block away from itself and may pool more in places.\nThis reduces sideways positional checking from 4 - 306 times per update, down to only 4 times.");
@@ -82,13 +80,7 @@ public final class Waterly {
                     sendCommandFeedback(cont, "debugSpread is " + (debugSpread ? "enabled." : "disabled."));
                     return 1;
                 }))
-                .then(Commands.literal("debugSpread_removeCaches").executes(cont-> {
-                    isDebugSpreadRemoveCaches = !isDebugSpreadRemoveCaches;
-                    totalDebugMilliseconds = BigDecimal.valueOf(0);
-                    totalDebugTicks = 0;
-                    sendCommandFeedback(cont, "cache use is " + (isDebugSpreadRemoveCaches ? "disabled." : "enabled."));
-                    return 1;
-                }))
+
                         .then(Commands.literal("averageDebugTickLength").executes(cont-> {
 
                             sendCommandFeedback(cont, "average water tick length is : " + getAverageDebugMilliseconds() + "ms");
