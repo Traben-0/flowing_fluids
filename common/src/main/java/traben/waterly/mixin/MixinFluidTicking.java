@@ -164,8 +164,10 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
             final int destFluidAmount = level.getFluidState(posDir).getAmount();
             int difference = amount - destFluidAmount;
 
-            //since the remainder is left in the source block, we can return if the difference is 1, or less (less is impossible but also a safety check)
-            if (difference <= 1) return;
+            //vast majority of changes are only 1, so we can skip the rest of the logic
+            //if the remainder is left in the source block, we can return if the difference is 1, or less (less is impossible but also a safety check)
+            if (Waterly.levelBehaviour == Waterly.CarrySplitBehaviour.VANILLA_LIKE && difference <= 1)
+                return;
 
             //calculate the amount that would level both liquids
             final int averageLevel = destFluidAmount + difference / 2;
@@ -176,21 +178,28 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
             int fromAmount;
             int toAmount;
             if (hasRemainder) {
-                switch (Waterly.carrySplitBehaviour) {
-                    case KEEP -> {
+                switch (Waterly.levelBehaviour) {
+                    case VANILLA_LIKE -> {
                         fromAmount = averageLevel + 1;
                         toAmount = averageLevel;
                     }
-                    case SEND -> {
+                    case FORCE_LEVEL -> {
                         fromAmount = averageLevel;
                         toAmount = averageLevel + 1;
                     }
-                    case RANDOM -> {
-                        boolean from = level.random.nextBoolean();
+                    case LAZY_LEVEL -> {
+                        //give the flow an average amount of attempts to level itself out
+                        boolean from = level.random.nextInt(Waterly.fastmode ? 2 : 4) < 2;
                         fromAmount = from ? averageLevel + 1 : averageLevel;
                         toAmount = from ? averageLevel : averageLevel + 1;
                     }
-                    default -> throw new IllegalStateException("Unexpected value for split decision: " + Waterly.carrySplitBehaviour);
+                    case STRONG_LEVEL -> {
+                        //give the flow a high average amount of attempts to level itself out
+                        boolean from = level.random.nextInt(Waterly.fastmode ? 3 : 10) == 0;
+                        fromAmount = from ? averageLevel + 1 : averageLevel;
+                        toAmount = from ? averageLevel : averageLevel + 1;
+                    }
+                    default -> throw new IllegalStateException("Unexpected value for split decision: " + Waterly.levelBehaviour);
                 }
             }else{
                 fromAmount = averageLevel;

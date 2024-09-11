@@ -24,7 +24,7 @@ public final class Waterly {
     private static final List<Direction> CARDINALS_AND_DOWN = new ArrayList<>();
     public static boolean fastmode = false;
     public static boolean edges = false;
-    public static CarrySplitBehaviour carrySplitBehaviour = CarrySplitBehaviour.KEEP;
+    public static CarrySplitBehaviour levelBehaviour = CarrySplitBehaviour.LAZY_LEVEL;
     public static boolean enable = true;
     public static boolean debugSpread = false;
     public static boolean debugSpreadPrint = false;
@@ -92,22 +92,27 @@ public final class Waterly {
                                             return sendCommandFeedback(cont, "Fast mode is now disabled.\nLiquids will now check if they can move up to 4 blocks away from itself and will pool less frequently.\nThis increases sideways spread positional checking from 4 times per update, to up to 160 times.");
                                         })
                                 )
-                        ).then(Commands.literal("flowSplitBehaviour")
-                                .executes(cont->sendCommandFeedback(cont, "Controls how liquids split when flowing, if a block with 5 water levels splits its flow to its neighbour it will have 1 remaining, this chooses what to do with it: " + carrySplitBehaviour))
-                                .then(Commands.literal("keep")
+                        ).then(Commands.literal("levelBehaviour")
+                                .executes(cont->sendCommandFeedback(cont, "Controls how liquids split when flowing, if a block with 5 water levels splits its flow to its neighbour it will have 1 remaining, this chooses what to do with it: " + levelBehaviour))
+                                .then(Commands.literal("vanilla")
                                         .executes(cont -> {
-                                            carrySplitBehaviour = CarrySplitBehaviour.KEEP;
-                                            return sendCommandFeedback(cont, "Liquids will now keep the higher split amount when when flowing. A 5 water level block will give 2 to its neighbour and keep 3.");
+                                            levelBehaviour = CarrySplitBehaviour.VANILLA_LIKE;
+                                            return sendCommandFeedback(cont, "Liquids will consider themselves 'level' when their neighbours are the same level or 1 level lower. This means water CANNOT flow more than 8 blocks, like vanilla :).");
                                         })
-                                ).then(Commands.literal("random")
+                                ).then(Commands.literal("lazy")
                                         .executes(cont -> {
-                                            carrySplitBehaviour = CarrySplitBehaviour.RANDOM;
-                                            return sendCommandFeedback(cont, "Liquids will now randomly split whether they or the new amount gets the extra level value. A 5 water level block will give 2 to its neighbour and keep 2, then randomly give itself or the neighbour the 1 extra.");
+                                            levelBehaviour = CarrySplitBehaviour.LAZY_LEVEL;
+                                            return sendCommandFeedback(cont, "Liquids will lazily try to enforce 'true level' however, if a pool of 5 high water has a single block of level 6, instead of wandering endlessly, it will eventually randomly stop looking for a gap to fit in, with a high random chance to stop.");
                                         })
-                                ).then(Commands.literal("send")
+                                ).then(Commands.literal("strong")
+                                .executes(cont -> {
+                                    levelBehaviour = CarrySplitBehaviour.STRONG_LEVEL;
+                                    return sendCommandFeedback(cont, "Liquids will strongly try to enforce 'true level', if a pool of 5 high water has a single block of level 6, the extra level will wander near endlessly, it will eventually randomly stop looking for a gap to fit in, with a low random chance to stop.");
+                                })
+                                ).then(Commands.literal("force")
                                         .executes(cont -> {
-                                            carrySplitBehaviour = CarrySplitBehaviour.SEND;
-                                            return sendCommandFeedback(cont, "Liquids will now keep the lower split amount when when flowing. A 5 water level block will give 3 to its neighbour and keep 2.");
+                                            levelBehaviour = CarrySplitBehaviour.FORCE_LEVEL;
+                                            return sendCommandFeedback(cont, "Liquids will always try to enforce 'true level' if a pool of 5 high water has a single block of level 6, it will tirelessly wander the entire pool looking for a chance to flow down and level it self.\nThis is the most realistic but not recommended for lag reasons, consider either strong or lazy leveling instead.");
                                         })
                                 )
                 ).then(Commands.literal("minHeightFluidEdgeBehaviour")
@@ -146,8 +151,10 @@ public final class Waterly {
     }
 
     public enum CarrySplitBehaviour {
-        KEEP,
-        RANDOM,
-        SEND
+        VANILLA_LIKE,
+        LAZY_LEVEL,
+        STRONG_LEVEL,
+        FORCE_LEVEL
+
     }
 }
