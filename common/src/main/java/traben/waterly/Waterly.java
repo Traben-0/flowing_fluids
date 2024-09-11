@@ -23,6 +23,8 @@ public final class Waterly {
     private static final List<Direction> CARDINALS = new ArrayList<>();
     private static final List<Direction> CARDINALS_AND_DOWN = new ArrayList<>();
     public static boolean fastmode = false;
+    public static boolean edges = false;
+    public static CarrySplitBehaviour carrySplitBehaviour = CarrySplitBehaviour.KEEP;
     public static boolean enable = true;
     public static boolean debugSpread = false;
     public static boolean debugSpreadPrint = false;
@@ -90,7 +92,38 @@ public final class Waterly {
                                             return sendCommandFeedback(cont, "Fast mode is now disabled.\nLiquids will now check if they can move up to 4 blocks away from itself and will pool less frequently.\nThis increases sideways spread positional checking from 4 times per update, to up to 160 times.");
                                         })
                                 )
-                        ).then(Commands.literal("debug")
+                        ).then(Commands.literal("flowSplitBehaviour")
+                                .executes(cont->sendCommandFeedback(cont, "Controls how liquids split when flowing, if a block with 5 water levels splits its flow to its neighbour it will have 1 remaining, this chooses what to do with it: " + carrySplitBehaviour))
+                                .then(Commands.literal("keep")
+                                        .executes(cont -> {
+                                            carrySplitBehaviour = CarrySplitBehaviour.KEEP;
+                                            return sendCommandFeedback(cont, "Liquids will now keep the higher split amount when when flowing. A 5 water level block will give 2 to its neighbour and keep 3.");
+                                        })
+                                ).then(Commands.literal("random")
+                                        .executes(cont -> {
+                                            carrySplitBehaviour = CarrySplitBehaviour.RANDOM;
+                                            return sendCommandFeedback(cont, "Liquids will now randomly split whether they or the new amount gets the extra level value. A 5 water level block will give 2 to its neighbour and keep 2, then randomly give itself or the neighbour the 1 extra.");
+                                        })
+                                ).then(Commands.literal("send")
+                                        .executes(cont -> {
+                                            carrySplitBehaviour = CarrySplitBehaviour.SEND;
+                                            return sendCommandFeedback(cont, "Liquids will now keep the lower split amount when when flowing. A 5 water level block will give 3 to its neighbour and keep 2.");
+                                        })
+                                )
+                ).then(Commands.literal("minHeightFluidEdgeBehaviour")
+                        .executes(cont->sendCommandFeedback(cont, "Controls if liquids flow to nearby edges when at their minimum height. Currently they: " + (edges ? "flow." : "stay.")))
+                        .then(Commands.literal("flow")
+                                .executes(cont -> {
+                                    edges = true;
+                                    return sendCommandFeedback(cont, "Liquids at their minimum height will now flow to and over nearby edges, up to 4 blocks away if fast mode is disabled, or 1 block away if fast mode is enabled.");
+                                })
+                        ).then(Commands.literal("stay")
+                                .executes(cont -> {
+                                    edges = false;
+                                    return sendCommandFeedback(cont, "Liquids at their minimum height will no longer flow to and over nearby edges.");
+                                })
+                        )
+                ).then(Commands.literal("debug")
                                 .then(Commands.literal("spread")
                                         .then(Commands.literal("print")
                                                 .executes(cont -> {
@@ -110,5 +143,11 @@ public final class Waterly {
                                 )
                         )
         );
+    }
+
+    public enum CarrySplitBehaviour {
+        KEEP,
+        RANDOM,
+        SEND
     }
 }

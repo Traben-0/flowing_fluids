@@ -37,7 +37,9 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
         super(properties);
     }
 
-//handled via blockstate mixin now for enable/disable
+
+
+//handled via blockstate mixin now for live enable/disable
 //    @ModifyArg(
 //            method = "<init>",
 //            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/Block;<init>(Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V"),

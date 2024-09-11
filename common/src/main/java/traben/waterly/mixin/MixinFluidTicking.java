@@ -72,6 +72,8 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     @Shadow
     protected abstract int getSlopeFindDistance(final LevelReader levelReader);
 
+    @Shadow protected abstract boolean canSpreadTo(final BlockGetter level, final BlockPos fromPos, final BlockState fromBlockState, final Direction direction, final BlockPos toPos, final BlockState toBlockState, final FluidState toFluidState, final Fluid fluid);
+
     @Inject(method = "tick", at = @At(value = "HEAD"), cancellable = true)
     private void waterly$tickMixin(final Level level, final BlockPos blockPos, final FluidState fluidState, final CallbackInfo ci) {
         if (Waterly.enable) {
@@ -110,7 +112,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
             //this ties in nicely with a sort of surface tension effect
             if (remainingAmount > getDropOff(level)) {//drop off is 1 for water, 2 for lava in the overworld
                 waterly$flowToSides(level, blockPos, fluidState, remainingAmount, thisState, remainingAmount);
-            } else {
+            } else if (Waterly.edges) {
                 //if the remaining amount is less than the drop-off amount, we can still flow to the sides but only if
                 //we find a nearby ledge to flow towards, as we want this water to settle when on flat ground
                 //use 1 as the amount as we don't spread to lower values than the drop-off, so we only want empty destination tiles
@@ -159,22 +161,52 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
             waterly$spreadTo2(level, posDir, level.getBlockState(posDir), dir, amount);
         } else {
             //this amount is already confirmed to be less than {amount}
-            int destFluidAmount = level.getFluidState(posDir).getAmount();
+            final int destFluidAmount = level.getFluidState(posDir).getAmount();
             int difference = amount - destFluidAmount;
 
             //since the remainder is left in the source block, we can return if the difference is 1, or less (less is impossible but also a safety check)
             if (difference <= 1) return;
 
             //calculate the amount that would level both liquids
-            int averageLevel = destFluidAmount + difference / 2;
+            final int averageLevel = destFluidAmount + difference / 2;
 
             //if the difference is odd, we need to add 1 to the 'from' amount
             boolean hasRemainder = (difference % 2 != 0);
-            int fromAmount = hasRemainder ? averageLevel + 1 : averageLevel;
 
-            //amounts are always changed by this point, so we can safely set the source block to the new amount
-            waterly$setOrRemoveWaterAmountAt(level, blockPos, fromAmount, thisState, dir.getOpposite());
-            waterly$spreadTo2(level, posDir, level.getBlockState(posDir), dir, averageLevel);
+            int fromAmount;
+            int toAmount;
+            if (hasRemainder) {
+                switch (Waterly.carrySplitBehaviour) {
+                    case KEEP -> {
+                        fromAmount = averageLevel + 1;
+                        toAmount = averageLevel;
+                    }
+                    case SEND -> {
+                        fromAmount = averageLevel;
+                        toAmount = averageLevel + 1;
+                    }
+                    case RANDOM -> {
+                        boolean from = level.random.nextBoolean();
+                        fromAmount = from ? averageLevel + 1 : averageLevel;
+                        toAmount = from ? averageLevel : averageLevel + 1;
+                    }
+                    default -> throw new IllegalStateException("Unexpected value for split decision: " + Waterly.carrySplitBehaviour);
+                }
+            }else{
+                fromAmount = averageLevel;
+                toAmount = averageLevel;
+            }
+
+            //split behaviour may make it so there are no changes, if so don't trigger updates
+            if (fromAmount != originalAmount) {
+                //set the source block to the new amount triggering updates
+                waterly$setOrRemoveWaterAmountAt(level, blockPos, fromAmount, thisState, dir.getOpposite());
+            }
+            if (toAmount != destFluidAmount) {
+                //set the destination block to the new amount triggering updates
+                waterly$spreadTo2(level, posDir, level.getBlockState(posDir), dir, toAmount);
+            }
+
         }
     }
 
@@ -235,7 +267,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
         //use simpler direction choice if fast mode is enabled
         if (Waterly.fastmode) {
             return requiresSlope
-                    ? waterly$getFastLowestSpreadableEdge(level, blockPos, fluidState, amount)
+                    ? Waterly.edges ? waterly$getFastLowestSpreadableEdge(level, blockPos, fluidState, amount) : null
                     : waterly$getFastLowestSpreadable(level, blockPos, fluidState, amount);
         }
 
