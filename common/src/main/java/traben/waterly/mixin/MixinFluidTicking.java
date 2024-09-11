@@ -285,7 +285,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
 
         //get the cardinal directions that are valid flow locations sorted by the amount of fluid in them,
         //ties are randomly sorted by initial shuffle
-        List<Direction> directionsCanSpreadToSortedByAmount = Waterly.getCardinalsShuffle().stream()
+        List<Direction> directionsCanSpreadToSortedByAmount = Waterly.getCardinalsShuffle(level.random).stream()
                 .sorted(Comparator.comparingInt((dir1) -> level.getFluidState(blockPos.relative(dir1)).getAmount()))
                 .filter(dir -> {
                     BlockPos posDir = blockPos.relative(dir);
@@ -435,7 +435,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     private @Nullable Direction waterly$getFastLowestSpreadableEdge(Level level, BlockPos blockPos, FluidState fluidState, int amount) {
         ToIntFunction<Direction> func = (dir) -> level.getFluidState(blockPos.relative(dir).below()).getAmount();
         //just search neighbours for if we can spread to and below them
-        return Waterly.getCardinalsShuffle().stream()
+        return Waterly.getCardinalsShuffle(level.random).stream()
                 .filter(dir -> {
                     BlockPos pos = blockPos.relative(dir);
                     BlockState state = level.getBlockState(pos);
@@ -454,7 +454,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     private @Nullable Direction waterly$getFastLowestSpreadable(Level level, BlockPos blockPos, FluidState fluidState, int amount) {
         ToIntFunction<Direction> func = (dir) -> level.getFluidState(blockPos.relative(dir)).getAmount();
         //just search neighbours for if we can spread to them
-        return Waterly.getCardinalsShuffle().stream()
+        return Waterly.getCardinalsShuffle(level.random).stream()
                 .filter(dir -> {
                     BlockPos pos = blockPos.relative(dir);
                     BlockState state = level.getBlockState(pos);

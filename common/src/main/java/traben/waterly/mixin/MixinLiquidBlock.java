@@ -60,7 +60,7 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
             if (level > 0) {
                 List<BlockPos> toCheck = new ArrayList<>();
                 toCheck.add(blockPos);
-                for (Direction direction : Waterly.getCardinalsAndDownShuffle()) {
+                for (Direction direction : Waterly.getCardinalsAndDownShuffle(levelAccessor.getRandom())) {
                     BlockPos offset = blockPos.relative(direction);
                     toCheck.add(offset);
                 }
@@ -84,7 +84,7 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
                             } else {
                                 onSuccessAirSetters.add(() -> levelAccessor.setBlock(pos, Blocks.AIR.defaultBlockState(), 11));
                                 if (level == 8) break;
-                                for (Direction direction : Waterly.getCardinalsAndDownShuffle()) {
+                                for (Direction direction : Waterly.getCardinalsAndDownShuffle(levelAccessor.getRandom())) {
                                     BlockPos offset = pos.relative(direction);
                                     if (!toCheck.contains(offset)) toCheck.add(offset);
                                 }

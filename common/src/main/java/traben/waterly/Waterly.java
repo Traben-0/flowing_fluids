@@ -7,6 +7,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.RandomSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,17 +40,17 @@ public final class Waterly {
         CARDINALS.add(Direction.EAST);
         CARDINALS.add(Direction.WEST);
 
-        CARDINALS_AND_DOWN.add(Direction.DOWN);
         CARDINALS_AND_DOWN.addAll(CARDINALS);
+        CARDINALS_AND_DOWN.add(Direction.DOWN);
     }
 
-    public static List<Direction> getCardinalsShuffle() {
-        Collections.shuffle(CARDINALS);
+    public static List<Direction> getCardinalsShuffle(RandomSource random) {
+        Collections.shuffle(CARDINALS, random::nextInt);
         return CARDINALS;
     }
 
-    public static List<Direction> getCardinalsAndDownShuffle() {
-        Collections.shuffle(CARDINALS_AND_DOWN);
+    public static List<Direction> getCardinalsAndDownShuffle(RandomSource random) {
+        Collections.shuffle(CARDINALS_AND_DOWN, random::nextInt);
         return CARDINALS_AND_DOWN;
     }
 
@@ -65,8 +66,7 @@ public final class Waterly {
 
     public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext var2, Commands.CommandSelection var3) {
         dispatcher.register(Commands.literal("waterly")
-                        .requires(source -> source.hasPermission(4)
-                                || (source.getServer().isSingleplayer() && source.getPlayer() != null && source.getServer().isSingleplayerOwner(source.getPlayer().getGameProfile()))
+                        .requires(source -> source.hasPermission(4) || (source.getServer().isSingleplayer() && source.getPlayer() != null && source.getServer().isSingleplayerOwner(source.getPlayer().getGameProfile()))
                         ).then(Commands.literal("enable")
                                 .then(Commands.literal("on")
                                         .executes(cont -> {
@@ -97,7 +97,7 @@ public final class Waterly {
                                 .then(Commands.literal("vanilla")
                                         .executes(cont -> {
                                             levelBehaviour = CarrySplitBehaviour.VANILLA_LIKE;
-                                            return sendCommandFeedback(cont, "Liquids will consider themselves 'level' when their neighbours are the same level or 1 level lower. This means water CANNOT flow more than 8 blocks, like vanilla :).");
+                                            return sendCommandFeedback(cont, "Liquids will consider themselves 'level' when their neighbours are the same level or 1 level lower. This means water wont flow more than 8 blocks, like vanilla :).");
                                         })
                                 ).then(Commands.literal("lazy")
                                         .executes(cont -> {
