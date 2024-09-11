@@ -1,9 +1,8 @@
 package traben.waterly.fabric;
 
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.commands.CommandResultCallback;
-import traben.waterly.Waterly;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import traben.waterly.Waterly;
 
 public final class WaterlyFabric implements ModInitializer {
     @Override

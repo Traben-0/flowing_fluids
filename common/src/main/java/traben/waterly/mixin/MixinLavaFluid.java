@@ -11,13 +11,14 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import traben.waterly.Waterly;
 
 @Mixin(LavaFluid.class)
 public class MixinLavaFluid {
 
     @Inject(method = "canBeReplacedWith", at = @At(value = "RETURN"), cancellable = true)
     private void waterly$removeHeightCheck(final FluidState fluidState, final BlockGetter blockGetter, final BlockPos blockPos, final Fluid fluid, final Direction direction, final CallbackInfoReturnable<Boolean> cir) {
-        if(true && !cir.getReturnValue()){//todo enable flag
+        if (Waterly.enable && !cir.getReturnValue()) {
             cir.setReturnValue(fluid.is(FluidTags.WATER));
         }
     }

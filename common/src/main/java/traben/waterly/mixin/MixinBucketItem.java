@@ -15,7 +15,10 @@ import net.minecraft.tags.FluidTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.*;
+import net.minecraft.world.item.BucketItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemUtils;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -36,25 +39,30 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import traben.waterly.FluidGetterByAmount;
+import traben.waterly.Waterly;
 
 
 @Mixin(BucketItem.class)
 public abstract class MixinBucketItem extends Item {
 
-    @Shadow @Final private Fluid content;
+    @Shadow
+    @Final
+    private Fluid content;
 
-    @Shadow public abstract void checkExtraContent(@Nullable final Player player, final Level level, final ItemStack itemStack, final BlockPos blockPos);
+    public MixinBucketItem(final Properties properties) {
+        super(properties);
+    }
 
     @Shadow
     public static ItemStack getEmptySuccessItem(final ItemStack itemStack, final Player player) {
         return null;
     }
 
-    @Shadow protected abstract void playEmptySound(@Nullable final Player player, final LevelAccessor levelAccessor, final BlockPos blockPos);
+    @Shadow
+    public abstract void checkExtraContent(@Nullable final Player player, final Level level, final ItemStack itemStack, final BlockPos blockPos);
 
-    public MixinBucketItem(final Properties properties) {
-        super(properties);
-    }
+    @Shadow
+    protected abstract void playEmptySound(@Nullable final Player player, final LevelAccessor levelAccessor, final BlockPos blockPos);
 
     @ModifyArg(
             method = "use",
@@ -62,7 +70,7 @@ public abstract class MixinBucketItem extends Item {
             index = 2
     )
     private ClipContext.Fluid waterly$allowAnyFluid(final ClipContext.Fluid par3) {
-        if (true && par3 == ClipContext.Fluid.SOURCE_ONLY) { //todo enable flag
+        if (Waterly.enable && par3 == ClipContext.Fluid.SOURCE_ONLY) {
             return ClipContext.Fluid.ANY;
         }
         return par3;
@@ -71,7 +79,7 @@ public abstract class MixinBucketItem extends Item {
     //always place if partial
     @Inject(method = "use", at = @At(value = "HEAD"), cancellable = true)
     private void waterly$alterBehaviourIfPartial(final Level level, final Player player, final InteractionHand interactionHand, final CallbackInfoReturnable<InteractionResultHolder<ItemStack>> cir) {
-        if (true //todo enable flag
+        if (Waterly.enable
                 && content instanceof FluidGetterByAmount) {//not empty and is flowing
             ItemStack heldBucket = player.getItemInHand(interactionHand);
 
@@ -90,7 +98,7 @@ public abstract class MixinBucketItem extends Item {
                     var fluidState = level.getFluidState(blockPos);
                     BlockPos blockPos3 = (blockState.getBlock() instanceof LiquidBlockContainer && this.content == Fluids.WATER)
                             || (this.content.isSame(fluidState.getType()) && fluidState.getAmount() < 8)
-                                ? blockPos : blockPos2;
+                            ? blockPos : blockPos2;
                     int amount = 8 - heldBucket.getDamageValue();
                     int remainder = this.waterly$emptyContents_AndGetRemainder(player, level, blockPos3, blockHitResult, amount);
                     if (remainder != amount) {
@@ -106,8 +114,8 @@ public abstract class MixinBucketItem extends Item {
                         } else {
                             resultBucket = heldBucket.copy();
                             resultBucket.applyComponents(DataComponentMap.builder()
-                                    .set(DataComponents.DAMAGE, 8-remainder)
-                                    .set(DataComponents.MAX_DAMAGE,8).build());
+                                    .set(DataComponents.DAMAGE, 8 - remainder)
+                                    .set(DataComponents.MAX_DAMAGE, 8).build());
                         }
 
                         ItemStack itemStack2 = ItemUtils.createFilledResult(heldBucket, player, resultBucket);
@@ -119,7 +127,6 @@ public abstract class MixinBucketItem extends Item {
                     cir.setReturnValue(InteractionResultHolder.fail(heldBucket));
                 }
             }
-
         }
         //continue normally
     }
@@ -143,7 +150,7 @@ public abstract class MixinBucketItem extends Item {
 
             if (!canPlaceLiquidInPos) {
 //                System.out.println("cannot place liquid");
-                if(blockHitResult == null) return amount;
+                if (blockHitResult == null) return amount;
                 return this.waterly$emptyContents_AndGetRemainder(player, level, blockHitResult.getBlockPos().relative(blockHitResult.getDirection()), null, amount);
             } else if (level.dimensionType().ultraWarm() && this.content.is(FluidTags.WATER)) {
                 int i = blockPos.getX();

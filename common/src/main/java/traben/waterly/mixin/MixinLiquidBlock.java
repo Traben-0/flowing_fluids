@@ -12,47 +12,48 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BucketPickup;
 import net.minecraft.world.level.block.LiquidBlock;
-import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FlowingFluid;
-import net.minecraft.world.level.material.PushReaction;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import traben.waterly.Waterly;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 
 @Mixin(LiquidBlock.class)
 public abstract class MixinLiquidBlock extends Block implements BucketPickup {
 
-    @Shadow @Final protected FlowingFluid fluid;
+    @Shadow
+    @Final
+    protected FlowingFluid fluid;
 
     public MixinLiquidBlock(final Properties properties) {
         super(properties);
     }
 
-    @ModifyArg(
-            method = "<init>",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/Block;<init>(Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V"),
-            index = 0
-    )
-    private static BlockBehaviour.Properties waterly$modifyBlockProperties(final BlockBehaviour.Properties properties) {
-        return true ?
-                properties.pushReaction(PushReaction.PUSH_ONLY).randomTicks()
-                : properties;//todo enable flag
-    }
+//handled via blockstate mixin now for enable/disable
+//    @ModifyArg(
+//            method = "<init>",
+//            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/Block;<init>(Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V"),
+//            index = 0
+//    )
+//    private static BlockBehaviour.Properties waterly$modifyBlockProperties(final BlockBehaviour.Properties properties) {
+//        return Waterly.enable ?
+//                properties.pushReaction(PushReaction.PUSH_ONLY).randomTicks()
+//                : properties;
+//    }
+
 
     @Inject(method = "pickupBlock", at = @At(value = "RETURN"), cancellable = true)
     private void waterly$modifyBucket(final Player player, final LevelAccessor levelAccessor, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<ItemStack> cir) {
 //        System.out.println("pickup");
-        if (cir.getReturnValue().isEmpty() && true) {//enabled
+        if (cir.getReturnValue().isEmpty() && Waterly.enable) {
             int level = levelAccessor.getFluidState(blockPos).getAmount();
             if (level > 0) {
                 List<BlockPos> toCheck = new ArrayList<>();
@@ -74,11 +75,11 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
                         int amount = state.getAmount();
                         if (amount > 0) {
                             level += amount;
-                            if(level > 8) {
-                                final int finalLevel = level-8;
+                            if (level > 8) {
+                                final int finalLevel = level - 8;
                                 onSuccessAirSetters.add(() -> levelAccessor.setBlock(pos, fluid.getFlowing(finalLevel, false).createLegacyBlock(), 11));
                                 break;
-                            }else{
+                            } else {
                                 onSuccessAirSetters.add(() -> levelAccessor.setBlock(pos, Blocks.AIR.defaultBlockState(), 11));
                                 if (level == 8) break;
                                 for (Direction direction : Waterly.getCardinalsAndDownShuffle()) {
@@ -89,18 +90,18 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
                         }
                     }
                 }
-                //todo setting for if they even want partial buckets
+
                 levelAccessor.setBlock(blockPos, Blocks.AIR.defaultBlockState(), 11);
                 onSuccessAirSetters.forEach(Runnable::run);
-                if(level>=8){
+                if (level >= 8) {
                     //success for full vanilla friendly bucket
                     cir.setReturnValue(new ItemStack(this.fluid.getBucket()));
-                }else{
+                } else {
                     //add damage flag
-                    var stack =new ItemStack(this.fluid.getBucket());
+                    var stack = new ItemStack(this.fluid.getBucket());
                     stack.applyComponents(DataComponentMap.builder()
-                            .set(DataComponents.DAMAGE, 8-level)
-                            .set(DataComponents.MAX_DAMAGE,8).build());
+                            .set(DataComponents.DAMAGE, 8 - level)
+                            .set(DataComponents.MAX_DAMAGE, 8).build());
                     cir.setReturnValue(stack);
                 }
             }
