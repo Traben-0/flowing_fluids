@@ -76,6 +76,9 @@ public abstract class MixinFlowingFluid extends Fluid implements FluidGetterByAm
     protected abstract int getSlopeFindDistance(final LevelReader levelReader);
 
 
+    @Shadow public abstract int getAmount(final FluidState state);
+
+
     @Inject(method = "getFlow", at = @At(value = "HEAD"), cancellable = true)
     private void ff$hideFlowingTexture(final BlockGetter blockReader, final BlockPos pos, final FluidState fluidState, final CallbackInfoReturnable<Vec3> cir) {
         if (FlowingFluids.config.enableMod && FlowingFluids.config.hideFlowingTexture) {
@@ -83,6 +86,21 @@ public abstract class MixinFlowingFluid extends Fluid implements FluidGetterByAm
         }
     }
 
+    @Inject(method = "getOwnHeight", at = @At(value = "HEAD"), cancellable = true)
+    private void ff$differentRenderHeight(final FluidState state, final CallbackInfoReturnable<Float> cir) {
+        if (FlowingFluids.config.enableMod && FlowingFluids.config.fullLiquidHeight != FFConfig.LiquidHeight.REGULAR) {
+            cir.setReturnValue(
+                    switch (FlowingFluids.config.fullLiquidHeight) {
+                        case BLOCK -> state.getAmount() / 8F;
+                        case SLAB -> state.getAmount() / 16F;
+                        case CARPET -> 0.0625f;
+                        case REGULAR_LOWER_BOUND -> (state.getAmount() - 0.9F) * (8.0F / 9.0F) / 7.0F;
+                        case BLOCK_LOWER_BOUND -> (state.getAmount() - 0.9F) / 7.0F;
+                        default -> state.getAmount() / 9.0F;
+                    }
+            );
+        }
+    }
 
     @Inject(method = "tick", at = @At(value = "HEAD"), cancellable = true)
     private void ff$tickMixin(final Level level, final BlockPos blockPos, final FluidState fluidState, final CallbackInfo ci) {

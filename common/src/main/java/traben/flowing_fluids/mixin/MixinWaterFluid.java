@@ -53,11 +53,17 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
                         FlowingFluids.LOG.info("[Flowing Fluids] --- Water was filled by biome. Chance: {}", FlowingFluids.config.oceanRiverSwampRefillChance);
                     return;
                 }
-                if (ff$tryEvaporate(level, blockPos, amount, level.random.nextFloat())) {
+                if (ff$tryEvaporateNether(level, blockPos, amount, level.random.nextFloat())) {
                     if (print)
-                        FlowingFluids.LOG.info("[Flowing Fluids] --- Water was evaporated. Chance: {}", FlowingFluids.config.evaporationChance);
+                        FlowingFluids.LOG.info("[Flowing Fluids] --- Water was evaporated via Nether. Chance: {}", FlowingFluids.config.evaporationChance);
                     return;
                 }
+                if (ff$tryEvaporate(level, blockPos, amount, level.random.nextFloat())) {
+                    if (print)
+                        FlowingFluids.LOG.info("[Flowing Fluids] --- Water was evaporated - non Nether. Chance: {}", FlowingFluids.config.evaporationChance);
+                    return;
+                }
+
                 if (print)
                     FlowingFluids.LOG.info("[Flowing Fluids] --- Random tick did nothing. Chances:\nRain: {}\nBiome: {}\nEvaporation: {}",
                             FlowingFluids.config.rainRefillChance, FlowingFluids.config.oceanRiverSwampRefillChance, FlowingFluids.config.evaporationChance);
@@ -107,13 +113,32 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
 
     @Unique
     private boolean ff$tryEvaporate(final Level level, final BlockPos blockPos, int amount, float chance) {
-        //evaporate over time if exposed to any sky light and is day
-        if (chance < FlowingFluids.config.evaporationChance && amount <= getDropOff(level)
-                && level.isDay() && !level.isRaining()
-                && level.getFluidState(blockPos.below()).isEmpty()
-                && level.getBrightness(LightLayer.SKY, blockPos) > 0) {
-            level.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());
-            return true;
+        if (chance < FlowingFluids.config.evaporationChance){
+            //evaporate over time if exposed to any sky light and is day
+            if(amount <= getDropOff(level)
+                    && level.isDay() && !level.isRaining()
+                    && level.getFluidState(blockPos.below()).isEmpty()
+                    && level.getBrightness(LightLayer.SKY, blockPos) > 0) {
+                level.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Unique
+    private boolean ff$tryEvaporateNether(final Level level, final BlockPos blockPos, int amount, float chance) {
+
+        if (chance < FlowingFluids.config.evaporationNetherChance){
+            //evaporate always if nether
+            if (level.getBiome(blockPos).is(BiomeTags.IS_NETHER)){
+                if (amount == 1){
+                    level.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());
+                }else {
+                    level.setBlockAndUpdate(blockPos, flowing_fluids$getFluidStateOfAmount(amount - 1).createLegacyBlock());
+                }
+                return true;
+            }
         }
         return false;
     }

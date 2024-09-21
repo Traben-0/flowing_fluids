@@ -56,6 +56,39 @@ public class FFComands {
                                     return messageAndSaveConfig(cont, "Flowing fluid texture is now visible.\nLiquids will now show the flowing texture on their surface.");
                                 })
                         )
+                ).then(Commands.literal("fluid_height")
+                        .executes(cont -> message(cont, "Fluids currently render up to " + FlowingFluids.config.fullLiquidHeight +" height."))
+                        .then(Commands.literal("regular")
+                                .executes(cont -> {
+                                    FlowingFluids.config.fullLiquidHeight = FFConfig.LiquidHeight.REGULAR;
+                                    return messageAndSaveConfig(cont, "Fluids now render up to regular height.");
+                                })
+                        ).then(Commands.literal("regular_lower_bound")
+                                .executes(cont -> {
+                                    FlowingFluids.config.fullLiquidHeight = FFConfig.LiquidHeight.REGULAR_LOWER_BOUND;
+                                    return messageAndSaveConfig(cont, "Fluids now render up to their regular height but will be almost flat at their lowest amount.");
+                                })
+                        ).then(Commands.literal("block_lower_bound")
+                                .executes(cont -> {
+                                    FlowingFluids.config.fullLiquidHeight = FFConfig.LiquidHeight.BLOCK_LOWER_BOUND;
+                                    return messageAndSaveConfig(cont, "Fluids now render up to block height but will be almost flat at their lowest amount.");
+                                })
+                        ).then(Commands.literal("block")
+                                .executes(cont -> {
+                                    FlowingFluids.config.fullLiquidHeight = FFConfig.LiquidHeight.BLOCK;
+                                    return messageAndSaveConfig(cont, "Fluids now render up to block height.");
+                                })
+                        ).then(Commands.literal("slab")
+                                .executes(cont -> {
+                                    FlowingFluids.config.fullLiquidHeight = FFConfig.LiquidHeight.SLAB;
+                                    return messageAndSaveConfig(cont, "Fluids now render up to half a block height.");
+                                })
+                        ).then(Commands.literal("carpet")
+                                .executes(cont -> {
+                                    FlowingFluids.config.fullLiquidHeight = FFConfig.LiquidHeight.CARPET;
+                                    return messageAndSaveConfig(cont, "All Fluids now render with 1 pixel height.");
+                                })
+                        )
                 ).then(Commands.literal("fast_mode")
                         .executes(cont -> message(cont, "Fast mode is currently " + (FlowingFluids.config.fastmode ? "enabled." : "disabled.") + "\n Fast mode changes how liquids behave, and can be toggled on or off.\nFast mode will reduce the amount of checks liquids do to spread, changing from looking for edges 4 blocks away, to only 1, and may cause liquids to pool more frequently in places.\nIn a worst case scenario Fast mode improves water spread lag by 40 times, in actual practise this tends to vary around the 2-20 times faster."))
                         .then(Commands.literal("on")
@@ -137,6 +170,14 @@ public class FFComands {
                                 .executes(cont -> {
                                     FlowingFluids.config.evaporationChance = cont.getArgument("chance", Float.class);
                                     return messageAndSaveConfig(cont, "Water puddle evaporation chance set to " + FlowingFluids.config.evaporationChance);
+                                })
+                        )
+                ).then(Commands.literal("water_nether_evaporation_chance")
+                        .executes(cont -> message(cont, "Sets the chance of any water losing a level during random ticks in the nether, currently set to " + FlowingFluids.config.evaporationNetherChance))
+                        .then(Commands.argument("chance", FloatArgumentType.floatArg(0, 1))
+                                .executes(cont -> {
+                                    FlowingFluids.config.evaporationNetherChance = cont.getArgument("chance", Float.class);
+                                    return messageAndSaveConfig(cont, "Nether water evaporation chance set to " + FlowingFluids.config.evaporationNetherChance);
                                 })
                         )
                 ).then(Commands.literal("water_rain_refill_chance")

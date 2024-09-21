@@ -15,8 +15,11 @@ public class FFConfig {
     public float rainRefillChance = 0.01f;
     public float oceanRiverSwampRefillChance = 0.01f;
     public float evaporationChance = 0.005f;
+    public float evaporationNetherChance = 0.05f;
+
     public boolean printRandomTicks = false;
     public boolean hideFlowingTexture = true;
+    public LiquidHeight fullLiquidHeight = LiquidHeight.REGULAR;
 
 
     public FFConfig() {
@@ -38,8 +41,10 @@ public class FFConfig {
         rainRefillChance = buffer.readFloat();
         oceanRiverSwampRefillChance = buffer.readFloat();
         evaporationChance = buffer.readFloat();
+        evaporationNetherChance = buffer.readFloat();
         printRandomTicks = buffer.readBoolean();
         hideFlowingTexture = buffer.readBoolean();
+        fullLiquidHeight = buffer.readEnum(LiquidHeight.class);
         ///////////////////////////////////////////////
     }
 
@@ -59,8 +64,10 @@ public class FFConfig {
         buffer.writeFloat(rainRefillChance);
         buffer.writeFloat(oceanRiverSwampRefillChance);
         buffer.writeFloat(evaporationChance);
+        buffer.writeFloat(evaporationNetherChance);
         buffer.writeBoolean(printRandomTicks);
         buffer.writeBoolean(hideFlowingTexture);
+        buffer.writeEnum(fullLiquidHeight);
         ///////////////////////////////////////////////
     }
 
@@ -69,5 +76,14 @@ public class FFConfig {
         LAZY_LEVEL,
         STRONG_LEVEL,
         FORCE_LEVEL
+    }
+
+    public enum LiquidHeight {
+        REGULAR,
+        REGULAR_LOWER_BOUND,
+        BLOCK,
+        BLOCK_LOWER_BOUND,
+        SLAB,
+        CARPET
     }
 }
