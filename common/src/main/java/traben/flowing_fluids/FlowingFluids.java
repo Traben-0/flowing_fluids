@@ -24,13 +24,14 @@ public final class FlowingFluids {
     private static final List<Direction> CARDINALS = new ArrayList<>();
     private static final List<Direction> CARDINALS_AND_DOWN = new ArrayList<>();
     public static boolean fastmode = false;
-    public static boolean edges = false;
+    public static boolean edges = true;
     public static CarrySplitBehaviour levelBehaviour = CarrySplitBehaviour.LAZY_LEVEL;
     public static boolean enable = true;
     public static boolean debugSpread = false;
     public static boolean debugSpreadPrint = false;
     public static BigDecimal totalDebugMilliseconds = BigDecimal.valueOf(0);
     public static long totalDebugTicks = 0;
+    public static boolean isManeuveringFluids = false;
 
     public static void init() {
         FlowingFluids.LOG.info("FlowingFluids initialising");

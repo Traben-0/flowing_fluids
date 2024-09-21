@@ -27,6 +27,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import traben.flowing_fluids.FluidFlowReceiver;
 import traben.flowing_fluids.FluidGetterByAmount;
 import traben.flowing_fluids.FlowingFluids;
 
@@ -37,7 +38,7 @@ import java.util.function.ToIntFunction;
 
 
 @Mixin(FlowingFluid.class)
-public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAmount {
+public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAmount, FluidFlowReceiver {
 
 
     @Unique
@@ -80,54 +81,61 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
             //cancel the original tick
             ci.cancel();
 
-            long start;
-            boolean debug = FlowingFluids.debugSpread;
-            if (debug) {
-                start = System.nanoTime();
-                flowing_fluids$debugCheckCountSpreads = 4;
-                flowing_fluids$debugCheckCountDowns = 0;
-            } else {
-                start = 0;
-            }
+            FlowingFluids.isManeuveringFluids = true;
+            try {
 
-
-            //just in case, shouldn't be needed but who knows what mods do these days
-            if (level.isClientSide()) return;
-
-            BlockState thisState = level.getBlockState(blockPos);
-            BlockPos posDown = blockPos.below();
-
-            //check if we can flow down and if so how much fluid remains out of the 8 total possible
-            int remainingAmount = flowing_fluids$checkAndFlowDown(level, blockPos, fluidState, thisState, posDown,
-                    level.getBlockState(posDown), fluidState.getAmount());
-
-            //if there is remaining amount still, the block below is full, or we couldn't flow down so also flow to the sides
-            if (remainingAmount <= 0) {
-                if (debug) flowing_fluids$debugComplete(level, blockPos, start, remainingAmount, true);
-                return;
-            }
-
-            //if there is still water left, flow to the sides only if it is above the drop-off amount
-            //the drop-off amount is the vanilla value determining how much each block of flow reduces the amount
-            //this ties in nicely with a sort of surface tension effect
-            if (remainingAmount > getDropOff(level)) {//drop off is 1 for water, 2 for lava in the overworld
-                flowing_fluids$flowToSides(level, blockPos, fluidState, remainingAmount, thisState, remainingAmount);
-            } else if (FlowingFluids.edges) {
-                //if the remaining amount is less than the drop-off amount, we can still flow to the sides but only if
-                //we find a nearby ledge to flow towards, as we want this water to settle when on flat ground
-                //use 1 as the amount as we don't spread to lower values than the drop-off, so we only want empty destination tiles
-                Direction dir = flowing_fluids$getLowestSpreadableLookingFor4BlockDrops(level, blockPos, fluidState, 1, true);
-
-                //dir is null if no spreadable block was found
-                if (dir != null) {
-                    //much simpler logic than flowing_fluids$flowToSides() as we are only flowing our total remaining value into an empty space
-                    var pos = blockPos.relative(dir);
-                    flowing_fluids$setOrRemoveWaterAmountAt(level, blockPos, 0, thisState, dir);
-                    flowing_fluids$spreadTo2(level, pos, level.getBlockState(pos), dir, remainingAmount);
+                long start;
+                boolean debug = FlowingFluids.debugSpread;
+                if (debug) {
+                    start = System.nanoTime();
+                    flowing_fluids$debugCheckCountSpreads = 4;
+                    flowing_fluids$debugCheckCountDowns = 0;
+                } else {
+                    start = 0;
                 }
+
+
+                //just in case, shouldn't be needed but who knows what mods do these days
+                if (level.isClientSide()) return;
+
+                BlockState thisState = level.getBlockState(blockPos);
+                BlockPos posDown = blockPos.below();
+
+                //check if we can flow down and if so how much fluid remains out of the 8 total possible
+                int remainingAmount = flowing_fluids$checkAndFlowDown(level, blockPos, fluidState, thisState, posDown,
+                        level.getBlockState(posDown), fluidState.getAmount());
+
+                //if there is remaining amount still, the block below is full, or we couldn't flow down so also flow to the sides
+                if (remainingAmount <= 0) {
+                    if (debug) flowing_fluids$debugComplete(level, blockPos, start, remainingAmount, true);
+                    return;
+                }
+
+                //if there is still water left, flow to the sides only if it is above the drop-off amount
+                //the drop-off amount is the vanilla value determining how much each block of flow reduces the amount
+                //this ties in nicely with a sort of surface tension effect
+                if (remainingAmount > getDropOff(level)) {//drop off is 1 for water, 2 for lava in the overworld
+                    flowing_fluids$flowToSides(level, blockPos, fluidState, remainingAmount, thisState, remainingAmount);
+                } else if (FlowingFluids.edges) {
+                    //if the remaining amount is less than the drop-off amount, we can still flow to the sides but only if
+                    //we find a nearby ledge to flow towards, as we want this water to settle when on flat ground
+                    //use 1 as the amount as we don't spread to lower values than the drop-off, so we only want empty destination tiles
+                    Direction dir = flowing_fluids$getLowestSpreadableLookingFor4BlockDrops(level, blockPos, fluidState, 1, true);
+
+                    //dir is null if no spreadable block was found
+                    if (dir != null) {
+                        //much simpler logic than flowing_fluids$flowToSides() as we are only flowing our total remaining value into an empty space
+                        var pos = blockPos.relative(dir);
+                        flowing_fluids$setOrRemoveWaterAmountAt(level, blockPos, 0, thisState, dir);
+                        flowing_fluids$spreadTo2(level, pos, level.getBlockState(pos), dir, remainingAmount);
+                    }
+                }
+                if (debug) flowing_fluids$debugComplete(level, blockPos, start, remainingAmount, false);
+            } finally {
+                FlowingFluids.isManeuveringFluids = false;
             }
-            if (debug) flowing_fluids$debugComplete(level, blockPos, start, remainingAmount, false);
         }
+
     }
 
     @Unique
@@ -524,5 +532,14 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
             }
         }
         return false;
+    }
+
+    public int ff$tryFlowAmountIntoAndReturnRemainingAmount(int amount, Fluid fromType, BlockState toState, final Level level, final BlockPos blockPos, Direction direction) {
+        if (isSame(fromType) && toState.getFluidState().getAmount() < 8){
+            int total = toState.getFluidState().getAmount() + amount;
+            flowing_fluids$setOrRemoveWaterAmountAt(level, blockPos, Math.min(total,8), toState, direction);
+            return Math.max(0, total - 8);
+        }
+        return amount;
     }
 }
