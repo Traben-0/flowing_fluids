@@ -35,10 +35,17 @@ public abstract class MixinLevel {
 
     @Inject(method = "setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;II)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;"), locals = LocalCapture.CAPTURE_FAILHARD)
     private void flowing_fluids$displaceFluids(final BlockPos pos, final BlockState state, final int flags, final int recursionLeft, final CallbackInfoReturnable<Boolean> cir, final LevelChunk levelChunk, final Block block, final BlockState originalState) {
-        if (!isClientSide() && FlowingFluids.config.enableMod && FlowingFluids.config.enableDisplacement && !FlowingFluids.isManeuveringFluids
-                && !state.isAir() && state.getFluidState().isEmpty() && !originalState.getFluidState().isEmpty()
+        if (!isClientSide()
+                && FlowingFluids.config.enableMod
+                && FlowingFluids.config.enableDisplacement
+                && !FlowingFluids.isManeuveringFluids
+                && !state.isAir()
+                && !((flags & 64) == 64) //Piston moved flag
+                && !state.is(Blocks.SPONGE)
+                && state.getFluidState().isEmpty()
+                && !originalState.getFluidState().isEmpty()
                 && originalState.getFluidState().getType() instanceof FluidFlowReceiver flowSource
-                && !state.is(Blocks.SPONGE)) {
+               ) {
             //fluid block was replaced, lets try and displace the fluid
             FlowingFluids.isManeuveringFluids = true;
 
