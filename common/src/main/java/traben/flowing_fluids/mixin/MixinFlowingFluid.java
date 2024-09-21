@@ -19,6 +19,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -39,7 +40,7 @@ import java.util.function.ToIntFunction;
 
 
 @Mixin(FlowingFluid.class)
-public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAmount, FluidFlowReceiver {
+public abstract class MixinFlowingFluid extends Fluid implements FluidGetterByAmount, FluidFlowReceiver {
 
 
     @Unique
@@ -74,11 +75,17 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     @Shadow
     protected abstract int getSlopeFindDistance(final LevelReader levelReader);
 
-    @Shadow
-    protected abstract boolean canSpreadTo(final BlockGetter level, final BlockPos fromPos, final BlockState fromBlockState, final Direction direction, final BlockPos toPos, final BlockState toBlockState, final FluidState toFluidState, final Fluid fluid);
+
+    @Inject(method = "getFlow", at = @At(value = "HEAD"), cancellable = true)
+    private void ff$hideFlowingTexture(final BlockGetter blockReader, final BlockPos pos, final FluidState fluidState, final CallbackInfoReturnable<Vec3> cir) {
+        if (FlowingFluids.config.enableMod && FlowingFluids.config.hideFlowingTexture) {
+            cir.setReturnValue(Vec3.ZERO);
+        }
+    }
+
 
     @Inject(method = "tick", at = @At(value = "HEAD"), cancellable = true)
-    private void flowing_fluids$tickMixin(final Level level, final BlockPos blockPos, final FluidState fluidState, final CallbackInfo ci) {
+    private void ff$tickMixin(final Level level, final BlockPos blockPos, final FluidState fluidState, final CallbackInfo ci) {
         if (FlowingFluids.config.enableMod) {
             //cancel the original tick
             ci.cancel();
@@ -287,7 +294,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
         //use simpler direction choice if fast mode is enabled
         if (FlowingFluids.config.fastmode) {
             return requiresSlope
-                    ? FlowingFluids.config.flowToEdges ? flowing_fluids$getFastLowestSpreadableEdge(level, blockPos, fluidState, amount) : null
+                    ? FlowingFluids.config.flowToEdges ? flowing_fluids$getFastLowestSpreadableEdge(level, blockPos, fluidState) : null
                     : flowing_fluids$getFastLowestSpreadable(level, blockPos, fluidState, amount);
         }
 
@@ -443,7 +450,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     }
 
     @Unique
-    private @Nullable Direction flowing_fluids$getFastLowestSpreadableEdge(Level level, BlockPos blockPos, FluidState fluidState, int amount) {
+    private @Nullable Direction flowing_fluids$getFastLowestSpreadableEdge(Level level, BlockPos blockPos, FluidState fluidState) {
         ToIntFunction<Direction> func = (dir) -> level.getFluidState(blockPos.relative(dir).below()).getAmount();
         //just search neighbours for if we can spread to and below them
         return FlowingFluids.getCardinalsShuffle(level.random).stream()

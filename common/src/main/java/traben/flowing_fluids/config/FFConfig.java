@@ -16,6 +16,7 @@ public class FFConfig {
     public float oceanRiverSwampRefillChance = 0.01f;
     public float evaporationChance = 0.005f;
     public boolean printRandomTicks = false;
+    public boolean hideFlowingTexture = true;
 
 
     public FFConfig() {
@@ -38,6 +39,7 @@ public class FFConfig {
         oceanRiverSwampRefillChance = buffer.readFloat();
         evaporationChance = buffer.readFloat();
         printRandomTicks = buffer.readBoolean();
+        hideFlowingTexture = buffer.readBoolean();
         ///////////////////////////////////////////////
     }
 
@@ -58,6 +60,7 @@ public class FFConfig {
         buffer.writeFloat(oceanRiverSwampRefillChance);
         buffer.writeFloat(evaporationChance);
         buffer.writeBoolean(printRandomTicks);
+        buffer.writeBoolean(hideFlowingTexture);
         ///////////////////////////////////////////////
     }
 

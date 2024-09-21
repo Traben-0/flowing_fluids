@@ -34,11 +34,9 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
     protected FlowingFluid fluid;
 
 
-
     public MixinLiquidBlock(final Properties properties) {
         super(properties);
     }
-
 
 
 //    @ModifyArg(

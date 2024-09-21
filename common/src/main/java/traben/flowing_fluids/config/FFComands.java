@@ -26,11 +26,11 @@ public class FFComands {
         return 1;
     }
 
-    public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext var2, Commands.CommandSelection var3) {
+    public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, @SuppressWarnings("unused") CommandBuildContext var2, @SuppressWarnings("unused") Commands.CommandSelection var3) {
         dispatcher.register(Commands.literal("flowing_fluids")
                 .requires(source -> source.hasPermission(4) || (source.getServer().isSingleplayer() && source.getPlayer() != null && source.getServer().isSingleplayerOwner(source.getPlayer().getGameProfile()))
                 ).then(Commands.literal("help")
-                        .executes(c-> message(c,"Use any of the commands without adding any of it's arguments, E.G '/flowing_fluids enable_mod', to get a description of what the command does and it's current value."))
+                        .executes(c -> message(c, "Use any of the commands without adding any of it's arguments, E.G '/flowing_fluids enable_mod', to get a description of what the command does and it's current value."))
                 ).then(Commands.literal("enable_mod")
                         .then(Commands.literal("on")
                                 .executes(cont -> {
@@ -41,6 +41,19 @@ public class FFComands {
                                 .executes(cont -> {
                                     FlowingFluids.config.enableMod = false;
                                     return messageAndSaveConfig(cont, "FlowingFluids is now disabled, vanilla liquid behaviour will be restored, Buckets will retain their partial fill amount until used.");
+                                })
+                        )
+                ).then(Commands.literal("flowing_texture")
+                        .executes(cont -> message(cont, "The flowing fluid texture is currently " + (FlowingFluids.config.hideFlowingTexture ? "hidden." : "shown.") + "\n This will make the fluids surface appear more still and less flickery while settling, this might conflict with any mod affecting fluid rendering"))
+                        .then(Commands.literal("hidden")
+                                .executes(cont -> {
+                                    FlowingFluids.config.hideFlowingTexture = true;
+                                    return messageAndSaveConfig(cont, "Flowing fluid texture is now hidden.\nLiquids will no longer show the flowing texture on their surface.");
+                                })
+                        ).then(Commands.literal("shown")
+                                .executes(cont -> {
+                                    FlowingFluids.config.hideFlowingTexture = false;
+                                    return messageAndSaveConfig(cont, "Flowing fluid texture is now visible.\nLiquids will now show the flowing texture on their surface.");
                                 })
                         )
                 ).then(Commands.literal("fast_mode")

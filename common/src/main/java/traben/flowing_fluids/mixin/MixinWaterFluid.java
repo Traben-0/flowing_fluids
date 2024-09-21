@@ -26,10 +26,9 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
     @Shadow
     public abstract int getDropOff(final LevelReader levelReader);
 
-    @Shadow public abstract boolean isSame(final Fluid fluid);
+    @Shadow
+    public abstract boolean isSame(final Fluid fluid);
 
-//    @Unique
-//    private static Random ff$random = new Random();
 
     @Override
     protected void randomTick(final Level level, final BlockPos blockPos, final FluidState fluidState, final RandomSource randomSource) {
@@ -43,7 +42,7 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
             if (print) FlowingFluids.LOG.info("[Flowing Fluids] - Random water ticked at {}", blockPos.toShortString());
 
             int amount = fluidState.getAmount();
-            if(amount < 8){
+            if (amount < 8) {
                 if (ff$tryRainFill(level, blockPos, amount, level.random.nextFloat())) {
                     if (print)
                         FlowingFluids.LOG.info("[Flowing Fluids] --- Water was filled by rain. Chance: {}", FlowingFluids.config.rainRefillChance);
@@ -54,17 +53,18 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
                         FlowingFluids.LOG.info("[Flowing Fluids] --- Water was filled by biome. Chance: {}", FlowingFluids.config.oceanRiverSwampRefillChance);
                     return;
                 }
-                if (ff$tryEvaporate(level, blockPos, amount, level.random.nextFloat())){
+                if (ff$tryEvaporate(level, blockPos, amount, level.random.nextFloat())) {
                     if (print)
                         FlowingFluids.LOG.info("[Flowing Fluids] --- Water was evaporated. Chance: {}", FlowingFluids.config.evaporationChance);
                     return;
                 }
-                if (print) FlowingFluids.LOG.info("[Flowing Fluids] --- Random tick did nothing. Chances:\nRain: {}\nBiome: {}\nEvaporation: {}",
-                        FlowingFluids.config.rainRefillChance, FlowingFluids.config.oceanRiverSwampRefillChance, FlowingFluids.config.evaporationChance);
-            }else{
+                if (print)
+                    FlowingFluids.LOG.info("[Flowing Fluids] --- Random tick did nothing. Chances:\nRain: {}\nBiome: {}\nEvaporation: {}",
+                            FlowingFluids.config.rainRefillChance, FlowingFluids.config.oceanRiverSwampRefillChance, FlowingFluids.config.evaporationChance);
+            } else {
                 if (print) FlowingFluids.LOG.info("[Flowing Fluids] --- Water was full. No action taken.");
             }
-         }
+        }
     }
 
     @Override
@@ -72,7 +72,6 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
         if (FlowingFluids.config.enableMod) return true;
         return super.isRandomlyTicking();
     }
-
 
 
     @Unique

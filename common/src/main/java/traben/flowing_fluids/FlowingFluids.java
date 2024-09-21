@@ -62,7 +62,8 @@ public final class FlowingFluids {
 
     public static void loadConfig() {
         File configFile = new File(FlowingFluidsPlatform.getConfigDirectory().toFile(), "flowing_fluids.json");
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        Gson gson = new GsonBuilder().setPrettyPrinting().setLenient().create();
+
         if (configFile.exists()) {
             try {
                 FileReader fileReader = new FileReader(configFile);
