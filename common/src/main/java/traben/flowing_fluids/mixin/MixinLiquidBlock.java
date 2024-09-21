@@ -1,4 +1,4 @@
-package traben.waterly.mixin;
+package traben.flowing_fluids.mixin;
 
 
 import net.minecraft.core.BlockPos;
@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import traben.waterly.Waterly;
+import traben.flowing_fluids.FlowingFluids;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,22 +45,22 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
 //            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/Block;<init>(Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V"),
 //            index = 0
 //    )
-//    private static BlockBehaviour.Properties waterly$modifyBlockProperties(final BlockBehaviour.Properties properties) {
-//        return Waterly.enable ?
+//    private static BlockBehaviour.Properties flowing_fluids$modifyBlockProperties(final BlockBehaviour.Properties properties) {
+//        return FlowingFluids.enable ?
 //                properties.pushReaction(PushReaction.PUSH_ONLY).randomTicks()
 //                : properties;
 //    }
 
 
     @Inject(method = "pickupBlock", at = @At(value = "RETURN"), cancellable = true)
-    private void waterly$modifyBucket(final Player player, final LevelAccessor levelAccessor, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<ItemStack> cir) {
+    private void flowing_fluids$modifyBucket(final Player player, final LevelAccessor levelAccessor, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<ItemStack> cir) {
 //        System.out.println("pickup");
-        if (cir.getReturnValue().isEmpty() && Waterly.enable) {
+        if (cir.getReturnValue().isEmpty() && FlowingFluids.enable) {
             int level = levelAccessor.getFluidState(blockPos).getAmount();
             if (level > 0) {
                 List<BlockPos> toCheck = new ArrayList<>();
                 toCheck.add(blockPos);
-                for (Direction direction : Waterly.getCardinalsAndDownShuffle(levelAccessor.getRandom())) {
+                for (Direction direction : FlowingFluids.getCardinalsAndDownShuffle(levelAccessor.getRandom())) {
                     BlockPos offset = blockPos.relative(direction);
                     toCheck.add(offset);
                 }
@@ -84,7 +84,7 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
                             } else {
                                 onSuccessAirSetters.add(() -> levelAccessor.setBlock(pos, Blocks.AIR.defaultBlockState(), 11));
                                 if (level == 8) break;
-                                for (Direction direction : Waterly.getCardinalsAndDownShuffle(levelAccessor.getRandom())) {
+                                for (Direction direction : FlowingFluids.getCardinalsAndDownShuffle(levelAccessor.getRandom())) {
                                     BlockPos offset = pos.relative(direction);
                                     if (!toCheck.contains(offset)) toCheck.add(offset);
                                 }

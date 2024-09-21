@@ -1,10 +1,10 @@
-package traben.waterly.fabric;
+package traben.flowing_fluids.fabric;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import traben.waterly.Waterly;
+import traben.flowing_fluids.FlowingFluids;
 
-public final class WaterlyFabric implements ModInitializer {
+public final class FlowingFluidsFabric implements ModInitializer {
     @Override
     public void onInitialize() {
         // This code runs as soon as Minecraft is in a mod-load-ready state.
@@ -12,7 +12,7 @@ public final class WaterlyFabric implements ModInitializer {
         // Proceed with mild caution.
 
         // Run our common setup.
-        CommandRegistrationCallback.EVENT.register(Waterly::registerCommands);
-        Waterly.init();
+        CommandRegistrationCallback.EVENT.register(FlowingFluids::registerCommands);
+        FlowingFluids.init();
     }
 }

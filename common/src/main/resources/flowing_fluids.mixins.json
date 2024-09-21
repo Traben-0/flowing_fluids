@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "traben.waterly.mixin",
+  "package": "traben.flowing_fluids.mixin",
   "compatibilityLevel": "JAVA_21",
   "minVersion": "0.8",
   "client": [

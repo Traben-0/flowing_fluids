@@ -1,4 +1,4 @@
-package traben.waterly.mixin;
+package traben.flowing_fluids.mixin;
 
 import com.mojang.serialization.MapCodec;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import traben.waterly.Waterly;
+import traben.flowing_fluids.FlowingFluids;
 
 @Mixin(BlockBehaviour.BlockStateBase.class)
 public abstract class MixinBlockState extends StateHolder<Block, BlockState> {
@@ -31,15 +31,15 @@ public abstract class MixinBlockState extends StateHolder<Block, BlockState> {
     }
 
     @Inject(method = "getPistonPushReaction", at = @At(value = "RETURN"), cancellable = true)
-    private void waterly$overridePushReaction(final CallbackInfoReturnable<PushReaction> cir) {
-        if (Waterly.enable && liquid) {
+    private void flowing_fluids$overridePushReaction(final CallbackInfoReturnable<PushReaction> cir) {
+        if (FlowingFluids.enable && liquid) {
             cir.setReturnValue(PushReaction.PUSH_ONLY);
         }
     }
 
     @Inject(method = "isRandomlyTicking", at = @At(value = "RETURN"), cancellable = true)
-    private void waterly$overrideRandomTickCheck(final CallbackInfoReturnable<Boolean> cir) {
-        if (Waterly.enable && liquid) {
+    private void flowing_fluids$overrideRandomTickCheck(final CallbackInfoReturnable<Boolean> cir) {
+        if (FlowingFluids.enable && liquid) {
             cir.setReturnValue(true);
         }
     }

@@ -1,4 +1,4 @@
-package traben.waterly.mixin;
+package traben.flowing_fluids.mixin;
 
 
 import net.minecraft.advancements.CriteriaTriggers;
@@ -38,8 +38,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import traben.waterly.FluidGetterByAmount;
-import traben.waterly.Waterly;
+import traben.flowing_fluids.FluidGetterByAmount;
+import traben.flowing_fluids.FlowingFluids;
 
 
 @Mixin(BucketItem.class)
@@ -69,8 +69,8 @@ public abstract class MixinBucketItem extends Item {
             at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/BucketItem;getPlayerPOVHitResult(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/level/ClipContext$Fluid;)Lnet/minecraft/world/phys/BlockHitResult;"),
             index = 2
     )
-    private ClipContext.Fluid waterly$allowAnyFluid(final ClipContext.Fluid par3) {
-        if (Waterly.enable && par3 == ClipContext.Fluid.SOURCE_ONLY) {
+    private ClipContext.Fluid flowing_fluids$allowAnyFluid(final ClipContext.Fluid par3) {
+        if (FlowingFluids.enable && par3 == ClipContext.Fluid.SOURCE_ONLY) {
             return ClipContext.Fluid.ANY;
         }
         return par3;
@@ -78,8 +78,8 @@ public abstract class MixinBucketItem extends Item {
 
     //always place if partial
     @Inject(method = "use", at = @At(value = "HEAD"), cancellable = true)
-    private void waterly$alterBehaviourIfPartial(final Level level, final Player player, final InteractionHand interactionHand, final CallbackInfoReturnable<InteractionResultHolder<ItemStack>> cir) {
-        if (Waterly.enable
+    private void flowing_fluids$alterBehaviourIfPartial(final Level level, final Player player, final InteractionHand interactionHand, final CallbackInfoReturnable<InteractionResultHolder<ItemStack>> cir) {
+        if (FlowingFluids.enable
                 && content instanceof FluidGetterByAmount) {//not empty and is flowing
             ItemStack heldBucket = player.getItemInHand(interactionHand);
 
@@ -100,7 +100,7 @@ public abstract class MixinBucketItem extends Item {
                             || (this.content.isSame(fluidState.getType()) && fluidState.getAmount() < 8)
                             ? blockPos : blockPos2;
                     int amount = 8 - heldBucket.getDamageValue();
-                    int remainder = this.waterly$emptyContents_AndGetRemainder(player, level, blockPos3, blockHitResult, amount);
+                    int remainder = this.flowing_fluids$emptyContents_AndGetRemainder(player, level, blockPos3, blockHitResult, amount);
                     if (remainder != amount) {
                         this.checkExtraContent(player, level, heldBucket, blockPos3);
                         if (player instanceof ServerPlayer) {
@@ -132,7 +132,7 @@ public abstract class MixinBucketItem extends Item {
     }
 
     @Unique
-    private int waterly$emptyContents_AndGetRemainder(@Nullable Player player, Level level, BlockPos blockPos, @Nullable BlockHitResult blockHitResult, int amount) {
+    private int flowing_fluids$emptyContents_AndGetRemainder(@Nullable Player player, Level level, BlockPos blockPos, @Nullable BlockHitResult blockHitResult, int amount) {
         if (!(this.content instanceof FlowingFluid flowingFluid)) {
             return amount;
         } else {
@@ -151,7 +151,7 @@ public abstract class MixinBucketItem extends Item {
             if (!canPlaceLiquidInPos) {
 //                System.out.println("cannot place liquid");
                 if (blockHitResult == null) return amount;
-                return this.waterly$emptyContents_AndGetRemainder(player, level, blockHitResult.getBlockPos().relative(blockHitResult.getDirection()), null, amount);
+                return this.flowing_fluids$emptyContents_AndGetRemainder(player, level, blockHitResult.getBlockPos().relative(blockHitResult.getDirection()), null, amount);
             } else if (level.dimensionType().ultraWarm() && this.content.is(FluidTags.WATER)) {
                 int i = blockPos.getX();
                 int j = blockPos.getY();
@@ -189,14 +189,14 @@ public abstract class MixinBucketItem extends Item {
                     int levelAtBlock = level.getBlockState(blockPos).getFluidState().getAmount();
                     int total = levelAtBlock + amount;
                     if (total > 8) {
-                        success = level.setBlock(blockPos, fluid.waterly$getFluidStateOfAmount(8).createLegacyBlock(), 11);
+                        success = level.setBlock(blockPos, fluid.flowing_fluids$getFluidStateOfAmount(8).createLegacyBlock(), 11);
                         remainder = total - 8;
                     } else {
-                        success = level.setBlock(blockPos, fluid.waterly$getFluidStateOfAmount(total).createLegacyBlock(), 11);
+                        success = level.setBlock(blockPos, fluid.flowing_fluids$getFluidStateOfAmount(total).createLegacyBlock(), 11);
                         remainder = 0;
                     }
                 } else {
-                    success = level.setBlock(blockPos, fluid.waterly$getFluidStateOfAmount(amount).createLegacyBlock(), 11);
+                    success = level.setBlock(blockPos, fluid.flowing_fluids$getFluidStateOfAmount(amount).createLegacyBlock(), 11);
                     remainder = 0;
                 }
 

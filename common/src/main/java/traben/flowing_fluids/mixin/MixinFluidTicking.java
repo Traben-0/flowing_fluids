@@ -1,4 +1,4 @@
-package traben.waterly.mixin;
+package traben.flowing_fluids.mixin;
 
 
 import com.mojang.datafixers.util.Pair;
@@ -27,8 +27,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import traben.waterly.FluidGetterByAmount;
-import traben.waterly.Waterly;
+import traben.flowing_fluids.FluidGetterByAmount;
+import traben.flowing_fluids.FlowingFluids;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
@@ -41,9 +41,9 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
 
 
     @Unique
-    private static int waterly$debugCheckCountSpreads = 0;
+    private static int flowing_fluids$debugCheckCountSpreads = 0;
     @Unique
-    private static int waterly$debugCheckCountDowns = 0;
+    private static int flowing_fluids$debugCheckCountDowns = 0;
 
     @Shadow
     private static short getCacheKey(final BlockPos blockPos, final BlockPos blockPos2) {
@@ -75,17 +75,17 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     @Shadow protected abstract boolean canSpreadTo(final BlockGetter level, final BlockPos fromPos, final BlockState fromBlockState, final Direction direction, final BlockPos toPos, final BlockState toBlockState, final FluidState toFluidState, final Fluid fluid);
 
     @Inject(method = "tick", at = @At(value = "HEAD"), cancellable = true)
-    private void waterly$tickMixin(final Level level, final BlockPos blockPos, final FluidState fluidState, final CallbackInfo ci) {
-        if (Waterly.enable) {
+    private void flowing_fluids$tickMixin(final Level level, final BlockPos blockPos, final FluidState fluidState, final CallbackInfo ci) {
+        if (FlowingFluids.enable) {
             //cancel the original tick
             ci.cancel();
 
             long start;
-            boolean debug = Waterly.debugSpread;
+            boolean debug = FlowingFluids.debugSpread;
             if (debug) {
                 start = System.nanoTime();
-                waterly$debugCheckCountSpreads = 4;
-                waterly$debugCheckCountDowns = 0;
+                flowing_fluids$debugCheckCountSpreads = 4;
+                flowing_fluids$debugCheckCountDowns = 0;
             } else {
                 start = 0;
             }
@@ -98,12 +98,12 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
             BlockPos posDown = blockPos.below();
 
             //check if we can flow down and if so how much fluid remains out of the 8 total possible
-            int remainingAmount = waterly$checkAndFlowDown(level, blockPos, fluidState, thisState, posDown,
+            int remainingAmount = flowing_fluids$checkAndFlowDown(level, blockPos, fluidState, thisState, posDown,
                     level.getBlockState(posDown), fluidState.getAmount());
 
             //if there is remaining amount still, the block below is full, or we couldn't flow down so also flow to the sides
             if (remainingAmount <= 0) {
-                if (debug) waterly$debugComplete(level, blockPos, start, remainingAmount, true);
+                if (debug) flowing_fluids$debugComplete(level, blockPos, start, remainingAmount, true);
                 return;
             }
 
@@ -111,42 +111,42 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
             //the drop-off amount is the vanilla value determining how much each block of flow reduces the amount
             //this ties in nicely with a sort of surface tension effect
             if (remainingAmount > getDropOff(level)) {//drop off is 1 for water, 2 for lava in the overworld
-                waterly$flowToSides(level, blockPos, fluidState, remainingAmount, thisState, remainingAmount);
-            } else if (Waterly.edges) {
+                flowing_fluids$flowToSides(level, blockPos, fluidState, remainingAmount, thisState, remainingAmount);
+            } else if (FlowingFluids.edges) {
                 //if the remaining amount is less than the drop-off amount, we can still flow to the sides but only if
                 //we find a nearby ledge to flow towards, as we want this water to settle when on flat ground
                 //use 1 as the amount as we don't spread to lower values than the drop-off, so we only want empty destination tiles
-                Direction dir = waterly$getLowestSpreadableLookingFor4BlockDrops(level, blockPos, fluidState, 1, true);
+                Direction dir = flowing_fluids$getLowestSpreadableLookingFor4BlockDrops(level, blockPos, fluidState, 1, true);
 
                 //dir is null if no spreadable block was found
                 if (dir != null) {
-                    //much simpler logic than waterly$flowToSides() as we are only flowing our total remaining value into an empty space
+                    //much simpler logic than flowing_fluids$flowToSides() as we are only flowing our total remaining value into an empty space
                     var pos = blockPos.relative(dir);
-                    waterly$setOrRemoveWaterAmountAt(level, blockPos, 0, thisState, dir);
-                    waterly$spreadTo2(level, pos, level.getBlockState(pos), dir, remainingAmount);
+                    flowing_fluids$setOrRemoveWaterAmountAt(level, blockPos, 0, thisState, dir);
+                    flowing_fluids$spreadTo2(level, pos, level.getBlockState(pos), dir, remainingAmount);
                 }
             }
-            if (debug) waterly$debugComplete(level, blockPos, start, remainingAmount, false);
+            if (debug) flowing_fluids$debugComplete(level, blockPos, start, remainingAmount, false);
         }
     }
 
     @Unique
-    private void waterly$debugComplete(final Level level, final BlockPos blockPos, final long start, final int remainingAmount, final boolean isDown) {
+    private void flowing_fluids$debugComplete(final Level level, final BlockPos blockPos, final long start, final int remainingAmount, final boolean isDown) {
         long time = System.nanoTime() - start;
-        Waterly.totalDebugTicks++;
-        Waterly.totalDebugMilliseconds = Waterly.totalDebugMilliseconds.add(BigDecimal.valueOf(time / 1000000D));
-        if (Waterly.debugSpreadPrint) {
-            Waterly.LOG.info("Waterly spread tick:\n Position: {}\n Side spread checks: {}\n Down spread checks: {}\n Spread type: {}\n Time nano: {}\n Avg time (since debug enable): {}ms",
-                    blockPos.toShortString(), waterly$debugCheckCountSpreads, waterly$debugCheckCountDowns,
+        FlowingFluids.totalDebugTicks++;
+        FlowingFluids.totalDebugMilliseconds = FlowingFluids.totalDebugMilliseconds.add(BigDecimal.valueOf(time / 1000000D));
+        if (FlowingFluids.debugSpreadPrint) {
+            FlowingFluids.LOG.info("FlowingFluids spread tick:\n Position: {}\n Side spread checks: {}\n Down spread checks: {}\n Spread type: {}\n Time nano: {}\n Avg time (since debug enable): {}ms",
+                    blockPos.toShortString(), flowing_fluids$debugCheckCountSpreads, flowing_fluids$debugCheckCountDowns,
                     isDown ? "down only" : remainingAmount > getDropOff(level) ? "normal" : "edge only", time,
-                    Waterly.getAverageDebugMilliseconds());
+                    FlowingFluids.getAverageDebugMilliseconds());
         }
     }
 
     @Unique
-    private void waterly$flowToSides(final Level level, final BlockPos blockPos, final FluidState fluidState, int amount, final BlockState thisState, final int originalAmount) {
+    private void flowing_fluids$flowToSides(final Level level, final BlockPos blockPos, final FluidState fluidState, int amount, final BlockState thisState, final int originalAmount) {
         //get a valid direction to move into or null if no spreadable block was found
-        Direction dir = waterly$getLowestSpreadableLookingFor4BlockDrops(level, blockPos, fluidState, amount, false);
+        Direction dir = flowing_fluids$getLowestSpreadableLookingFor4BlockDrops(level, blockPos, fluidState, amount, false);
         if (dir == null) return;
 
         var posDir = blockPos.relative(dir);
@@ -158,7 +158,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
             //just totally empty all water-loggables
             getWater.pickupBlock(null, level, blockPos, thisState);
             //this may lose some water, but it's the easiest choice for now, and water-loggables aren't "full" anyway
-            waterly$spreadTo2(level, posDir, level.getBlockState(posDir), dir, amount);
+            flowing_fluids$spreadTo2(level, posDir, level.getBlockState(posDir), dir, amount);
         } else {
             //this amount is already confirmed to be less than {amount}
             final int destFluidAmount = level.getFluidState(posDir).getAmount();
@@ -166,7 +166,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
 
             //vast majority of changes are only 1, so we can skip the rest of the logic
             //if the remainder is left in the source block, we can return if the difference is 1, or less (less is impossible but also a safety check)
-            if (Waterly.levelBehaviour == Waterly.CarrySplitBehaviour.VANILLA_LIKE && difference <= 1)
+            if (FlowingFluids.levelBehaviour == FlowingFluids.CarrySplitBehaviour.VANILLA_LIKE && difference <= 1)
                 return;
 
             //calculate the amount that would level both liquids
@@ -178,7 +178,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
             int fromAmount;
             int toAmount;
             if (hasRemainder) {
-                switch (Waterly.levelBehaviour) {
+                switch (FlowingFluids.levelBehaviour) {
                     case VANILLA_LIKE -> {
                         fromAmount = averageLevel + 1;
                         toAmount = averageLevel;
@@ -189,17 +189,17 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
                     }
                     case LAZY_LEVEL -> {
                         //give the flow an average amount of attempts to level itself out
-                        boolean from = level.random.nextInt(Waterly.fastmode ? 2 : 4) < 2;
+                        boolean from = level.random.nextInt(FlowingFluids.fastmode ? 2 : 4) < 2;
                         fromAmount = from ? averageLevel + 1 : averageLevel;
                         toAmount = from ? averageLevel : averageLevel + 1;
                     }
                     case STRONG_LEVEL -> {
                         //give the flow a high average amount of attempts to level itself out
-                        boolean from = level.random.nextInt(Waterly.fastmode ? 3 : 10) == 0;
+                        boolean from = level.random.nextInt(FlowingFluids.fastmode ? 3 : 10) == 0;
                         fromAmount = from ? averageLevel + 1 : averageLevel;
                         toAmount = from ? averageLevel : averageLevel + 1;
                     }
-                    default -> throw new IllegalStateException("Unexpected value for split decision: " + Waterly.levelBehaviour);
+                    default -> throw new IllegalStateException("Unexpected value for split decision: " + FlowingFluids.levelBehaviour);
                 }
             }else{
                 fromAmount = averageLevel;
@@ -209,21 +209,21 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
             //split behaviour may make it so there are no changes, if so don't trigger updates
             if (fromAmount != originalAmount) {
                 //set the source block to the new amount triggering updates
-                waterly$setOrRemoveWaterAmountAt(level, blockPos, fromAmount, thisState, dir.getOpposite());
+                flowing_fluids$setOrRemoveWaterAmountAt(level, blockPos, fromAmount, thisState, dir.getOpposite());
             }
             if (toAmount != destFluidAmount) {
                 //set the destination block to the new amount triggering updates
-                waterly$spreadTo2(level, posDir, level.getBlockState(posDir), dir, toAmount);
+                flowing_fluids$spreadTo2(level, posDir, level.getBlockState(posDir), dir, toAmount);
             }
 
         }
     }
 
     @Unique
-    private int waterly$checkAndFlowDown(final Level level, final BlockPos blockPos, final FluidState fluidState, final BlockState thisState, final BlockPos posDown, final BlockState stateDown, int amount) {
+    private int flowing_fluids$checkAndFlowDown(final Level level, final BlockPos blockPos, final FluidState fluidState, final BlockState thisState, final BlockPos posDown, final BlockState stateDown, int amount) {
         var downFState = level.getFluidState(posDown);
         //check and then handle if we can flow down
-        if (waterly$canSpreadTo(fluidState.getType(), fluidState.getAmount(), level, blockPos, thisState,
+        if (flowing_fluids$canSpreadTo(fluidState.getType(), fluidState.getAmount(), level, blockPos, thisState,
                 Direction.DOWN, posDown, stateDown, downFState)) {
 
             //handle other liquid vanilla collisions by causing a flow
@@ -231,8 +231,8 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
                 //send like vanilla flow to perform fluid collision
                 //only use 1 for the amount, as we are only checking the collision behaviour
                 //example: lava flowing down onto water creates stone in this case
-                waterly$setOrRemoveWaterAmountAt(level, blockPos, amount - 1, thisState, Direction.DOWN);
-                waterly$spreadTo2(level, posDown, stateDown, Direction.DOWN, 1);
+                flowing_fluids$setOrRemoveWaterAmountAt(level, blockPos, amount - 1, thisState, Direction.DOWN);
+                flowing_fluids$spreadTo2(level, posDown, stateDown, Direction.DOWN, 1);
                 return amount - 1;
             } else {
                 //flow into lower space
@@ -243,8 +243,8 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
                     int destNewAmount = fluidDownAmount + amountDestCanAccept;
                     int sourceNewAmount = amount - amountDestCanAccept;
                     //set both amounts
-                    waterly$setOrRemoveWaterAmountAt(level, blockPos, sourceNewAmount, thisState, Direction.DOWN);
-                    waterly$spreadTo2(level, posDown, stateDown, Direction.DOWN, destNewAmount);
+                    flowing_fluids$setOrRemoveWaterAmountAt(level, blockPos, sourceNewAmount, thisState, Direction.DOWN);
+                    flowing_fluids$spreadTo2(level, posDown, stateDown, Direction.DOWN, destNewAmount);
                     return sourceNewAmount;
                 }
             }
@@ -254,30 +254,30 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     }
 
     @Unique
-    private void waterly$setOrRemoveWaterAmountAt(final Level level, final BlockPos blockPos, final int amount, final BlockState thisState, Direction direction) {
+    private void flowing_fluids$setOrRemoveWaterAmountAt(final Level level, final BlockPos blockPos, final int amount, final BlockState thisState, Direction direction) {
         if (amount > 0) {
-            waterly$spreadTo2(level, blockPos, thisState, direction, amount);
+            flowing_fluids$spreadTo2(level, blockPos, thisState, direction, amount);
         } else {
-            waterly$removeWater(level, blockPos, thisState);
+            flowing_fluids$removeWater(level, blockPos, thisState);
         }
     }
 
     @Inject(method = "getNewLiquid", at = @At(value = "HEAD"), cancellable = true)
-    private void waterly$validateLiquidMixin(final Level level, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<FluidState> cir) {
-        if (Waterly.enable) {
-            cir.setReturnValue(waterly$getFluidStateOfAmount(level.getFluidState(blockPos).getAmount()));
+    private void flowing_fluids$validateLiquidMixin(final Level level, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<FluidState> cir) {
+        if (FlowingFluids.enable) {
+            cir.setReturnValue(flowing_fluids$getFluidStateOfAmount(level.getFluidState(blockPos).getAmount()));
         }
     }
 
     @Unique
-    private @Nullable Direction waterly$getLowestSpreadableLookingFor4BlockDrops(
+    private @Nullable Direction flowing_fluids$getLowestSpreadableLookingFor4BlockDrops(
             Level level, BlockPos blockPos, FluidState fluidState, int amount, boolean requiresSlope) {
 
         //use simpler direction choice if fast mode is enabled
-        if (Waterly.fastmode) {
+        if (FlowingFluids.fastmode) {
             return requiresSlope
-                    ? Waterly.edges ? waterly$getFastLowestSpreadableEdge(level, blockPos, fluidState, amount) : null
-                    : waterly$getFastLowestSpreadable(level, blockPos, fluidState, amount);
+                    ? FlowingFluids.edges ? flowing_fluids$getFastLowestSpreadableEdge(level, blockPos, fluidState, amount) : null
+                    : flowing_fluids$getFastLowestSpreadable(level, blockPos, fluidState, amount);
         }
 
         //state cache for each position
@@ -285,15 +285,15 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
 
         //get the cardinal directions that are valid flow locations sorted by the amount of fluid in them,
         //ties are randomly sorted by initial shuffle
-        List<Direction> directionsCanSpreadToSortedByAmount = Waterly.getCardinalsShuffle(level.random).stream()
+        List<Direction> directionsCanSpreadToSortedByAmount = FlowingFluids.getCardinalsShuffle(level.random).stream()
                 .sorted(Comparator.comparingInt((dir1) -> level.getFluidState(blockPos.relative(dir1)).getAmount()))
                 .filter(dir -> {
                     BlockPos posDir = blockPos.relative(dir);
                     short key = getCacheKey(blockPos, posDir);
-                    var statesDir = waterly$getSetPosCache(key, level, statesAtPos, posDir);
+                    var statesDir = flowing_fluids$getSetPosCache(key, level, statesAtPos, posDir);
                     BlockState stateDir = statesDir.getFirst();
                     var fluidStateDir = statesDir.getSecond();
-                    return waterly$canSpreadToOptionallySameOrEmpty(fluidState.getType(), amount, level, blockPos,
+                    return flowing_fluids$canSpreadToOptionallySameOrEmpty(fluidState.getType(), amount, level, blockPos,
                             level.getBlockState(blockPos), dir, posDir, stateDir, fluidStateDir, requiresSlope);
                 })
                 .toList();
@@ -302,7 +302,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
         if (directionsCanSpreadToSortedByAmount.isEmpty()) return null;
 
         //perform a deep search for the best direction to spread to with the nearest slope
-        Direction spreadDirection = waterly$getValidDirectionFromDeepSpreadSearch(level, blockPos, fluidState, amount, requiresSlope, directionsCanSpreadToSortedByAmount, statesAtPos);
+        Direction spreadDirection = flowing_fluids$getValidDirectionFromDeepSpreadSearch(level, blockPos, fluidState, amount, requiresSlope, directionsCanSpreadToSortedByAmount, statesAtPos);
 
         //if none, then choose from the initial sorted & filtered list
         if (spreadDirection == null && !requiresSlope) {
@@ -312,7 +312,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     }
 
     @Unique
-    private @Nullable Direction waterly$getValidDirectionFromDeepSpreadSearch(final Level level, final BlockPos blockPos, final FluidState fluidState, final int amount, final boolean requiresSlope, final List<Direction> directionsCanSpreadToSortedByAmount, final Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos) {
+    private @Nullable Direction flowing_fluids$getValidDirectionFromDeepSpreadSearch(final Level level, final BlockPos blockPos, final FluidState fluidState, final int amount, final boolean requiresSlope, final List<Direction> directionsCanSpreadToSortedByAmount, final Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos) {
 
         //vanilla slope distance factor
         int slopeFindDistance = getSlopeFindDistance(level);
@@ -337,12 +337,12 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
                     var posDir = blockPos.relative(dir);
                     short key = getCacheKey(blockPos, posDir);
                     //check if we can flow down here, if so, return the direction
-                    boolean canFlowBelow = waterly$getSetFlowDownCache(key, level, posCanFlowDown, posDir, fluidState.getType(), requiresSlope);
+                    boolean canFlowBelow = flowing_fluids$getSetFlowDownCache(key, level, posCanFlowDown, posDir, fluidState.getType(), requiresSlope);
                     if (canFlowBelow) {
                         return Pair.of(dir, 0);
                     } else {
                         //else, perform a deep search for the nearest slope
-                        return Pair.of(dir, waterly$getSlopeDistance(
+                        return Pair.of(dir, flowing_fluids$getSlopeDistance(
                                 level, blockPos, 1, dir.getOpposite(),
                                 fluidState.getType(), amount + 1, posDir, statesAtPos,
                                 posCanFlowDown, requiresSlope, slopeFindDistance));
@@ -354,12 +354,12 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     }
 
     @Unique
-    protected int waterly$getSlopeDistance(LevelReader level, BlockPos sourcePosForKey, int distance, Direction fromDir, Fluid sourceFluid, int sourceAmount,
+    protected int flowing_fluids$getSlopeDistance(LevelReader level, BlockPos sourcePosForKey, int distance, Direction fromDir, Fluid sourceFluid, int sourceAmount,
                                            BlockPos newPos, Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos, Short2BooleanMap posCanFlowDown,
                                            boolean forceSlopeDownSameOrEmpty, int slopeFindDistance) {
         //currently in a worse case scenario, water spreading on flat ground, this deep search will perform:
-        // 160 side spread, waterly$canSpreadToOptionallySameOrEmpty() checks
-        // 40 downwards spread, waterly$getSetFlowDownCache() checks,
+        // 160 side spread, flowing_fluids$canSpreadToOptionallySameOrEmpty() checks
+        // 40 downwards spread, flowing_fluids$getSetFlowDownCache() checks,
         // for a total of 200 checks per original source on totally flat ground
 
         // the 40 checks are perfectly cached and optimized and cannot be improved as there are exactly 40 possible blocks requiring downwards checks
@@ -381,22 +381,22 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
                 //get search context
                 var searchPos = newPos.relative(searchDir);
                 var searchKey = getCacheKey(sourcePosForKey, searchPos);
-                var searchStates = waterly$getSetPosCache(searchKey, level, statesAtPos, searchPos);
+                var searchStates = flowing_fluids$getSetPosCache(searchKey, level, statesAtPos, searchPos);
 
                 //if we can spread to the searched direction
-                if (Waterly.debugSpread) waterly$debugCheckCountSpreads++;
-                if (waterly$canSpreadToOptionallySameOrEmpty(sourceFluid, sourceAmount, level, newPos,
+                if (FlowingFluids.debugSpread) flowing_fluids$debugCheckCountSpreads++;
+                if (flowing_fluids$canSpreadToOptionallySameOrEmpty(sourceFluid, sourceAmount, level, newPos,
                         level.getBlockState(newPos), searchDir, searchPos,
                         searchStates.getFirst(), searchStates.getSecond(), forceSlopeDownSameOrEmpty)) {
 
                     //if we can flow down, cache the result of this and return this distance as it's the smallest
-                    if (waterly$getSetFlowDownCache(searchKey, level, posCanFlowDown, searchPos, sourceFluid, forceSlopeDownSameOrEmpty)) {
+                    if (flowing_fluids$getSetFlowDownCache(searchKey, level, posCanFlowDown, searchPos, sourceFluid, forceSlopeDownSameOrEmpty)) {
                         //cache the result to both keys as we may also come back to this position from another direction
                         return searchDistance;
                     }
                     //if we can't flow down here, check the next distance via iteration as long as we are within the slope search distance
                     if (searchDistance < slopeFindDistance) {
-                        int next = waterly$getSlopeDistance(level, sourcePosForKey, searchDistance,
+                        int next = flowing_fluids$getSlopeDistance(level, sourcePosForKey, searchDistance,
                                 searchDir.getOpposite(), sourceFluid, sourceAmount, searchPos,
                                 statesAtPos, posCanFlowDown, forceSlopeDownSameOrEmpty, slopeFindDistance);
                         //if the next distance is less than the current smallest, update the smallest
@@ -413,7 +413,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     }
 
     @Unique
-    private Pair<BlockState, FluidState> waterly$getSetPosCache(short key, LevelReader level, Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos, BlockPos pos) {
+    private Pair<BlockState, FluidState> flowing_fluids$getSetPosCache(short key, LevelReader level, Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos, BlockPos pos) {
         return statesAtPos.computeIfAbsent(key, (sx) -> {
             BlockState blockState = level.getBlockState(pos);
             return Pair.of(blockState, blockState.getFluidState());
@@ -421,21 +421,21 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     }
 
     @Unique
-    private boolean waterly$getSetFlowDownCache(short key, LevelReader level, Short2BooleanMap boolAtPos, BlockPos pos, Fluid sourceFluid, boolean forceSlopeDownSameOrEmpty) {
+    private boolean flowing_fluids$getSetFlowDownCache(short key, LevelReader level, Short2BooleanMap boolAtPos, BlockPos pos, Fluid sourceFluid, boolean forceSlopeDownSameOrEmpty) {
         return boolAtPos.computeIfAbsent(key, (sx) -> {
-            if (Waterly.debugSpread) waterly$debugCheckCountDowns++;
+            if (FlowingFluids.debugSpread) flowing_fluids$debugCheckCountDowns++;
             var posDown = pos.below();
-            return (waterly$canSpreadToOptionallySameOrEmpty(sourceFluid, 8, level, pos, level.getBlockState(pos),
+            return (flowing_fluids$canSpreadToOptionallySameOrEmpty(sourceFluid, 8, level, pos, level.getBlockState(pos),
                     Direction.DOWN, posDown, level.getBlockState(posDown), level.getFluidState(posDown),
                     forceSlopeDownSameOrEmpty));
         });
     }
 
     @Unique
-    private @Nullable Direction waterly$getFastLowestSpreadableEdge(Level level, BlockPos blockPos, FluidState fluidState, int amount) {
+    private @Nullable Direction flowing_fluids$getFastLowestSpreadableEdge(Level level, BlockPos blockPos, FluidState fluidState, int amount) {
         ToIntFunction<Direction> func = (dir) -> level.getFluidState(blockPos.relative(dir).below()).getAmount();
         //just search neighbours for if we can spread to and below them
-        return Waterly.getCardinalsShuffle(level.random).stream()
+        return FlowingFluids.getCardinalsShuffle(level.random).stream()
                 .filter(dir -> {
                     BlockPos pos = blockPos.relative(dir);
                     BlockState state = level.getBlockState(pos);
@@ -443,33 +443,33 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
                     var posDown = pos.below();
                     var stateDown = level.getBlockState(posDown);
                     var fluidStateDown = level.getFluidState(posDown);
-                    return waterly$canSpreadTo(fluidState.getType(), fluidState.getAmount(), level, blockPos, level.getBlockState(blockPos), dir, pos, state, fluidState2)
+                    return flowing_fluids$canSpreadTo(fluidState.getType(), fluidState.getAmount(), level, blockPos, level.getBlockState(blockPos), dir, pos, state, fluidState2)
                             && fluidState2.isEmpty()// let that fluid flow down instead
-                            && waterly$canSpreadTo(fluidState.getType(), 8, level, pos, state, Direction.DOWN, posDown, stateDown, fluidStateDown)
+                            && flowing_fluids$canSpreadTo(fluidState.getType(), 8, level, pos, state, Direction.DOWN, posDown, stateDown, fluidStateDown)
                             && fluidStateDown.getAmount() < 8; //is a drop
                 }).min(Comparator.comparingInt(func)).orElse(null);
     }
 
     @Unique
-    private @Nullable Direction waterly$getFastLowestSpreadable(Level level, BlockPos blockPos, FluidState fluidState, int amount) {
+    private @Nullable Direction flowing_fluids$getFastLowestSpreadable(Level level, BlockPos blockPos, FluidState fluidState, int amount) {
         ToIntFunction<Direction> func = (dir) -> level.getFluidState(blockPos.relative(dir)).getAmount();
         //just search neighbours for if we can spread to them
-        return Waterly.getCardinalsShuffle(level.random).stream()
+        return FlowingFluids.getCardinalsShuffle(level.random).stream()
                 .filter(dir -> {
                     BlockPos pos = blockPos.relative(dir);
                     BlockState state = level.getBlockState(pos);
                     var fluidState2 = level.getFluidState(pos);
-                    return waterly$canSpreadTo(fluidState.getType(), fluidState.getAmount(), level, blockPos, level.getBlockState(blockPos), dir, pos, state, fluidState2)
+                    return flowing_fluids$canSpreadTo(fluidState.getType(), fluidState.getAmount(), level, blockPos, level.getBlockState(blockPos), dir, pos, state, fluidState2)
                             && fluidState2.getAmount() < amount;
                 }).min(Comparator.comparingInt(func)).orElse(null);
     }
 
     @Unique
-    protected void waterly$spreadTo2(LevelAccessor levelAccessor, BlockPos blockPos, BlockState blockState, Direction direction, int amount) {
-        this.spreadTo(levelAccessor, blockPos, blockState, direction, waterly$getFluidStateOfAmount(amount));
+    protected void flowing_fluids$spreadTo2(LevelAccessor levelAccessor, BlockPos blockPos, BlockState blockState, Direction direction, int amount) {
+        this.spreadTo(levelAccessor, blockPos, blockState, direction, flowing_fluids$getFluidStateOfAmount(amount));
     }
 
-    public FluidState waterly$getFluidStateOfAmount(int amount) {
+    public FluidState flowing_fluids$getFluidStateOfAmount(int amount) {
 //        BlockPos posUp = blockPos.above();
 //        BlockState bStateUp = level.getBlockState(posUp);
 //        FluidState fStateUp = bStateUp.getFluidState();
@@ -481,7 +481,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     }
 
     @Unique
-    protected void waterly$removeWater(LevelAccessor levelAccessor, BlockPos blockPos, BlockState blockState) {
+    protected void flowing_fluids$removeWater(LevelAccessor levelAccessor, BlockPos blockPos, BlockState blockState) {
         if (blockState.getBlock() instanceof LiquidBlockContainer
                 && blockState.getBlock() instanceof BucketPickup bucketPickup) {
             bucketPickup.pickupBlock(null, levelAccessor, blockPos, blockState);
@@ -491,7 +491,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     }
 
     @Unique
-    private boolean waterly$canSpreadToOptionallySameOrEmpty(Fluid sourceFluid, int sourceAmount, BlockGetter blockGetter,
+    private boolean flowing_fluids$canSpreadToOptionallySameOrEmpty(Fluid sourceFluid, int sourceAmount, BlockGetter blockGetter,
                                                              BlockPos blockPos, BlockState blockState, Direction direction,
                                                              BlockPos blockPos2, BlockState blockState2, FluidState fluidState2,
                                                              boolean enforceSameFluidOrEmpty) {
@@ -499,21 +499,21 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
         if (enforceSameFluidOrEmpty && !(fluidState2.isEmpty() || fluidState2.getType().isSame(sourceFluid)))
             return false;
 
-        return waterly$canSpreadTo(sourceFluid, sourceAmount, blockGetter, blockPos, blockState, direction, blockPos2, blockState2, fluidState2);
+        return flowing_fluids$canSpreadTo(sourceFluid, sourceAmount, blockGetter, blockPos, blockState, direction, blockPos2, blockState2, fluidState2);
     }
 
     @Unique
-    private boolean waterly$canSpreadTo(Fluid sourceFluid, int sourceAmount, BlockGetter blockGetter,
+    private boolean flowing_fluids$canSpreadTo(Fluid sourceFluid, int sourceAmount, BlockGetter blockGetter,
                                         BlockPos blockPos, BlockState blockState, Direction direction,
                                         BlockPos blockPos2, BlockState blockState2, FluidState fluidState2) {
         //add extra fluid check for replacing into self
-        return (fluidState2.canBeReplacedWith(blockGetter, blockPos2, sourceFluid, direction) || waterly$canFitIntoFluid(sourceFluid, fluidState2, direction, sourceAmount))
+        return (fluidState2.canBeReplacedWith(blockGetter, blockPos2, sourceFluid, direction) || flowing_fluids$canFitIntoFluid(sourceFluid, fluidState2, direction, sourceAmount))
                 && this.canPassThroughWall(direction, blockGetter, blockPos, blockState, blockPos2, blockState2)
                 && this.canHoldFluid(blockGetter, blockPos2, blockState2, sourceFluid);
     }
 
     @Unique
-    private boolean waterly$canFitIntoFluid(Fluid thisFluid, FluidState fluidStateTo, Direction direction, int amount) {
+    private boolean flowing_fluids$canFitIntoFluid(Fluid thisFluid, FluidState fluidStateTo, Direction direction, int amount) {
         if (fluidStateTo.isEmpty()) return true;
 
         if (fluidStateTo.getType().isSame(thisFluid)) {

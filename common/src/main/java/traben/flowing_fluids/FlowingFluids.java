@@ -1,4 +1,4 @@
-package traben.waterly;
+package traben.flowing_fluids;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
@@ -17,10 +17,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public final class Waterly {
-    public static final String MOD_ID = "waterly";
+public final class FlowingFluids {
+    public static final String MOD_ID = "flowing_fluids";
 
-    public final static Logger LOG = LoggerFactory.getLogger("Waterly");
+    public final static Logger LOG = LoggerFactory.getLogger("FlowingFluids");
     private static final List<Direction> CARDINALS = new ArrayList<>();
     private static final List<Direction> CARDINALS_AND_DOWN = new ArrayList<>();
     public static boolean fastmode = false;
@@ -33,7 +33,7 @@ public final class Waterly {
     public static long totalDebugTicks = 0;
 
     public static void init() {
-        Waterly.LOG.info("Waterly initialising");
+        FlowingFluids.LOG.info("FlowingFluids initialising");
 
         CARDINALS.add(Direction.NORTH);
         CARDINALS.add(Direction.SOUTH);
@@ -42,6 +42,8 @@ public final class Waterly {
 
         CARDINALS_AND_DOWN.addAll(CARDINALS);
         CARDINALS_AND_DOWN.add(Direction.DOWN);
+
+
     }
 
     public static List<Direction> getCardinalsShuffle(RandomSource random) {
@@ -65,18 +67,18 @@ public final class Waterly {
     }
 
     public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext var2, Commands.CommandSelection var3) {
-        dispatcher.register(Commands.literal("waterly")
+        dispatcher.register(Commands.literal("flowing_fluids")
                         .requires(source -> source.hasPermission(4) || (source.getServer().isSingleplayer() && source.getPlayer() != null && source.getServer().isSingleplayerOwner(source.getPlayer().getGameProfile()))
                         ).then(Commands.literal("enable")
                                 .then(Commands.literal("on")
                                         .executes(cont -> {
                                             enable = true;
-                                            return sendCommandFeedback(cont, "Waterly is now enabled, liquids will now have physics using : " + (fastmode ? "Fast mode." : "Quality mode."));
+                                            return sendCommandFeedback(cont, "FlowingFluids is now enabled, liquids will now have physics using : " + (fastmode ? "Fast mode." : "Quality mode."));
                                         })
                                 ).then(Commands.literal("off")
                                         .executes(cont -> {
                                             enable = false;
-                                            return sendCommandFeedback(cont, "Waterly is now disabled, vanilla liquid behaviour will be restored, Buckets will retain their partial fill amount until used.");
+                                            return sendCommandFeedback(cont, "FlowingFluids is now disabled, vanilla liquid behaviour will be restored, Buckets will retain their partial fill amount until used.");
                                         })
                                 )
                         ).then(Commands.literal("fast_mode")

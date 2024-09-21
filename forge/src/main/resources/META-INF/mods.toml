@@ -1,12 +1,12 @@
 modLoader = "javafml"
-loaderVersion = "[2,)"
+loaderVersion = "[1,)"
 #issueTrackerURL = ""
 license = "GNU LGPL 3.0"
 
 [[mods]]
 modId = "flowing_fluids"
 version = "${version}"
-displayName = "FlowingFluids"
+displayName = "Flowing Fluids"
 authors = ""
 description = '''
 
@@ -14,16 +14,16 @@ description = '''
 #logoFile = ""
 
 [[dependencies.flowing_fluids]]
-modId = "neoforge"
-type = "required"
-versionRange = "[21,)"
+modId = "forge"
+mandatory = true
+versionRange = "[1,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.flowing_fluids]]
 modId = "minecraft"
-type = "required"
-versionRange = "[1.21.1,)"
+mandatory = true
+versionRange = "[1.21,)"
 ordering = "NONE"
 side = "BOTH"
 

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "waterly",
+  "id": "flowing_fluids",
   "version": "${version}",
-  "name": "Waterly",
+  "name": "Flowing Fluids",
   "description": "",
   "authors": [
     ""
@@ -11,22 +11,22 @@
     "homepage": ""
   },
   "license": "LGPL-3.0",
-  "icon": "assets/waterly/icon.png",
+  "icon": "assets/flowing_fluids/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
-      "traben.waterly.fabric.WaterlyFabric"
+      "traben.flowing_fluids.fabric.FlowingFluidsFabric"
     ],
     "client": [
-      "traben.waterly.fabric.client.WaterlyFabricClient"
+      "traben.flowing_fluids.fabric.client.FlowingFluidsFabricClient"
     ]
   },
   "mixins": [
-    "waterly.mixins.json"
+    "flowing_fluids.mixins.json"
   ],
   "depends": {
     "fabricloader": "*",
-    "minecraft": "*",
+    "minecraft": ">=1.21",
     "java": ">=21"
   },
   "suggests": {

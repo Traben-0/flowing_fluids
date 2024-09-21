@@ -10,5 +10,5 @@ dependencies {
 
 }
 loom {
-    accessWidenerPath = file("src/main/resources/waterly.accesswidener")
+    accessWidenerPath = file("src/main/resources/flowing_fluids.accesswidener")
 }

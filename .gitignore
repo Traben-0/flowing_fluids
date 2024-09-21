@@ -4,3 +4,7 @@
 /.gradle/*
 /common/.gradle/*
 /fabric/.gradle/*
+/forge/.gradle/*
+/forge/build/*
+/neoforge/.gradle/*
+/neoforge/build/*
