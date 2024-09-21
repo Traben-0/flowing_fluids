@@ -38,7 +38,6 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
     }
 
 
-
 //handled via blockstate mixin now for live enable/disable
 //    @ModifyArg(
 //            method = "<init>",
@@ -55,7 +54,7 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
     @Inject(method = "pickupBlock", at = @At(value = "RETURN"), cancellable = true)
     private void flowing_fluids$modifyBucket(final Player player, final LevelAccessor levelAccessor, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<ItemStack> cir) {
 //        System.out.println("pickup");
-        if (cir.getReturnValue().isEmpty() && FlowingFluids.enable) {
+        if (cir.getReturnValue().isEmpty() && FlowingFluids.config.enableMod) {
             int level = levelAccessor.getFluidState(blockPos).getAmount();
             if (level > 0) {
                 List<BlockPos> toCheck = new ArrayList<>();

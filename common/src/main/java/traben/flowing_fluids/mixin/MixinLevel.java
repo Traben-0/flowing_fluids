@@ -21,15 +21,18 @@ import traben.flowing_fluids.FluidFlowReceiver;
 @Mixin(Level.class)
 public abstract class MixinLevel {
 
-    @Shadow public abstract RandomSource getRandom();
+    @Shadow
+    public abstract RandomSource getRandom();
 
-    @Shadow public abstract BlockState getBlockState(final BlockPos pos);
+    @Shadow
+    public abstract BlockState getBlockState(final BlockPos pos);
 
-    @Shadow public abstract boolean setBlock(final BlockPos pos, final BlockState newState, final int flags);
+    @Shadow
+    public abstract boolean setBlock(final BlockPos pos, final BlockState newState, final int flags);
 
-    @Inject(method = "setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;II)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;"),locals = LocalCapture.CAPTURE_FAILHARD)
+    @Inject(method = "setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;II)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;"), locals = LocalCapture.CAPTURE_FAILHARD)
     private void flowing_fluids$displaceFluids(final BlockPos pos, final BlockState state, final int flags, final int recursionLeft, final CallbackInfoReturnable<Boolean> cir, final LevelChunk levelChunk, final Block block, final BlockState originalState) {
-        if (FlowingFluids.enable && !FlowingFluids.isManeuveringFluids
+        if (FlowingFluids.config.enableMod && FlowingFluids.config.enableDisplacement && !FlowingFluids.isManeuveringFluids
                 && !state.isAir() && state.getFluidState().isEmpty() && !originalState.getFluidState().isEmpty()
                 && originalState.getFluidState().getType() instanceof FluidFlowReceiver flowSource
                 && !state.is(Blocks.SPONGE)) {
@@ -44,9 +47,9 @@ public abstract class MixinLevel {
                     BlockState offsetState = getBlockState(offset);
                     if (offsetState.getFluidState().getType() instanceof FluidFlowReceiver) {
                         amountRemaining = flowSource.ff$tryFlowAmountIntoAndReturnRemainingAmount(amountRemaining, (Fluid) flowSource,
-                                        offsetState, (Level)(Object)this, offset, direction);
+                                offsetState, (Level) (Object) this, offset, direction);
                         if (amountRemaining == 0) break;
-                    }else if (offsetState.isAir()){
+                    } else if (offsetState.isAir()) {
                         setBlock(offset, originalState, 3);
                         amountRemaining = 0;
                         break;
@@ -61,16 +64,16 @@ public abstract class MixinLevel {
                         BlockState offsetState = getBlockState(posTraversing);
                         if (offsetState.getFluidState().getType() instanceof FluidFlowReceiver) {
                             amountRemaining = flowSource.ff$tryFlowAmountIntoAndReturnRemainingAmount(amountRemaining, (Fluid) flowSource,
-                                            offsetState, (Level)(Object)this, posTraversing, Direction.UP);
-                        }else if (offsetState.isAir()){
+                                    offsetState, (Level) (Object) this, posTraversing, Direction.UP);
+                        } else if (offsetState.isAir()) {
                             setBlock(posTraversing, originalState, 3);
                             amountRemaining = 0;
-                        }else{
+                        } else {
                             break;
                         }
                     }
 
-                    if (amountRemaining > 0 && FlowingFluids.debugSpreadPrint){
+                    if (amountRemaining > 0 && FlowingFluids.config.debugSpreadPrint) {
                         //lost fluid will just have to happen
                         FlowingFluids.LOG.info("Failed to displace all fluid at {} remaining: {}, originalAmount {}", pos.toShortString(), amountRemaining, originalState.getFluidState().getAmount());
                     }

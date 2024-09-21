@@ -32,14 +32,14 @@ public abstract class MixinBlockState extends StateHolder<Block, BlockState> {
 
     @Inject(method = "getPistonPushReaction", at = @At(value = "RETURN"), cancellable = true)
     private void flowing_fluids$overridePushReaction(final CallbackInfoReturnable<PushReaction> cir) {
-        if (FlowingFluids.enable && liquid) {
+        if (FlowingFluids.config.enableMod && FlowingFluids.config.enablePistonPushing && liquid) {
             cir.setReturnValue(PushReaction.PUSH_ONLY);
         }
     }
 
     @Inject(method = "isRandomlyTicking", at = @At(value = "RETURN"), cancellable = true)
     private void flowing_fluids$overrideRandomTickCheck(final CallbackInfoReturnable<Boolean> cir) {
-        if (FlowingFluids.enable && liquid) {
+        if (FlowingFluids.config.enableMod && FlowingFluids.config.enablePistonPushing && liquid) {
             cir.setReturnValue(true);
         }
     }

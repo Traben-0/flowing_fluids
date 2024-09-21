@@ -38,8 +38,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import traben.flowing_fluids.FluidGetterByAmount;
 import traben.flowing_fluids.FlowingFluids;
+import traben.flowing_fluids.FluidGetterByAmount;
 
 
 @Mixin(BucketItem.class)
@@ -70,7 +70,7 @@ public abstract class MixinBucketItem extends Item {
             index = 2
     )
     private ClipContext.Fluid flowing_fluids$allowAnyFluid(final ClipContext.Fluid par3) {
-        if (FlowingFluids.enable && par3 == ClipContext.Fluid.SOURCE_ONLY) {
+        if (FlowingFluids.config.enableMod && par3 == ClipContext.Fluid.SOURCE_ONLY) {
             return ClipContext.Fluid.ANY;
         }
         return par3;
@@ -79,7 +79,7 @@ public abstract class MixinBucketItem extends Item {
     //always place if partial
     @Inject(method = "use", at = @At(value = "HEAD"), cancellable = true)
     private void flowing_fluids$alterBehaviourIfPartial(final Level level, final Player player, final InteractionHand interactionHand, final CallbackInfoReturnable<InteractionResultHolder<ItemStack>> cir) {
-        if (FlowingFluids.enable
+        if (FlowingFluids.config.enableMod
                 && content instanceof FluidGetterByAmount) {//not empty and is flowing
             ItemStack heldBucket = player.getItemInHand(interactionHand);
 

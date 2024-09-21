@@ -15,10 +15,8 @@ import net.minecraft.world.level.material.WaterFluid;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
-import traben.flowing_fluids.FluidGetterByAmount;
 import traben.flowing_fluids.FlowingFluids;
-
-import java.util.Random;
+import traben.flowing_fluids.FluidGetterByAmount;
 
 
 @Mixin(WaterFluid.class)
@@ -35,7 +33,7 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
         //10% chance to fill from water biome
         //1% chance to evaporate
 
-        if (FlowingFluids.enable && !fluidState.isEmpty() && level.random.nextInt(5) == 0) {
+        if (FlowingFluids.config.enableMod && !fluidState.isEmpty() && level.random.nextInt(5) == 0) {
             //20% chance to continue
             int amount = fluidState.getAmount();
             if (!flowing_fluids$increase(level, blockPos, amount)
@@ -47,7 +45,7 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
 
     @Override
     protected boolean isRandomlyTicking() {
-        if (FlowingFluids.enable) return true;
+        if (FlowingFluids.config.enableMod) return true;
         return super.isRandomlyTicking();
     }
 
@@ -75,7 +73,7 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
                 level.setBlockAndUpdate(blockPos, flowing_fluids$getFluidStateOfAmount(amount + 1).createLegacyBlock());
                 return true;
             }
-        }else return level.random.nextInt(4) < 3;
+        } else return level.random.nextInt(4) < 3;
         //10% chance to continue
 
 

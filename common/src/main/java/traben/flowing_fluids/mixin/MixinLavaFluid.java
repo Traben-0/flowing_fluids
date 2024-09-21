@@ -18,7 +18,7 @@ public class MixinLavaFluid {
 
     @Inject(method = "canBeReplacedWith", at = @At(value = "RETURN"), cancellable = true)
     private void flowing_fluids$removeHeightCheck(final FluidState fluidState, final BlockGetter blockGetter, final BlockPos blockPos, final Fluid fluid, final Direction direction, final CallbackInfoReturnable<Boolean> cir) {
-        if (FlowingFluids.enable && !cir.getReturnValue()) {
+        if (FlowingFluids.config.enableMod && !cir.getReturnValue()) {
             cir.setReturnValue(fluid.is(FluidTags.WATER));
         }
     }

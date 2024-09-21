@@ -27,9 +27,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import traben.flowing_fluids.FlowingFluids;
 import traben.flowing_fluids.FluidFlowReceiver;
 import traben.flowing_fluids.FluidGetterByAmount;
-import traben.flowing_fluids.FlowingFluids;
+import traben.flowing_fluids.config.FFConfig;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
@@ -73,11 +74,12 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     @Shadow
     protected abstract int getSlopeFindDistance(final LevelReader levelReader);
 
-    @Shadow protected abstract boolean canSpreadTo(final BlockGetter level, final BlockPos fromPos, final BlockState fromBlockState, final Direction direction, final BlockPos toPos, final BlockState toBlockState, final FluidState toFluidState, final Fluid fluid);
+    @Shadow
+    protected abstract boolean canSpreadTo(final BlockGetter level, final BlockPos fromPos, final BlockState fromBlockState, final Direction direction, final BlockPos toPos, final BlockState toBlockState, final FluidState toFluidState, final Fluid fluid);
 
     @Inject(method = "tick", at = @At(value = "HEAD"), cancellable = true)
     private void flowing_fluids$tickMixin(final Level level, final BlockPos blockPos, final FluidState fluidState, final CallbackInfo ci) {
-        if (FlowingFluids.enable) {
+        if (FlowingFluids.config.enableMod) {
             //cancel the original tick
             ci.cancel();
 
@@ -85,7 +87,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
             try {
 
                 long start;
-                boolean debug = FlowingFluids.debugSpread;
+                boolean debug = FlowingFluids.config.debugSpread;
                 if (debug) {
                     start = System.nanoTime();
                     flowing_fluids$debugCheckCountSpreads = 4;
@@ -116,7 +118,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
                 //this ties in nicely with a sort of surface tension effect
                 if (remainingAmount > getDropOff(level)) {//drop off is 1 for water, 2 for lava in the overworld
                     flowing_fluids$flowToSides(level, blockPos, fluidState, remainingAmount, thisState, remainingAmount);
-                } else if (FlowingFluids.edges) {
+                } else if (FlowingFluids.config.flowToEdges) {
                     //if the remaining amount is less than the drop-off amount, we can still flow to the sides but only if
                     //we find a nearby ledge to flow towards, as we want this water to settle when on flat ground
                     //use 1 as the amount as we don't spread to lower values than the drop-off, so we only want empty destination tiles
@@ -143,7 +145,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
         long time = System.nanoTime() - start;
         FlowingFluids.totalDebugTicks++;
         FlowingFluids.totalDebugMilliseconds = FlowingFluids.totalDebugMilliseconds.add(BigDecimal.valueOf(time / 1000000D));
-        if (FlowingFluids.debugSpreadPrint) {
+        if (FlowingFluids.config.debugSpreadPrint) {
             FlowingFluids.LOG.info("FlowingFluids spread tick:\n Position: {}\n Side spread checks: {}\n Down spread checks: {}\n Spread type: {}\n Time nano: {}\n Avg time (since debug enable): {}ms",
                     blockPos.toShortString(), flowing_fluids$debugCheckCountSpreads, flowing_fluids$debugCheckCountDowns,
                     isDown ? "down only" : remainingAmount > getDropOff(level) ? "normal" : "edge only", time,
@@ -174,7 +176,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
 
             //vast majority of changes are only 1, so we can skip the rest of the logic
             //if the remainder is left in the source block, we can return if the difference is 1, or less (less is impossible but also a safety check)
-            if (FlowingFluids.levelBehaviour == FlowingFluids.CarrySplitBehaviour.VANILLA_LIKE && difference <= 1)
+            if (FlowingFluids.config.levelingBehaviour == FFConfig.LevelingBehaviour.VANILLA_LIKE && difference <= 1)
                 return;
 
             //calculate the amount that would level both liquids
@@ -186,7 +188,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
             int fromAmount;
             int toAmount;
             if (hasRemainder) {
-                switch (FlowingFluids.levelBehaviour) {
+                switch (FlowingFluids.config.levelingBehaviour) {
                     case VANILLA_LIKE -> {
                         fromAmount = averageLevel + 1;
                         toAmount = averageLevel;
@@ -197,19 +199,20 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
                     }
                     case LAZY_LEVEL -> {
                         //give the flow an average amount of attempts to level itself out
-                        boolean from = level.random.nextInt(FlowingFluids.fastmode ? 2 : 4) < 2;
+                        boolean from = level.random.nextInt(FlowingFluids.config.fastmode ? 2 : 4) < 2;
                         fromAmount = from ? averageLevel + 1 : averageLevel;
                         toAmount = from ? averageLevel : averageLevel + 1;
                     }
                     case STRONG_LEVEL -> {
                         //give the flow a high average amount of attempts to level itself out
-                        boolean from = level.random.nextInt(FlowingFluids.fastmode ? 3 : 10) == 0;
+                        boolean from = level.random.nextInt(FlowingFluids.config.fastmode ? 3 : 10) == 0;
                         fromAmount = from ? averageLevel + 1 : averageLevel;
                         toAmount = from ? averageLevel : averageLevel + 1;
                     }
-                    default -> throw new IllegalStateException("Unexpected value for split decision: " + FlowingFluids.levelBehaviour);
+                    default ->
+                            throw new IllegalStateException("Unexpected value for split decision: " + FlowingFluids.config.levelingBehaviour);
                 }
-            }else{
+            } else {
                 fromAmount = averageLevel;
                 toAmount = averageLevel;
             }
@@ -272,7 +275,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
 
     @Inject(method = "getNewLiquid", at = @At(value = "HEAD"), cancellable = true)
     private void flowing_fluids$validateLiquidMixin(final Level level, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<FluidState> cir) {
-        if (FlowingFluids.enable) {
+        if (FlowingFluids.config.enableMod) {
             cir.setReturnValue(flowing_fluids$getFluidStateOfAmount(level.getFluidState(blockPos).getAmount()));
         }
     }
@@ -282,9 +285,9 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
             Level level, BlockPos blockPos, FluidState fluidState, int amount, boolean requiresSlope) {
 
         //use simpler direction choice if fast mode is enabled
-        if (FlowingFluids.fastmode) {
+        if (FlowingFluids.config.fastmode) {
             return requiresSlope
-                    ? FlowingFluids.edges ? flowing_fluids$getFastLowestSpreadableEdge(level, blockPos, fluidState, amount) : null
+                    ? FlowingFluids.config.flowToEdges ? flowing_fluids$getFastLowestSpreadableEdge(level, blockPos, fluidState, amount) : null
                     : flowing_fluids$getFastLowestSpreadable(level, blockPos, fluidState, amount);
         }
 
@@ -363,8 +366,8 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
 
     @Unique
     protected int flowing_fluids$getSlopeDistance(LevelReader level, BlockPos sourcePosForKey, int distance, Direction fromDir, Fluid sourceFluid, int sourceAmount,
-                                           BlockPos newPos, Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos, Short2BooleanMap posCanFlowDown,
-                                           boolean forceSlopeDownSameOrEmpty, int slopeFindDistance) {
+                                                  BlockPos newPos, Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos, Short2BooleanMap posCanFlowDown,
+                                                  boolean forceSlopeDownSameOrEmpty, int slopeFindDistance) {
         //currently in a worse case scenario, water spreading on flat ground, this deep search will perform:
         // 160 side spread, flowing_fluids$canSpreadToOptionallySameOrEmpty() checks
         // 40 downwards spread, flowing_fluids$getSetFlowDownCache() checks,
@@ -392,7 +395,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
                 var searchStates = flowing_fluids$getSetPosCache(searchKey, level, statesAtPos, searchPos);
 
                 //if we can spread to the searched direction
-                if (FlowingFluids.debugSpread) flowing_fluids$debugCheckCountSpreads++;
+                if (FlowingFluids.config.debugSpread) flowing_fluids$debugCheckCountSpreads++;
                 if (flowing_fluids$canSpreadToOptionallySameOrEmpty(sourceFluid, sourceAmount, level, newPos,
                         level.getBlockState(newPos), searchDir, searchPos,
                         searchStates.getFirst(), searchStates.getSecond(), forceSlopeDownSameOrEmpty)) {
@@ -431,7 +434,7 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     @Unique
     private boolean flowing_fluids$getSetFlowDownCache(short key, LevelReader level, Short2BooleanMap boolAtPos, BlockPos pos, Fluid sourceFluid, boolean forceSlopeDownSameOrEmpty) {
         return boolAtPos.computeIfAbsent(key, (sx) -> {
-            if (FlowingFluids.debugSpread) flowing_fluids$debugCheckCountDowns++;
+            if (FlowingFluids.config.debugSpread) flowing_fluids$debugCheckCountDowns++;
             var posDown = pos.below();
             return (flowing_fluids$canSpreadToOptionallySameOrEmpty(sourceFluid, 8, level, pos, level.getBlockState(pos),
                     Direction.DOWN, posDown, level.getBlockState(posDown), level.getFluidState(posDown),
@@ -500,9 +503,9 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
 
     @Unique
     private boolean flowing_fluids$canSpreadToOptionallySameOrEmpty(Fluid sourceFluid, int sourceAmount, BlockGetter blockGetter,
-                                                             BlockPos blockPos, BlockState blockState, Direction direction,
-                                                             BlockPos blockPos2, BlockState blockState2, FluidState fluidState2,
-                                                             boolean enforceSameFluidOrEmpty) {
+                                                                    BlockPos blockPos, BlockState blockState, Direction direction,
+                                                                    BlockPos blockPos2, BlockState blockState2, FluidState fluidState2,
+                                                                    boolean enforceSameFluidOrEmpty) {
         //add extra fluid check for enforcing replacing into own fluid type, or empty, only
         if (enforceSameFluidOrEmpty && !(fluidState2.isEmpty() || fluidState2.getType().isSame(sourceFluid)))
             return false;
@@ -512,8 +515,8 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
 
     @Unique
     private boolean flowing_fluids$canSpreadTo(Fluid sourceFluid, int sourceAmount, BlockGetter blockGetter,
-                                        BlockPos blockPos, BlockState blockState, Direction direction,
-                                        BlockPos blockPos2, BlockState blockState2, FluidState fluidState2) {
+                                               BlockPos blockPos, BlockState blockState, Direction direction,
+                                               BlockPos blockPos2, BlockState blockState2, FluidState fluidState2) {
         //add extra fluid check for replacing into self
         return (fluidState2.canBeReplacedWith(blockGetter, blockPos2, sourceFluid, direction) || flowing_fluids$canFitIntoFluid(sourceFluid, fluidState2, direction, sourceAmount))
                 && this.canPassThroughWall(direction, blockGetter, blockPos, blockState, blockPos2, blockState2)
@@ -535,9 +538,9 @@ public abstract class MixinFluidTicking extends Fluid implements FluidGetterByAm
     }
 
     public int ff$tryFlowAmountIntoAndReturnRemainingAmount(int amount, Fluid fromType, BlockState toState, final Level level, final BlockPos blockPos, Direction direction) {
-        if (isSame(fromType) && toState.getFluidState().getAmount() < 8){
+        if (isSame(fromType) && toState.getFluidState().getAmount() < 8) {
             int total = toState.getFluidState().getAmount() + amount;
-            flowing_fluids$setOrRemoveWaterAmountAt(level, blockPos, Math.min(total,8), toState, direction);
+            flowing_fluids$setOrRemoveWaterAmountAt(level, blockPos, Math.min(total, 8), toState, direction);
             return Math.max(0, total - 8);
         }
         return amount;

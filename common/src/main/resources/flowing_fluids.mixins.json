@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_21",
   "minVersion": "0.8",
   "client": [
+    "MixinDisconnect"
   ],
   "mixins": [
     "MixinBlockState",
@@ -12,6 +13,7 @@
     "MixinLavaFluid",
     "MixinLevel",
     "MixinLiquidBlock",
+    "MixinPlayerConnect",
     "MixinWaterFluid"
   ],
   "injectors": {
