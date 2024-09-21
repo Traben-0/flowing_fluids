@@ -10,6 +10,7 @@ import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.material.FlowingFluid;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.WaterFluid;
 import org.spongepowered.asm.mixin.Mixin;
@@ -25,22 +26,45 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
     @Shadow
     public abstract int getDropOff(final LevelReader levelReader);
 
+    @Shadow public abstract boolean isSame(final Fluid fluid);
+
+//    @Unique
+//    private static Random ff$random = new Random();
+
     @Override
     protected void randomTick(final Level level, final BlockPos blockPos, final FluidState fluidState, final RandomSource randomSource) {
+
         super.randomTick(level, blockPos, fluidState, randomSource);
+        if (level.isClientSide()) return;
 
-        //20% chance to fill from rain
-        //10% chance to fill from water biome
-        //1% chance to evaporate
+        if (FlowingFluids.config.enableMod && !fluidState.isEmpty()) {
 
-        if (FlowingFluids.config.enableMod && !fluidState.isEmpty() && level.random.nextInt(5) == 0) {
-            //20% chance to continue
+            boolean print = FlowingFluids.config.printRandomTicks;
+            if (print) FlowingFluids.LOG.info("[Flowing Fluids] - Random water ticked at {}", blockPos.toShortString());
+
             int amount = fluidState.getAmount();
-            if (!flowing_fluids$increase(level, blockPos, amount)
-                    && level.random.nextInt(10) == 0)
-                //1% chance to continue
-                flowing_fluids$decrease(level, blockPos, amount);
-        }
+            if(amount < 8){
+                if (ff$tryRainFill(level, blockPos, amount, level.random.nextFloat())) {
+                    if (print)
+                        FlowingFluids.LOG.info("[Flowing Fluids] --- Water was filled by rain. Chance: {}", FlowingFluids.config.rainRefillChance);
+                    return;
+                }
+                if (ff$tryBiomeFill(level, blockPos, amount, level.random.nextFloat())) {
+                    if (print)
+                        FlowingFluids.LOG.info("[Flowing Fluids] --- Water was filled by biome. Chance: {}", FlowingFluids.config.oceanRiverSwampRefillChance);
+                    return;
+                }
+                if (ff$tryEvaporate(level, blockPos, amount, level.random.nextFloat())){
+                    if (print)
+                        FlowingFluids.LOG.info("[Flowing Fluids] --- Water was evaporated. Chance: {}", FlowingFluids.config.evaporationChance);
+                    return;
+                }
+                if (print) FlowingFluids.LOG.info("[Flowing Fluids] --- Random tick did nothing. Chances:\nRain: {}\nBiome: {}\nEvaporation: {}",
+                        FlowingFluids.config.rainRefillChance, FlowingFluids.config.oceanRiverSwampRefillChance, FlowingFluids.config.evaporationChance);
+            }else{
+                if (print) FlowingFluids.LOG.info("[Flowing Fluids] --- Water was full. No action taken.");
+            }
+         }
     }
 
     @Override
@@ -49,18 +73,22 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
         return super.isRandomlyTicking();
     }
 
+
+
     @Unique
-    private boolean flowing_fluids$increase(final Level level, final BlockPos blockPos, int amount) {
-        //20% chance
-        if (amount < 8) {
-            if (level.isRaining() && level.canSeeSky(blockPos)) {//can see sky and raining
-                level.setBlockAndUpdate(blockPos, flowing_fluids$getFluidStateOfAmount(/*level, blockPos, level.getBlockState(blockPos),*/ amount + 1).createLegacyBlock());
-                return true;
-            }
+    private boolean ff$tryRainFill(final Level level, final BlockPos blockPos, int amount, float chance) {
 
-            if (level.random.nextBoolean()) return true;
-            //10% chance to continue
+        if (chance < FlowingFluids.config.rainRefillChance && level.isRaining() && level.canSeeSky(blockPos)) {//can see sky and raining
+            level.setBlockAndUpdate(blockPos, flowing_fluids$getFluidStateOfAmount(/*level, blockPos, level.getBlockState(blockPos),*/ amount + 1).createLegacyBlock());
+            return true;
+        }
+        return false;
+    }
 
+    @Unique
+    private boolean ff$tryBiomeFill(final Level level, final BlockPos blockPos, int amount, float chance) {
+
+        if (chance < FlowingFluids.config.oceanRiverSwampRefillChance) {
             //if in ocean or river and below or at sea level and above 0
             var biome = level.getBiome(blockPos);
             if (level.getSeaLevel() >= blockPos.getY()//between sea level and 0
@@ -70,24 +98,24 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
                     || biome.is(BiomeTags.IS_BEACH)
                     || biome.is(Biomes.SWAMP)
                     || biome.is(Biomes.MANGROVE_SWAMP))) {
+
                 level.setBlockAndUpdate(blockPos, flowing_fluids$getFluidStateOfAmount(amount + 1).createLegacyBlock());
                 return true;
             }
-        } else return level.random.nextInt(4) < 3;
-        //10% chance to continue
-
-
+        }
         return false;
     }
 
     @Unique
-    private void flowing_fluids$decrease(final Level level, final BlockPos blockPos, int amount) {
+    private boolean ff$tryEvaporate(final Level level, final BlockPos blockPos, int amount, float chance) {
         //evaporate over time if exposed to any sky light and is day
-        if (amount <= getDropOff(level)
-                && level.isDay()
+        if (chance < FlowingFluids.config.evaporationChance && amount <= getDropOff(level)
+                && level.isDay() && !level.isRaining()
                 && level.getFluidState(blockPos.below()).isEmpty()
                 && level.getBrightness(LightLayer.SKY, blockPos) > 0) {
             level.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());
+            return true;
         }
+        return false;
     }
 }

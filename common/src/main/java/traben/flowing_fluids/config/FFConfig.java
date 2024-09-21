@@ -12,6 +12,10 @@ public class FFConfig {
     public boolean debugSpreadPrint = false;
     public boolean enableDisplacement = true;
     public boolean enablePistonPushing = true;
+    public float rainRefillChance = 0.01f;
+    public float oceanRiverSwampRefillChance = 0.01f;
+    public float evaporationChance = 0.005f;
+    public boolean printRandomTicks = false;
 
 
     public FFConfig() {
@@ -30,8 +34,11 @@ public class FFConfig {
         debugSpreadPrint = buffer.readBoolean();
         enableDisplacement = buffer.readBoolean();
         enablePistonPushing = buffer.readBoolean();
+        rainRefillChance = buffer.readFloat();
+        oceanRiverSwampRefillChance = buffer.readFloat();
+        evaporationChance = buffer.readFloat();
+        printRandomTicks = buffer.readBoolean();
         ///////////////////////////////////////////////
-
     }
 
     public void encodeToByteBuffer(FriendlyByteBuf buffer) {
@@ -47,6 +54,10 @@ public class FFConfig {
         buffer.writeBoolean(debugSpreadPrint);
         buffer.writeBoolean(enableDisplacement);
         buffer.writeBoolean(enablePistonPushing);
+        buffer.writeFloat(rainRefillChance);
+        buffer.writeFloat(oceanRiverSwampRefillChance);
+        buffer.writeFloat(evaporationChance);
+        buffer.writeBoolean(printRandomTicks);
         ///////////////////////////////////////////////
     }
 
@@ -55,6 +66,5 @@ public class FFConfig {
         LAZY_LEVEL,
         STRONG_LEVEL,
         FORCE_LEVEL
-
     }
 }

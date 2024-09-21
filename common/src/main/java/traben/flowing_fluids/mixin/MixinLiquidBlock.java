@@ -33,21 +33,27 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
     @Final
     protected FlowingFluid fluid;
 
+
+
     public MixinLiquidBlock(final Properties properties) {
         super(properties);
     }
 
 
-//handled via blockstate mixin now for live enable/disable
+
 //    @ModifyArg(
 //            method = "<init>",
 //            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/Block;<init>(Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V"),
 //            index = 0
 //    )
-//    private static BlockBehaviour.Properties flowing_fluids$modifyBlockProperties(final BlockBehaviour.Properties properties) {
-//        return FlowingFluids.enable ?
-//                properties.pushReaction(PushReaction.PUSH_ONLY).randomTicks()
-//                : properties;
+//    private static BlockBehaviour.Properties flowing_fluids$modifyBlockProperties(final Properties properties) {
+//
+//        return properties.randomTicks();
+//
+//        //handled by blockstate mixin for config support
+//        //        return FlowingFluids.enable ?
+////                properties.pushReaction(PushReaction.PUSH_ONLY).randomTicks()
+////                : properties;
 //    }
 
 
@@ -107,5 +113,6 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
                 }
             }
         }
+
     }
 }

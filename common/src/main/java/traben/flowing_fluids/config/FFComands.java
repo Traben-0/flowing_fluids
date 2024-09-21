@@ -1,6 +1,7 @@
 package traben.flowing_fluids.config;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
@@ -28,6 +29,8 @@ public class FFComands {
     public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext var2, Commands.CommandSelection var3) {
         dispatcher.register(Commands.literal("flowing_fluids")
                 .requires(source -> source.hasPermission(4) || (source.getServer().isSingleplayer() && source.getPlayer() != null && source.getServer().isSingleplayerOwner(source.getPlayer().getGameProfile()))
+                ).then(Commands.literal("help")
+                        .executes(c-> message(c,"Use any of the commands without adding any of it's arguments, E.G '/flowing_fluids enable_mod', to get a description of what the command does and it's current value."))
                 ).then(Commands.literal("enable_mod")
                         .then(Commands.literal("on")
                                 .executes(cont -> {
@@ -115,7 +118,31 @@ public class FFComands {
                                     return messageAndSaveConfig(cont, "Liquids at their minimum height will no longer flow to and over nearby edges.");
                                 })
                         )
-                ).then(Commands.literal("debug")
+                ).then(Commands.literal("water_puddle_evaporation_chance")
+                        .executes(cont -> message(cont, "Sets the chance of small minimum level water tiles evaporating during random ticks, currently set to " + FlowingFluids.config.evaporationChance))
+                        .then(Commands.argument("chance", FloatArgumentType.floatArg(0, 1))
+                                .executes(cont -> {
+                                    FlowingFluids.config.evaporationChance = cont.getArgument("chance", Float.class);
+                                    return messageAndSaveConfig(cont, "Water puddle evaporation chance set to " + FlowingFluids.config.evaporationChance);
+                                })
+                        )
+                ).then(Commands.literal("water_rain_refill_chance")
+                        .executes(cont -> message(cont, "Sets the chance of non-full water tiles increasing their level while its rains and they are open to the sky, during random ticks. This provides access to renewable water given enough time. Currently set to " + FlowingFluids.config.rainRefillChance))
+                        .then(Commands.argument("chance", FloatArgumentType.floatArg(0, 1))
+                                .executes(cont -> {
+                                    FlowingFluids.config.rainRefillChance = cont.getArgument("chance", Float.class);
+                                    return messageAndSaveConfig(cont, "Water rain refill chance set to " + FlowingFluids.config.rainRefillChance);
+                                })
+                        )
+                ).then(Commands.literal("water_wet_biome_refill_chance")
+                        .executes(cont -> message(cont, "Sets the chance of of non-full water tiles increasing their level within: Oceans, Rivers, and Swamps, during random ticks. Additionally they must have a sky light level higher than 0, and be between y=0 and sea level. This provides time limited access to infinite water within these biomes, granted they are big enough and not drained too quickly. Currently set to " + FlowingFluids.config.evaporationChance))
+                        .then(Commands.argument("chance", FloatArgumentType.floatArg(0, 1))
+                                .executes(cont -> {
+                                    FlowingFluids.config.evaporationChance = cont.getArgument("chance", Float.class);
+                                    return messageAndSaveConfig(cont, "Water set biome refill chance set to " + FlowingFluids.config.evaporationChance);
+                                })
+                        )
+                ).then(Commands.literal("debug").executes(cont -> message(cont, "Debug commands you probably don't need these."))
                         .then(Commands.literal("spread")
                                 .then(Commands.literal("print")
                                         .executes(cont -> {
@@ -132,8 +159,27 @@ public class FFComands {
                                 ).then(Commands.literal("average_tick_length")
                                         .executes(cont -> message(cont, "average water spread tick length is : " + FlowingFluids.getAverageDebugMilliseconds() + "ms"))
                                 )
+                        ).then(Commands.literal("random_ticks_printing")
+                                .executes(cont -> message(cont, "Random ticks printing is currently " + (FlowingFluids.config.printRandomTicks ? "enabled." : "disabled.")))
+                                .then(Commands.literal("on")
+                                        .executes(cont -> {
+                                            FlowingFluids.config.printRandomTicks = true;
+                                            return messageAndSaveConfig(cont, "Random ticks printing is now enabled.");
+                                        })
+                                ).then(Commands.literal("off")
+                                        .executes(cont -> {
+                                            FlowingFluids.config.printRandomTicks = false;
+                                            return messageAndSaveConfig(cont, "Random ticks printing is now disabled.");
+                                        })
+                                )
                         )
+                ).then(Commands.literal("reset_all_settings")
+                        .executes(cont -> {
+                            FlowingFluids.config = new FFConfig();
+                            return messageAndSaveConfig(cont, "Flowing Fluids settings have been reset to default.");
+                        })
                 )
+
         );
     }
 }
