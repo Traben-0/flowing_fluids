@@ -53,7 +53,7 @@ public abstract class MixinLevel {
             try {
                 //try spread to the side as much as possible
                 int amountRemaining = originalState.getFluidState().getAmount();
-                for (Direction direction : FlowingFluids.getCardinalsShuffle(getRandom())) {
+                for (Direction direction : FFFluidUtils.getCardinalsShuffle(getRandom())) {
                     BlockPos offset = pos.relative(direction);
                     BlockState offsetState = getBlockState(offset);
 

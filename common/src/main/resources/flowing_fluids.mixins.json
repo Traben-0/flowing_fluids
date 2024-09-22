@@ -4,10 +4,12 @@
   "compatibilityLevel": "JAVA_21",
   "minVersion": "0.8",
   "client": [
-    "MixinDisconnect"
+    "MixinDisconnect",
+    "MixinLiquidBlockRenderer"
   ],
   "mixins": [
     "MixinBlockState",
+    "MixinBottleItem",
     "MixinBucketItem",
     "MixinFarmBlock",
     "MixinFlowingFluid",

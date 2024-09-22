@@ -12,7 +12,6 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BucketPickup;
 import net.minecraft.world.level.block.LiquidBlockContainer;
 import net.minecraft.world.level.block.state.BlockState;
@@ -53,17 +52,6 @@ public abstract class MixinFlowingFluid extends Fluid {
         return 0;
     }
 
-    @Shadow
-    public abstract FluidState getSource(final boolean bl);
-
-    @Shadow
-    public abstract FluidState getFlowing(final int i, final boolean bl);
-
-    @Shadow
-    public abstract boolean canPassThroughWall(final Direction direction, final BlockGetter blockGetter, final BlockPos blockPos, final BlockState blockState, final BlockPos blockPos2, final BlockState blockState2);
-
-    @Shadow
-    public abstract boolean canHoldFluid(final BlockGetter blockGetter, final BlockPos blockPos, final BlockState blockState, final Fluid fluid);
 
     @Shadow
     protected abstract int getDropOff(final LevelReader levelReader);
@@ -80,7 +68,9 @@ public abstract class MixinFlowingFluid extends Fluid {
 
     @Inject(method = "getFlow", at = @At(value = "HEAD"), cancellable = true)
     private void ff$hideFlowingTexture(final BlockGetter blockReader, final BlockPos pos, final FluidState fluidState, final CallbackInfoReturnable<Vec3> cir) {
-        if (FlowingFluids.config.enableMod && FlowingFluids.config.hideFlowingTexture) {
+        if (FlowingFluids.config.enableMod
+                && FlowingFluids.isRenderingFluids // only during render as this is also used for flow calculations for entities
+                && FlowingFluids.config.hideFlowingTexture) {
             cir.setReturnValue(Vec3.ZERO);
         }
     }
@@ -293,12 +283,12 @@ public abstract class MixinFlowingFluid extends Fluid {
         if (amount > 0) {
             flowing_fluids$spreadTo2(level, blockPos, thisState, direction, amount);
         } else {
-            flowing_fluids$removeWater(level, blockPos, thisState);
+            FFFluidUtils.removeAllFluidAtPos(level, blockPos, this);
         }
     }
 
     @Inject(method = "getNewLiquid", at = @At(value = "HEAD"), cancellable = true)
-    private void flowing_fluids$validateLiquidMixin(final Level level, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<FluidState> cir) {
+    private void flowing_fluids$validateLiquidMixin(final Level level, final BlockPos blockPos, final BlockState  blockState, final CallbackInfoReturnable<FluidState> cir) {
         if (FlowingFluids.config.enableMod) {
             var state = level.getFluidState(blockPos);
             cir.setReturnValue(FFFluidUtils.getStateForFluidByAmount(state.getType(),state.getAmount()));
@@ -321,7 +311,7 @@ public abstract class MixinFlowingFluid extends Fluid {
 
         //get the cardinal directions that are valid flow locations sorted by the amount of fluid in them,
         //ties are randomly sorted by initial shuffle
-        List<Direction> directionsCanSpreadToSortedByAmount = FlowingFluids.getCardinalsShuffle(level.random).stream()
+        List<Direction> directionsCanSpreadToSortedByAmount = FFFluidUtils.getCardinalsShuffle(level.random).stream()
                 .sorted(Comparator.comparingInt((dir1) -> level.getFluidState(blockPos.relative(dir1)).getAmount()))
                 .filter(dir -> {
                     BlockPos posDir = blockPos.relative(dir);
@@ -471,7 +461,7 @@ public abstract class MixinFlowingFluid extends Fluid {
     private @Nullable Direction flowing_fluids$getFastLowestSpreadableEdge(Level level, BlockPos blockPos, FluidState fluidState) {
         ToIntFunction<Direction> func = (dir) -> level.getFluidState(blockPos.relative(dir).below()).getAmount();
         //just search neighbours for if we can spread to and below them
-        return FlowingFluids.getCardinalsShuffle(level.random).stream()
+        return FFFluidUtils.getCardinalsShuffle(level.random).stream()
                 .filter(dir -> {
                     BlockPos pos = blockPos.relative(dir);
                     BlockState state = level.getBlockState(pos);
@@ -490,7 +480,7 @@ public abstract class MixinFlowingFluid extends Fluid {
     private @Nullable Direction flowing_fluids$getFastLowestSpreadable(Level level, BlockPos blockPos, FluidState fluidState, int amount) {
         ToIntFunction<Direction> func = (dir) -> level.getFluidState(blockPos.relative(dir)).getAmount();
         //just search neighbours for if we can spread to them
-        return FlowingFluids.getCardinalsShuffle(level.random).stream()
+        return FFFluidUtils.getCardinalsShuffle(level.random).stream()
                 .filter(dir -> {
                     BlockPos pos = blockPos.relative(dir);
                     BlockState state = level.getBlockState(pos);
@@ -506,15 +496,7 @@ public abstract class MixinFlowingFluid extends Fluid {
     }
 
 
-    @Unique
-    protected void flowing_fluids$removeWater(LevelAccessor levelAccessor, BlockPos blockPos, BlockState blockState) {
-        if (blockState.getBlock() instanceof LiquidBlockContainer
-                && blockState.getBlock() instanceof BucketPickup bucketPickup) {
-            bucketPickup.pickupBlock(null, levelAccessor, blockPos, blockState);
-        } else {
-            levelAccessor.setBlock(blockPos, Blocks.AIR.defaultBlockState(), 3);
-        }
-    }
+
 
     @Unique
     private boolean flowing_fluids$canSpreadToOptionallySameOrEmpty(Fluid sourceFluid, int sourceAmount, BlockGetter blockGetter,
