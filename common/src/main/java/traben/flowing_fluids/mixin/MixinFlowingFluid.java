@@ -65,16 +65,18 @@ public abstract class MixinFlowingFluid extends Fluid {
     protected abstract int getSlopeFindDistance(final LevelReader levelReader);
 
 
-    @Shadow public abstract int getAmount(final FluidState state);
+    @Shadow
+    public abstract int getAmount(final FluidState state);
 
 
-    @Shadow public abstract void beforeDestroyingBlock(final LevelAccessor level, final BlockPos pos, final BlockState state);
+    @Shadow
+    public abstract void beforeDestroyingBlock(final LevelAccessor level, final BlockPos pos, final BlockState state);
 
     @Inject(method = "getFlow", at = @At(value = "HEAD"), cancellable = true)
     private void ff$hideFlowingTexture(final BlockGetter blockReader, final BlockPos pos, final FluidState fluidState, final CallbackInfoReturnable<Vec3> cir) {
         if (FlowingFluids.config.enableMod
                 && (Thread.currentThread().getName().startsWith("Render thread")
-                    || Thread.currentThread().getName().startsWith("Chunk Render Task Executor"))
+                || Thread.currentThread().getName().startsWith("Chunk Render Task Executor"))
                 && FlowingFluids.config.hideFlowingTexture) {
             cir.setReturnValue(Vec3.ZERO);
         }
@@ -182,75 +184,122 @@ public abstract class MixinFlowingFluid extends Fluid {
 
         //if we are a water-loggable block
         //need to check both container and pickup as there are some odd collisions, including the liquid blocks themselves
-        if (thisState.getBlock() instanceof LiquidBlockContainer
-                && thisState.getBlock() instanceof BucketPickup getWater) {
-                //just totally empty all water-loggables
-                getWater.pickupBlock(null, level, blockPos, thisState);
-                //this may lose some water, but it's the easiest choice for now, and water-loggables aren't "full" anyway
-                //flowing_fluids$spreadTo2(level, posDir, level.getBlockState(posDir), dir, amount);
-                FFFluidUtils.setFluidStateAtPosToNewAmount(level, posDir, fluidState.getType(), amount);
+//        if (thisState.getBlock() instanceof LiquidBlockContainer
+//                && thisState.getBlock() instanceof BucketPickup getWater) {
+//            //just totally empty all water-loggables
+//            var stack = getWater.pickupBlock(null, level, blockPos, thisState);
+//            if (!stack.isEmpty()) {
+//                //this may lose some water, but it's the easiest choice for now, and water-loggables aren't "full" anyway
+//                //flowing_fluids$spreadTo2(level, posDir, level.getBlockState(posDir), dir, amount);
+//                FFFluidUtils.setFluidStateAtPosToNewAmount(level, posDir, fluidState.getType(), amount);
+//                return;
+//            }
+//
+//        }
 
-        } else {
-            //this amount is already confirmed to be less than {amount}
-            final int destFluidAmount = level.getFluidState(posDir).getAmount();
-            int difference = amount - destFluidAmount;
 
-            //vast majority of changes are only 1, so we can skip the rest of the logic
-            //if the remainder is left in the source block, we can return if the difference is 1, or less (less is impossible but also a safety check)
-            if (FlowingFluids.config.levelingBehaviour == FFConfig.LevelingBehaviour.VANILLA_LIKE && difference <= 1)
-                return;
+        //this amount is already confirmed to be less than {amount}
+        final int destFluidAmount = level.getFluidState(posDir).getAmount();
+        int difference = amount - destFluidAmount;
 
-            //calculate the amount that would level both liquids
-            final int averageLevel = destFluidAmount + difference / 2;
+        //must force total flow of fluid because of waterloggables
+        if (ff$handleWaterLoggedFlowAndReturnIfHandled(level, blockPos, fluidState, amount, thisState, posDir, destFluidAmount,true)) return;
 
-            //if the difference is odd, we need to add 1 to the 'from' amount
-            boolean hasRemainder = (difference % 2 != 0);
+        //vast majority of changes are only 1, so we can skip the rest of the logic
+        //if the remainder is left in the source block, we can return if the difference is 1, or less (less is impossible but also a safety check)
+        if (FlowingFluids.config.levelingBehaviour == FFConfig.LevelingBehaviour.VANILLA_LIKE && difference <= 1)
+            return;
 
-            int fromAmount;
-            int toAmount;
-            if (hasRemainder) {
-                switch (FlowingFluids.config.levelingBehaviour) {
-                    case VANILLA_LIKE -> {
-                        fromAmount = averageLevel + 1;
-                        toAmount = averageLevel;
-                    }
-                    case FORCE_LEVEL -> {
-                        fromAmount = averageLevel;
-                        toAmount = averageLevel + 1;
-                    }
-                    case LAZY_LEVEL -> {
-                        //give the flow an average amount of attempts to level itself out
-                        boolean from = level.random.nextInt(FlowingFluids.config.fastmode ? 2 : 4) < 2;
-                        fromAmount = from ? averageLevel + 1 : averageLevel;
-                        toAmount = from ? averageLevel : averageLevel + 1;
-                    }
-                    case STRONG_LEVEL -> {
-                        //give the flow a high average amount of attempts to level itself out
-                        boolean from = level.random.nextInt(FlowingFluids.config.fastmode ? 3 : 10) == 0;
-                        fromAmount = from ? averageLevel + 1 : averageLevel;
-                        toAmount = from ? averageLevel : averageLevel + 1;
-                    }
-                    default ->
-                            throw new IllegalStateException("Unexpected value for split decision: " + FlowingFluids.config.levelingBehaviour);
+        //calculate the amount that would level both liquids
+        final int averageLevel = destFluidAmount + difference / 2;
+
+        //if the difference is odd, we need to add 1 to the 'from' amount
+        boolean hasRemainder = (difference % 2 != 0);
+
+        int fromAmount;
+        int toAmount;
+        if (hasRemainder) {
+            switch (FlowingFluids.config.levelingBehaviour) {
+                case VANILLA_LIKE -> {
+                    fromAmount = averageLevel + 1;
+                    toAmount = averageLevel;
                 }
-            } else {
-                fromAmount = averageLevel;
-                toAmount = averageLevel;
+                case FORCE_LEVEL -> {
+                    fromAmount = averageLevel;
+                    toAmount = averageLevel + 1;
+                }
+                case LAZY_LEVEL -> {
+                    //give the flow an average amount of attempts to level itself out
+                    boolean from = level.random.nextInt(FlowingFluids.config.fastmode ? 2 : 4) < 2;
+                    fromAmount = from ? averageLevel + 1 : averageLevel;
+                    toAmount = from ? averageLevel : averageLevel + 1;
+                }
+                case STRONG_LEVEL -> {
+                    //give the flow a high average amount of attempts to level itself out
+                    boolean from = level.random.nextInt(FlowingFluids.config.fastmode ? 3 : 10) == 0;
+                    fromAmount = from ? averageLevel + 1 : averageLevel;
+                    toAmount = from ? averageLevel : averageLevel + 1;
+                }
+                default ->
+                        throw new IllegalStateException("Unexpected value for split decision: " + FlowingFluids.config.levelingBehaviour);
             }
-
-            //split behaviour may make it so there are no changes, if so don't trigger updates
-            if (fromAmount != originalAmount) {
-                //set the source block to the new amount triggering updates
-                //flowing_fluids$setOrRemoveWaterAmountAt(level, blockPos, fromAmount, thisState, dir.getOpposite());
-                FFFluidUtils.setFluidStateAtPosToNewAmount(level, blockPos, fluidState.getType(), fromAmount);
-            }
-            if (toAmount != destFluidAmount) {
-                //set the destination block to the new amount triggering updates
-                //flowing_fluids$spreadTo2(level, posDir, level.getBlockState(posDir), dir, toAmount);
-                FFFluidUtils.setFluidStateAtPosToNewAmount(level, posDir, fluidState.getType(), toAmount);
-            }
-
+        } else {
+            fromAmount = averageLevel;
+            toAmount = averageLevel;
         }
+
+        //split behaviour may make it so there are no changes, if so don't trigger updates
+        if (fromAmount != originalAmount) {
+            //set the source block to the new amount triggering updates
+            //flowing_fluids$setOrRemoveWaterAmountAt(level, blockPos, fromAmount, thisState, dir.getOpposite());
+            FFFluidUtils.setFluidStateAtPosToNewAmount(level, blockPos, fluidState.getType(), fromAmount);
+        }
+        if (toAmount != destFluidAmount) {
+            //set the destination block to the new amount triggering updates
+            //flowing_fluids$spreadTo2(level, posDir, level.getBlockState(posDir), dir, toAmount);
+            FFFluidUtils.setFluidStateAtPosToNewAmount(level, posDir, fluidState.getType(), toAmount);
+        }
+
+
+    }
+
+    @Unique
+    private static boolean ff$handleWaterLoggedFlowAndReturnIfHandled(final Level level, final BlockPos blockPos, final FluidState fluidState, final int amount,
+                                                                      final BlockState thisState, final BlockPos posDir, final int destFluidAmount,
+                                                                      boolean cannotFlowOut
+    ) {
+        var blockTo = level.getBlockState(posDir).getBlock();
+        boolean requireTotalFlowFrom = thisState.getBlock() instanceof LiquidBlockContainer && thisState.getBlock() instanceof BucketPickup;
+
+        if (cannotFlowOut && requireTotalFlowFrom) {
+            return true;
+        }
+
+        boolean requireTotalFlowTo = blockTo instanceof LiquidBlockContainer && blockTo instanceof BucketPickup;
+
+        boolean requiresTotalFlow = requireTotalFlowFrom || requireTotalFlowTo;
+        if (requiresTotalFlow){
+            int totalAmount = destFluidAmount + amount;
+            if (totalAmount < 8) {
+                return true;
+            }else{
+                //both
+                if(requireTotalFlowTo && requireTotalFlowFrom){
+                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, blockPos, fluidState.getType(), 0);
+                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, posDir, fluidState.getType(), 8);
+                }else if (requireTotalFlowTo) {
+                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, blockPos, fluidState.getType(), totalAmount-8);
+                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, posDir, fluidState.getType(), 8);
+                }else{//from
+                    //dont flow out if we would lose water
+                    if (destFluidAmount > 0) return true;
+                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, blockPos, fluidState.getType(), 0);
+                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, posDir, fluidState.getType(), 8);
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
     @Unique
@@ -269,8 +318,13 @@ public abstract class MixinFlowingFluid extends Fluid {
                 flowing_fluids$spreadTo2(level, posDown, stateDown, Direction.DOWN, 1);
                 return amount - 1;
             } else {
+
                 //flow into lower space
                 int fluidDownAmount = downFState.getAmount();
+
+                if (ff$handleWaterLoggedFlowAndReturnIfHandled(level, blockPos, fluidState, amount, thisState, posDown, fluidDownAmount, false))
+                    return level.getFluidState(blockPos).getAmount();
+
                 int amountDestCanAccept = Math.min(8 - fluidDownAmount, amount);
                 //can fit some liquid
                 if (amountDestCanAccept > 0) {
@@ -297,10 +351,10 @@ public abstract class MixinFlowingFluid extends Fluid {
     }
 
     @Inject(method = "getNewLiquid", at = @At(value = "HEAD"), cancellable = true)
-    private void flowing_fluids$validateLiquidMixin(final Level level, final BlockPos blockPos, final BlockState  blockState, final CallbackInfoReturnable<FluidState> cir) {
+    private void flowing_fluids$validateLiquidMixin(final Level level, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<FluidState> cir) {
         if (FlowingFluids.config.enableMod) {
             var state = level.getFluidState(blockPos);
-            cir.setReturnValue(getStateForFluidByAmount(state.getType(),state.getAmount()));
+            cir.setReturnValue(getStateForFluidByAmount(state.getType(), state.getAmount()));
         }
     }
 
@@ -503,8 +557,6 @@ public abstract class MixinFlowingFluid extends Fluid {
     protected void flowing_fluids$spreadTo2(LevelAccessor levelAccessor, BlockPos blockPos, BlockState blockState, Direction direction, int amount) {
         this.spreadTo(levelAccessor, blockPos, blockState, direction, getStateForFluidByAmount(this, amount));
     }
-
-
 
 
     @Unique

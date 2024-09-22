@@ -6,6 +6,8 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.BucketPickup;
+import net.minecraft.world.level.block.LiquidBlockContainer;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.material.FlowingFluid;
@@ -44,6 +46,7 @@ public abstract class MixinLevel {
                 && !state.is(Blocks.SPONGE)
                 && state.getFluidState().isEmpty()
                 && !originalState.getFluidState().isEmpty()
+                && !(state.getBlock() instanceof LiquidBlockContainer && originalState.getBlock() instanceof BucketPickup)
                 && originalState.getFluidState().getType() instanceof FlowingFluid flowSource
                ) {
             //fluid block was replaced, lets try and displace the fluid
@@ -61,7 +64,7 @@ public abstract class MixinLevel {
                         amountRemaining = FFFluidUtils.addAmountToFluidAtPosWithRemainder(level, offset, flowSource, amountRemaining);
                         if (amountRemaining == 0) break;
                     } else if (offsetState.isAir()) {
-                        setBlock(offset, originalState, 3);
+                        setBlock(offset, originalState.getFluidState().createLegacyBlock(), 3);
                         amountRemaining = 0;
                         break;
                     }
@@ -76,7 +79,7 @@ public abstract class MixinLevel {
                         if (offsetState.getFluidState().getType() instanceof FlowingFluid) {
                             amountRemaining = FFFluidUtils.addAmountToFluidAtPosWithRemainder(level, posTraversing, flowSource, amountRemaining);
                         } else if (offsetState.isAir()) {
-                            setBlock(posTraversing, originalState, 3);
+                            setBlock(posTraversing, originalState.getFluidState().createLegacyBlock(), 3);
                             amountRemaining = 0;
                         } else {
                             break;

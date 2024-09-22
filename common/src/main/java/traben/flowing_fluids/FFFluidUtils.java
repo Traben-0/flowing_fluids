@@ -133,15 +133,16 @@ public class FFFluidUtils {
                                                          BlockPos blockPos, BlockState blockState, Direction direction,
                                                          BlockPos blockPos2, BlockState blockState2, FluidState fluidState2) {
         //add extra fluid check for replacing into self
-        return (fluidState2.canBeReplacedWith(blockGetter, blockPos2, sourceFluid, direction) || canFitIntoFluid(sourceFluid, fluidState2, direction, sourceAmount))
+        return (fluidState2.canBeReplacedWith(blockGetter, blockPos2, sourceFluid, direction) || canFitIntoFluid(sourceFluid, fluidState2, direction, sourceAmount, blockState2))
                 && sourceFluid.canPassThroughWall(direction, blockGetter, blockPos, blockState, blockPos2, blockState2)
                 && sourceFluid.canHoldFluid(blockGetter, blockPos2, blockState2, sourceFluid);
     }
 
 
-    private static boolean canFitIntoFluid(Fluid thisFluid, FluidState fluidStateTo, Direction direction, int amount) {
-        if (fluidStateTo.isEmpty()) return true;
-
+    private static boolean canFitIntoFluid(Fluid thisFluid, FluidState fluidStateTo, Direction direction, int amount, BlockState blockStateTo) {
+        if (fluidStateTo.isEmpty()){
+            return true;
+        }
         if (fluidStateTo.getType().isSame(thisFluid)) {
             if (direction == Direction.DOWN) {
                 return fluidStateTo.getAmount() < 8;
