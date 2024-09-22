@@ -177,9 +177,9 @@ public class FFComands {
                                                 })
                                         )
                                 )
-                        ).then(Commands.literal("random_tick_chances")
+                        ).then(Commands.literal("drainers_and_fillers")
                                 .executes(commandContext -> message(commandContext, "Set the chances of certain random tick interactions with fluids."))
-                                .then(Commands.literal("water_puddle_evaporation")
+                                .then(Commands.literal("water_puddle_evaporation_chance")
                                         .executes(cont -> message(cont, "Sets the chance of small minimum level water tiles evaporating during random ticks, currently set to " + FlowingFluids.config.evaporationChance))
                                         .then(Commands.argument("chance", FloatArgumentType.floatArg(0, 1))
                                                 .executes(cont -> {
@@ -187,7 +187,7 @@ public class FFComands {
                                                     return messageAndSaveConfig(cont, "Water puddle evaporation chance set to " + FlowingFluids.config.evaporationChance);
                                                 })
                                         )
-                                ).then(Commands.literal("water_nether_evaporation")
+                                ).then(Commands.literal("water_nether_evaporation_chance")
                                         .executes(cont -> message(cont, "Sets the chance of any water losing a level during random ticks in the nether, currently set to " + FlowingFluids.config.evaporationNetherChance))
                                         .then(Commands.argument("chance", FloatArgumentType.floatArg(0, 1))
                                                 .executes(cont -> {
@@ -195,7 +195,7 @@ public class FFComands {
                                                     return messageAndSaveConfig(cont, "Nether water evaporation chance set to " + FlowingFluids.config.evaporationNetherChance);
                                                 })
                                         )
-                                ).then(Commands.literal("water_rain_refill")
+                                ).then(Commands.literal("water_rain_refill_chance")
                                         .executes(cont -> message(cont, "Sets the chance of non-full water tiles increasing their level while its rains and they are open to the sky, during random ticks. This provides access to renewable water given enough time. Currently set to " + FlowingFluids.config.rainRefillChance))
                                         .then(Commands.argument("chance", FloatArgumentType.floatArg(0, 1))
                                                 .executes(cont -> {
@@ -203,12 +203,25 @@ public class FFComands {
                                                     return messageAndSaveConfig(cont, "Water rain refill chance set to " + FlowingFluids.config.rainRefillChance);
                                                 })
                                         )
-                                ).then(Commands.literal("water_wet_biome_refill")
+                                ).then(Commands.literal("water_wet_biome_refill_chance")
                                         .executes(cont -> message(cont, "Sets the chance of of non-full water tiles increasing their level within: Oceans, Rivers, and Swamps, during random ticks. Additionally they must have a sky light level higher than 0, and be between y=0 and sea level. This provides time limited access to infinite water within these biomes, granted they are big enough and not drained too quickly. Currently set to " + FlowingFluids.config.evaporationChance))
                                         .then(Commands.argument("chance", FloatArgumentType.floatArg(0, 1))
                                                 .executes(cont -> {
                                                     FlowingFluids.config.evaporationChance = cont.getArgument("chance", Float.class);
                                                     return messageAndSaveConfig(cont, "Water biome refill chance set to " + FlowingFluids.config.evaporationChance);
+                                                })
+                                        )
+                                ).then(Commands.literal("farmland_drains_water")
+                                        .executes(cont -> message(cont, "Farmland blocks will drain 1 level of water whenever it performs its hydration check during random ticks. Currently: " + (FlowingFluids.config.farmlandDrainsWater ? "enabled." : "disabled.")))
+                                        .then(Commands.literal("on")
+                                                .executes(cont -> {
+                                                    FlowingFluids.config.farmlandDrainsWater = true;
+                                                    return messageAndSaveConfig(cont, "Farmland blocks will now drain 1 level of water whenever it performs its hydration check during random ticks.");
+                                                })
+                                        ).then(Commands.literal("off")
+                                                .executes(cont -> {
+                                                    FlowingFluids.config.farmlandDrainsWater = false;
+                                                    return messageAndSaveConfig(cont, "Farmland blocks will no longer drain 1 level of water whenever it performs its hydration check during random ticks.");
                                                 })
                                         )
                                 )

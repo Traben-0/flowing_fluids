@@ -12,14 +12,15 @@ public class FFConfig {
     public boolean debugSpreadPrint = false;
     public boolean enableDisplacement = true;
     public boolean enablePistonPushing = true;
-    public float rainRefillChance = 0.01f;
-    public float oceanRiverSwampRefillChance = 0.01f;
-    public float evaporationChance = 0.005f;
-    public float evaporationNetherChance = 0.05f;
+    public float rainRefillChance = 0.25f;
+    public float oceanRiverSwampRefillChance = 0.25f;
+    public float evaporationChance = 0.05f;
+    public float evaporationNetherChance = 0.1f;
 
     public boolean printRandomTicks = false;
     public boolean hideFlowingTexture = true;
     public LiquidHeight fullLiquidHeight = LiquidHeight.REGULAR;
+    public boolean farmlandDrainsWater = true;
 
 
     public FFConfig() {
@@ -45,6 +46,7 @@ public class FFConfig {
         printRandomTicks = buffer.readBoolean();
         hideFlowingTexture = buffer.readBoolean();
         fullLiquidHeight = buffer.readEnum(LiquidHeight.class);
+        farmlandDrainsWater = buffer.readBoolean();
         ///////////////////////////////////////////////
     }
 
@@ -68,6 +70,7 @@ public class FFConfig {
         buffer.writeBoolean(printRandomTicks);
         buffer.writeBoolean(hideFlowingTexture);
         buffer.writeEnum(fullLiquidHeight);
+        buffer.writeBoolean(farmlandDrainsWater);
         ///////////////////////////////////////////////
     }
 

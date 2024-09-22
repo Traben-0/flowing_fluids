@@ -9,6 +9,7 @@
   "mixins": [
     "MixinBlockState",
     "MixinBucketItem",
+    "MixinFarmBlock",
     "MixinFlowingFluid",
     "MixinLavaFluid",
     "MixinLevel",

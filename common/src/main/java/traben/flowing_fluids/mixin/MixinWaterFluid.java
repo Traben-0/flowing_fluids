@@ -38,38 +38,38 @@ public abstract class MixinWaterFluid extends FlowingFluid {
 
         if (FlowingFluids.config.enableMod && !fluidState.isEmpty()) {
 
-            boolean print = FlowingFluids.config.printRandomTicks;
-            if (print) FlowingFluids.LOG.info("[Flowing Fluids] - Random water ticked at {}", blockPos.toShortString());
+            // if (print) FlowingFluids.LOG.info("[Flowing Fluids] - Random water ticked at {}", blockPos.toShortString());
 
             int amount = fluidState.getAmount();
             if (amount < 8) {
                 if (ff$tryRainFill(level, blockPos, amount, level.random.nextFloat())) {
-                    if (print)
+                    if (FlowingFluids.config.printRandomTicks)
                         FlowingFluids.LOG.info("[Flowing Fluids] --- Water was filled by rain. Chance: {}", FlowingFluids.config.rainRefillChance);
                     return;
                 }
                 if (ff$tryBiomeFill(level, blockPos, amount, level.random.nextFloat())) {
-                    if (print)
+                    if (FlowingFluids.config.printRandomTicks)
                         FlowingFluids.LOG.info("[Flowing Fluids] --- Water was filled by biome. Chance: {}", FlowingFluids.config.oceanRiverSwampRefillChance);
                     return;
                 }
                 if (ff$tryEvaporateNether(level, blockPos, amount, level.random.nextFloat())) {
-                    if (print)
+                    if (FlowingFluids.config.printRandomTicks)
                         FlowingFluids.LOG.info("[Flowing Fluids] --- Water was evaporated via Nether. Chance: {}", FlowingFluids.config.evaporationChance);
                     return;
                 }
                 if (ff$tryEvaporate(level, blockPos, amount, level.random.nextFloat())) {
-                    if (print)
+                    if (FlowingFluids.config.printRandomTicks)
                         FlowingFluids.LOG.info("[Flowing Fluids] --- Water was evaporated - non Nether. Chance: {}", FlowingFluids.config.evaporationChance);
-                    return;
+//                    return;
                 }
 
-                if (print)
-                    FlowingFluids.LOG.info("[Flowing Fluids] --- Random tick did nothing. Chances:\nRain: {}\nBiome: {}\nEvaporation: {}",
-                            FlowingFluids.config.rainRefillChance, FlowingFluids.config.oceanRiverSwampRefillChance, FlowingFluids.config.evaporationChance);
-            } else {
-                if (print) FlowingFluids.LOG.info("[Flowing Fluids] --- Water was full. No action taken.");
+//                if (print)
+//                    FlowingFluids.LOG.info("[Flowing Fluids] --- Random tick did nothing. Chances:\nRain: {}\nBiome: {}\nEvaporation: {}",
+//                            FlowingFluids.config.rainRefillChance, FlowingFluids.config.oceanRiverSwampRefillChance, FlowingFluids.config.evaporationChance);
             }
+//            else {
+//                if (print) FlowingFluids.LOG.info("[Flowing Fluids] --- Water was full. No action taken.");
+//            }
         }
     }
 
