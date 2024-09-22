@@ -38,8 +38,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
-import traben.flowing_fluids.FluidGetterByAmount;
 
 
 @Mixin(BucketItem.class)
@@ -80,7 +80,7 @@ public abstract class MixinBucketItem extends Item {
     @Inject(method = "use", at = @At(value = "HEAD"), cancellable = true)
     private void flowing_fluids$alterBehaviourIfPartial(final Level level, final Player player, final InteractionHand interactionHand, final CallbackInfoReturnable<InteractionResultHolder<ItemStack>> cir) {
         if (FlowingFluids.config.enableMod
-                && content instanceof FluidGetterByAmount) {//not empty and is flowing
+                && content instanceof FlowingFluid) {//not empty and is flowing
             ItemStack heldBucket = player.getItemInHand(interactionHand);
 
             //todo infinite logic
@@ -180,7 +180,7 @@ public abstract class MixinBucketItem extends Item {
                 }
 
                 //if (!level.setBlock(blockPos, this.content.defaultFluidState().createLegacyBlock(), 11) && !blockState.getFluidState().isSource()) {
-                if (!(content instanceof final FluidGetterByAmount fluid)) return amount;
+                if (!(content instanceof FlowingFluid)) return amount;
 
                 boolean success;
                 int remainder;
@@ -189,14 +189,14 @@ public abstract class MixinBucketItem extends Item {
                     int levelAtBlock = level.getBlockState(blockPos).getFluidState().getAmount();
                     int total = levelAtBlock + amount;
                     if (total > 8) {
-                        success = level.setBlock(blockPos, fluid.flowing_fluids$getFluidStateOfAmount(8).createLegacyBlock(), 11);
+                        success = level.setBlock(blockPos, FFFluidUtils.getBlockForFluidByAmount(content,8), 11);
                         remainder = total - 8;
                     } else {
-                        success = level.setBlock(blockPos, fluid.flowing_fluids$getFluidStateOfAmount(total).createLegacyBlock(), 11);
+                        success = level.setBlock(blockPos, FFFluidUtils.getBlockForFluidByAmount(content,total), 11);
                         remainder = 0;
                     }
                 } else {
-                    success = level.setBlock(blockPos, fluid.flowing_fluids$getFluidStateOfAmount(amount).createLegacyBlock(), 11);
+                    success = level.setBlock(blockPos, FFFluidUtils.getBlockForFluidByAmount(content,amount), 11);
                     remainder = 0;
                 }
 

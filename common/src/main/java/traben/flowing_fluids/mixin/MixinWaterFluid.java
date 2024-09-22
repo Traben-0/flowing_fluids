@@ -16,12 +16,12 @@ import net.minecraft.world.level.material.WaterFluid;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
+import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
-import traben.flowing_fluids.FluidGetterByAmount;
 
 
 @Mixin(WaterFluid.class)
-public abstract class MixinWaterFluid extends FlowingFluid implements FluidGetterByAmount {
+public abstract class MixinWaterFluid extends FlowingFluid {
 
     @Shadow
     public abstract int getDropOff(final LevelReader levelReader);
@@ -84,7 +84,7 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
     private boolean ff$tryRainFill(final Level level, final BlockPos blockPos, int amount, float chance) {
 
         if (chance < FlowingFluids.config.rainRefillChance && level.isRaining() && level.canSeeSky(blockPos)) {//can see sky and raining
-            level.setBlockAndUpdate(blockPos, flowing_fluids$getFluidStateOfAmount(/*level, blockPos, level.getBlockState(blockPos),*/ amount + 1).createLegacyBlock());
+            level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this,amount + 1));
             return true;
         }
         return false;
@@ -104,7 +104,7 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
                     || biome.is(Biomes.SWAMP)
                     || biome.is(Biomes.MANGROVE_SWAMP))) {
 
-                level.setBlockAndUpdate(blockPos, flowing_fluids$getFluidStateOfAmount(amount + 1).createLegacyBlock());
+                level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this,amount + 1));
                 return true;
             }
         }
@@ -126,6 +126,7 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
         return false;
     }
 
+
     @Unique
     private boolean ff$tryEvaporateNether(final Level level, final BlockPos blockPos, int amount, float chance) {
 
@@ -135,7 +136,7 @@ public abstract class MixinWaterFluid extends FlowingFluid implements FluidGette
                 if (amount == 1){
                     level.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());
                 }else {
-                    level.setBlockAndUpdate(blockPos, flowing_fluids$getFluidStateOfAmount(amount - 1).createLegacyBlock());
+                    level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this,amount - 1));
                 }
                 return true;
             }

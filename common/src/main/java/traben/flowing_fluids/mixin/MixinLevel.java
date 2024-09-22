@@ -8,15 +8,15 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.FlowingFluid;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
-import traben.flowing_fluids.FluidFlowReceiver;
 
 @Mixin(Level.class)
 public abstract class MixinLevel {
@@ -44,20 +44,21 @@ public abstract class MixinLevel {
                 && !state.is(Blocks.SPONGE)
                 && state.getFluidState().isEmpty()
                 && !originalState.getFluidState().isEmpty()
-                && originalState.getFluidState().getType() instanceof FluidFlowReceiver flowSource
+                && originalState.getFluidState().getType() instanceof FlowingFluid flowSource
                ) {
             //fluid block was replaced, lets try and displace the fluid
             FlowingFluids.isManeuveringFluids = true;
 
+            Level level = (Level) (Object) this;
             try {
                 //try spread to the side as much as possible
                 int amountRemaining = originalState.getFluidState().getAmount();
                 for (Direction direction : FlowingFluids.getCardinalsShuffle(getRandom())) {
                     BlockPos offset = pos.relative(direction);
                     BlockState offsetState = getBlockState(offset);
-                    if (offsetState.getFluidState().getType() instanceof FluidFlowReceiver) {
-                        amountRemaining = flowSource.ff$tryFlowAmountIntoAndReturnRemainingAmount(amountRemaining, (Fluid) flowSource,
-                                offsetState, (Level) (Object) this, offset, direction);
+
+                    if (offsetState.getFluidState().getType() instanceof FlowingFluid) {
+                        amountRemaining = FFFluidUtils.addAmountToFluidAtPosWithRemainder(level, offset, flowSource, amountRemaining);
                         if (amountRemaining == 0) break;
                     } else if (offsetState.isAir()) {
                         setBlock(offset, originalState, 3);
@@ -72,9 +73,8 @@ public abstract class MixinLevel {
                     while (amountRemaining > 0 && posTraversing.getY() < height) {
                         posTraversing.move(Direction.UP);
                         BlockState offsetState = getBlockState(posTraversing);
-                        if (offsetState.getFluidState().getType() instanceof FluidFlowReceiver) {
-                            amountRemaining = flowSource.ff$tryFlowAmountIntoAndReturnRemainingAmount(amountRemaining, (Fluid) flowSource,
-                                    offsetState, (Level) (Object) this, posTraversing, Direction.UP);
+                        if (offsetState.getFluidState().getType() instanceof FlowingFluid) {
+                            amountRemaining = FFFluidUtils.addAmountToFluidAtPosWithRemainder(level, posTraversing, flowSource, amountRemaining);
                         } else if (offsetState.isAir()) {
                             setBlock(posTraversing, originalState, 3);
                             amountRemaining = 0;

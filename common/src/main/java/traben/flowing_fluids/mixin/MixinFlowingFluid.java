@@ -28,9 +28,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
-import traben.flowing_fluids.FluidFlowReceiver;
-import traben.flowing_fluids.FluidGetterByAmount;
 import traben.flowing_fluids.config.FFConfig;
 
 import java.math.BigDecimal;
@@ -40,7 +39,7 @@ import java.util.function.ToIntFunction;
 
 
 @Mixin(FlowingFluid.class)
-public abstract class MixinFlowingFluid extends Fluid implements FluidGetterByAmount, FluidFlowReceiver {
+public abstract class MixinFlowingFluid extends Fluid {
 
 
     @Unique
@@ -301,7 +300,8 @@ public abstract class MixinFlowingFluid extends Fluid implements FluidGetterByAm
     @Inject(method = "getNewLiquid", at = @At(value = "HEAD"), cancellable = true)
     private void flowing_fluids$validateLiquidMixin(final Level level, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<FluidState> cir) {
         if (FlowingFluids.config.enableMod) {
-            cir.setReturnValue(flowing_fluids$getFluidStateOfAmount(level.getFluidState(blockPos).getAmount()));
+            var state = level.getFluidState(blockPos);
+            cir.setReturnValue(FFFluidUtils.getStateForFluidByAmount(state.getType(),state.getAmount()));
         }
     }
 
@@ -502,19 +502,9 @@ public abstract class MixinFlowingFluid extends Fluid implements FluidGetterByAm
 
     @Unique
     protected void flowing_fluids$spreadTo2(LevelAccessor levelAccessor, BlockPos blockPos, BlockState blockState, Direction direction, int amount) {
-        this.spreadTo(levelAccessor, blockPos, blockState, direction, flowing_fluids$getFluidStateOfAmount(amount));
+        this.spreadTo(levelAccessor, blockPos, blockState, direction, FFFluidUtils.getStateForFluidByAmount(this, amount));
     }
 
-    public FluidState flowing_fluids$getFluidStateOfAmount(int amount) {
-//        BlockPos posUp = blockPos.above();
-//        BlockState bStateUp = level.getBlockState(posUp);
-//        FluidState fStateUp = bStateUp.getFluidState();
-//        if (!fStateUp.isEmpty() && fStateUp.getType().isSame(this) && this.canPassThroughWall(Direction.UP, level, blockPos, blockState, posUp, bStateUp)) {
-//            return amount == 8 ? this.getSource(true) : this.getFlowing(amount, true);//todo true here broke? redundant now?
-//        } else {
-        return amount == 8 ? this.getSource(false) : this.getFlowing(amount, false);
-//       }
-    }
 
     @Unique
     protected void flowing_fluids$removeWater(LevelAccessor levelAccessor, BlockPos blockPos, BlockState blockState) {
@@ -543,31 +533,15 @@ public abstract class MixinFlowingFluid extends Fluid implements FluidGetterByAm
                                                BlockPos blockPos, BlockState blockState, Direction direction,
                                                BlockPos blockPos2, BlockState blockState2, FluidState fluidState2) {
         //add extra fluid check for replacing into self
-        return (fluidState2.canBeReplacedWith(blockGetter, blockPos2, sourceFluid, direction) || flowing_fluids$canFitIntoFluid(sourceFluid, fluidState2, direction, sourceAmount))
-                && this.canPassThroughWall(direction, blockGetter, blockPos, blockState, blockPos2, blockState2)
-                && this.canHoldFluid(blockGetter, blockPos2, blockState2, sourceFluid);
+        return FFFluidUtils.canFluidFlowFromPosToDirection((FlowingFluid) sourceFluid, sourceAmount, blockGetter, blockPos, blockState, direction, blockPos2, blockState2, fluidState2);
     }
 
-    @Unique
-    private boolean flowing_fluids$canFitIntoFluid(Fluid thisFluid, FluidState fluidStateTo, Direction direction, int amount) {
-        if (fluidStateTo.isEmpty()) return true;
-
-        if (fluidStateTo.getType().isSame(thisFluid)) {
-            if (direction == Direction.DOWN) {
-                return fluidStateTo.getAmount() < 8;
-            } else {
-                return fluidStateTo.getAmount() < amount;
-            }
-        }
-        return false;
-    }
-
-    public int ff$tryFlowAmountIntoAndReturnRemainingAmount(int amount, Fluid fromType, BlockState toState, final Level level, final BlockPos blockPos, Direction direction) {
-        if (isSame(fromType) && toState.getFluidState().getAmount() < 8) {
-            int total = toState.getFluidState().getAmount() + amount;
-            flowing_fluids$setOrRemoveWaterAmountAt(level, blockPos, Math.min(total, 8), toState, direction);
-            return Math.max(0, total - 8);
-        }
-        return amount;
-    }
+//    public int ff$tryFlowAmountIntoAndReturnRemainingAmount(int amount, Fluid fromType, BlockState toState, final Level level, final BlockPos blockPos, Direction direction) {
+//        if (isSame(fromType) && toState.getFluidState().getAmount() < 8) {
+//            int total = toState.getFluidState().getAmount() + amount;
+//            flowing_fluids$setOrRemoveWaterAmountAt(level, blockPos, Math.min(total, 8), toState, direction);
+//            return Math.max(0, total - 8);
+//        }
+//        return amount;
+//    }
 }
