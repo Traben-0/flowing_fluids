@@ -2,7 +2,6 @@ package traben.flowing_fluids;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import net.minecraft.core.Direction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import traben.flowing_fluids.config.FFConfig;
@@ -21,7 +20,6 @@ public final class FlowingFluids {
     public static BigDecimal totalDebugMilliseconds = BigDecimal.valueOf(0);
     public static long totalDebugTicks = 0;
     public static boolean isManeuveringFluids = false;
-    public static boolean isRenderingFluids = false;
 
     public static FFConfig config = new FFConfig();
 

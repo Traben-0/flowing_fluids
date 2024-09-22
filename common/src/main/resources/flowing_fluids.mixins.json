@@ -4,8 +4,7 @@
   "compatibilityLevel": "JAVA_21",
   "minVersion": "0.8",
   "client": [
-    "MixinDisconnect",
-    "MixinLiquidBlockRenderer"
+    "MixinDisconnect"
   ],
   "mixins": [
     "MixinBlockState",
@@ -17,6 +16,7 @@
     "MixinLevel",
     "MixinLiquidBlock",
     "MixinPlayerConnect",
+    "MixinTallSeaGrassBlock",
     "MixinWaterFluid"
   ],
   "injectors": {

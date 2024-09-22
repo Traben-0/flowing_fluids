@@ -16,7 +16,6 @@ public class FFConfig {
     public float oceanRiverSwampRefillChance = 0.25f;
     public float evaporationChance = 0.05f;
     public float evaporationNetherChance = 0.1f;
-
     public boolean printRandomTicks = false;
     public boolean hideFlowingTexture = true;
     public LiquidHeight fullLiquidHeight = LiquidHeight.REGULAR;

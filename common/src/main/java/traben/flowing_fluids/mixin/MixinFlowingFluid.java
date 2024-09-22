@@ -36,6 +36,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.function.ToIntFunction;
 
+import static traben.flowing_fluids.FFFluidUtils.getStateForFluidByAmount;
+
 
 @Mixin(FlowingFluid.class)
 public abstract class MixinFlowingFluid extends Fluid {
@@ -66,10 +68,13 @@ public abstract class MixinFlowingFluid extends Fluid {
     @Shadow public abstract int getAmount(final FluidState state);
 
 
+    @Shadow public abstract void beforeDestroyingBlock(final LevelAccessor level, final BlockPos pos, final BlockState state);
+
     @Inject(method = "getFlow", at = @At(value = "HEAD"), cancellable = true)
     private void ff$hideFlowingTexture(final BlockGetter blockReader, final BlockPos pos, final FluidState fluidState, final CallbackInfoReturnable<Vec3> cir) {
         if (FlowingFluids.config.enableMod
-                && FlowingFluids.isRenderingFluids // only during render as this is also used for flow calculations for entities
+                && (Thread.currentThread().getName().startsWith("Render thread")
+                    || Thread.currentThread().getName().startsWith("Chunk Render Task Executor"))
                 && FlowingFluids.config.hideFlowingTexture) {
             cir.setReturnValue(Vec3.ZERO);
         }
@@ -179,10 +184,12 @@ public abstract class MixinFlowingFluid extends Fluid {
         //need to check both container and pickup as there are some odd collisions, including the liquid blocks themselves
         if (thisState.getBlock() instanceof LiquidBlockContainer
                 && thisState.getBlock() instanceof BucketPickup getWater) {
-            //just totally empty all water-loggables
-            getWater.pickupBlock(null, level, blockPos, thisState);
-            //this may lose some water, but it's the easiest choice for now, and water-loggables aren't "full" anyway
-            flowing_fluids$spreadTo2(level, posDir, level.getBlockState(posDir), dir, amount);
+                //just totally empty all water-loggables
+                getWater.pickupBlock(null, level, blockPos, thisState);
+                //this may lose some water, but it's the easiest choice for now, and water-loggables aren't "full" anyway
+                //flowing_fluids$spreadTo2(level, posDir, level.getBlockState(posDir), dir, amount);
+                FFFluidUtils.setFluidStateAtPosToNewAmount(level, posDir, fluidState.getType(), amount);
+
         } else {
             //this amount is already confirmed to be less than {amount}
             final int destFluidAmount = level.getFluidState(posDir).getAmount();
@@ -234,11 +241,13 @@ public abstract class MixinFlowingFluid extends Fluid {
             //split behaviour may make it so there are no changes, if so don't trigger updates
             if (fromAmount != originalAmount) {
                 //set the source block to the new amount triggering updates
-                flowing_fluids$setOrRemoveWaterAmountAt(level, blockPos, fromAmount, thisState, dir.getOpposite());
+                //flowing_fluids$setOrRemoveWaterAmountAt(level, blockPos, fromAmount, thisState, dir.getOpposite());
+                FFFluidUtils.setFluidStateAtPosToNewAmount(level, blockPos, fluidState.getType(), fromAmount);
             }
             if (toAmount != destFluidAmount) {
                 //set the destination block to the new amount triggering updates
-                flowing_fluids$spreadTo2(level, posDir, level.getBlockState(posDir), dir, toAmount);
+                //flowing_fluids$spreadTo2(level, posDir, level.getBlockState(posDir), dir, toAmount);
+                FFFluidUtils.setFluidStateAtPosToNewAmount(level, posDir, fluidState.getType(), toAmount);
             }
 
         }
@@ -291,7 +300,7 @@ public abstract class MixinFlowingFluid extends Fluid {
     private void flowing_fluids$validateLiquidMixin(final Level level, final BlockPos blockPos, final BlockState  blockState, final CallbackInfoReturnable<FluidState> cir) {
         if (FlowingFluids.config.enableMod) {
             var state = level.getFluidState(blockPos);
-            cir.setReturnValue(FFFluidUtils.getStateForFluidByAmount(state.getType(),state.getAmount()));
+            cir.setReturnValue(getStateForFluidByAmount(state.getType(),state.getAmount()));
         }
     }
 
@@ -492,7 +501,7 @@ public abstract class MixinFlowingFluid extends Fluid {
 
     @Unique
     protected void flowing_fluids$spreadTo2(LevelAccessor levelAccessor, BlockPos blockPos, BlockState blockState, Direction direction, int amount) {
-        this.spreadTo(levelAccessor, blockPos, blockState, direction, FFFluidUtils.getStateForFluidByAmount(this, amount));
+        this.spreadTo(levelAccessor, blockPos, blockState, direction, getStateForFluidByAmount(this, amount));
     }
 
 

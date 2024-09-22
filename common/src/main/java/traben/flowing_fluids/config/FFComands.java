@@ -204,11 +204,11 @@ public class FFComands {
                                                 })
                                         )
                                 ).then(Commands.literal("water_wet_biome_refill_chance")
-                                        .executes(cont -> message(cont, "Sets the chance of of non-full water tiles increasing their level within: Oceans, Rivers, and Swamps, during random ticks. Additionally they must have a sky light level higher than 0, and be between y=0 and sea level. This provides time limited access to infinite water within these biomes, granted they are big enough and not drained too quickly. Currently set to " + FlowingFluids.config.evaporationChance))
+                                        .executes(cont -> message(cont, "Sets the chance of of non-full water tiles increasing their level within: Oceans, Rivers, and Swamps, during random ticks. Additionally they must have a sky light level higher than 0, and be between y=0 and sea level. This provides time limited access to infinite water within these biomes, granted they are big enough and not drained too quickly. Currently set to " + FlowingFluids.config.oceanRiverSwampRefillChance))
                                         .then(Commands.argument("chance", FloatArgumentType.floatArg(0, 1))
                                                 .executes(cont -> {
-                                                    FlowingFluids.config.evaporationChance = cont.getArgument("chance", Float.class);
-                                                    return messageAndSaveConfig(cont, "Water biome refill chance set to " + FlowingFluids.config.evaporationChance);
+                                                    FlowingFluids.config.oceanRiverSwampRefillChance = cont.getArgument("chance", Float.class);
+                                                    return messageAndSaveConfig(cont, "Water biome refill chance set to " + FlowingFluids.config.oceanRiverSwampRefillChance);
                                                 })
                                         )
                                 ).then(Commands.literal("farmland_drains_water")
