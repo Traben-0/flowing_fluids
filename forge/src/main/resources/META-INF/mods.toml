@@ -9,9 +9,10 @@ version = "${version}"
 displayName = "Flowing Fluids"
 authors = ""
 description = '''
-
+Gives fluids realistic flowing physics, making them mostly finite.
+With various settings for performance, visuals, and gameplay interaction.
 '''
-#logoFile = ""
+logoFile = "assets/flowing_fluids/icon.png"
 
 [[dependencies.flowing_fluids]]
 modId = "forge"

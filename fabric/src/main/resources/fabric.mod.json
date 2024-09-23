@@ -3,9 +3,9 @@
   "id": "flowing_fluids",
   "version": "${version}",
   "name": "Flowing Fluids",
-  "description": "",
+  "description": "Gives fluids realistic flowing physics, making them mostly finite. With various settings for performance, visuals, and gameplay interaction.",
   "authors": [
-    ""
+    "Traben"
   ],
   "contact": {
     "homepage": ""
@@ -28,8 +28,5 @@
     "fabricloader": "*",
     "minecraft": ">=1.21",
     "java": ">=21"
-  },
-  "suggests": {
-    "another-mod": "*"
   }
 }
