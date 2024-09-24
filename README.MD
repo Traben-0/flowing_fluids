@@ -7,11 +7,11 @@
 
 [![discord](https://i.imgur.com/vU8pcbf.png)](https://discord.com/invite/rURmwrzUcz)
 ![-](https://i.imgur.com/yZzzW4Q.pngg)
-[![curseforge](https://i.imgur.com/rpoyjVG.png)]()
+[![curseforge](https://i.imgur.com/rpoyjVG.png)](https://www.curseforge.com/minecraft/mc-mods/flowing-fluids)
 ![-](https://i.imgur.com/yZzzW4Q.png)
-[![modrinth](https://i.imgur.com/7fioiRx.png)]()
+[![modrinth](https://i.imgur.com/7fioiRx.png)](https://modrinth.com/mod/flowing-fluids)
 ![-](https://i.imgur.com/yZzzW4Q.png)
-[![github](https://i.imgur.com/EYNx6oL.png)]()
+[![github](https://i.imgur.com/EYNx6oL.png)](https://github.com/Traben-0/flowing_fluids)
 ![-](https://i.imgur.com/yZzzW4Q.png)
 [![kofi](https://i.imgur.com/xdhWKwC.png)](https://ko-fi.com/traben)
 
