@@ -22,7 +22,8 @@
     ]
   },
   "mixins": [
-    "flowing_fluids.mixins.json"
+    "flowing_fluids.mixins.json",
+    "flowing_fluids_fabric.mixins.json"
   ],
   "depends": {
     "fabricloader": "*",

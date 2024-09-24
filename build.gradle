@@ -31,6 +31,8 @@ subprojects {
         // for more information about repositories.
 
         maven { url "https://maven.parchmentmc.org" }
+
+
     }
 
     dependencies {

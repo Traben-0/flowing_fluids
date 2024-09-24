@@ -4,11 +4,13 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BucketPickup;
 import net.minecraft.world.level.block.LiquidBlockContainer;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
@@ -217,4 +219,65 @@ public class FFFluidUtils {
         return CARDINALS;
     }
 
+    public static void displaceFluids(final Level level, final BlockPos pos, final BlockState state, final int flags, final LevelChunk levelChunk, final BlockState originalState) {
+        if (!level.isClientSide()
+                && FlowingFluids.config.enableMod
+                && FlowingFluids.config.enableDisplacement
+                && !FlowingFluids.isManeuveringFluids
+                && !state.isAir()
+                && !((flags & 64) == 64) //Piston moved flag
+                && !state.is(Blocks.SPONGE)
+                && state.getFluidState().isEmpty()
+                && !originalState.getFluidState().isEmpty()
+                && !(state.getBlock() instanceof LiquidBlockContainer && originalState.getBlock() instanceof BucketPickup)
+                && originalState.getFluidState().getType() instanceof FlowingFluid flowSource
+               ) {
+            //fluid block was replaced, lets try and displace the fluid
+            FlowingFluids.isManeuveringFluids = true;
+
+
+            try {
+                //try spread to the side as much as possible
+                int amountRemaining = originalState.getFluidState().getAmount();
+                for (Direction direction : getCardinalsShuffle(level.getRandom())) {
+                    BlockPos offset = pos.relative(direction);
+                    BlockState offsetState = level.getBlockState(offset);
+
+                    if (offsetState.getFluidState().getType() instanceof FlowingFluid) {
+                        amountRemaining = addAmountToFluidAtPosWithRemainder(level, offset, flowSource, amountRemaining);
+                        if (amountRemaining == 0) break;
+                    } else if (offsetState.isAir()) {
+                        level.setBlock(offset, originalState.getFluidState().createLegacyBlock(), 3);
+                        amountRemaining = 0;
+                        break;
+                    }
+                }
+                if (amountRemaining > 0) {
+                    //if we still have fluid left, try to displace upwards recursively
+                    BlockPos.MutableBlockPos posTraversing = new BlockPos.MutableBlockPos(pos.getX(), pos.getY(), pos.getZ());
+                    int height = levelChunk.getMaxBuildHeight();
+                    while (amountRemaining > 0 && posTraversing.getY() < height) {
+                        posTraversing.move(Direction.UP);
+                        BlockState offsetState = level.getBlockState(posTraversing);
+                        if (offsetState.getFluidState().getType() instanceof FlowingFluid) {
+                            amountRemaining = addAmountToFluidAtPosWithRemainder(level, posTraversing, flowSource, amountRemaining);
+                        } else if (offsetState.isAir()) {
+                            level.setBlock(posTraversing, originalState.getFluidState().createLegacyBlock(), 3);
+                            amountRemaining = 0;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    if (amountRemaining > 0 && FlowingFluids.config.debugSpreadPrint) {
+                        //lost fluid will just have to happen
+                        FlowingFluids.LOG.info("Failed to displace all fluid at {} remaining: {}, originalAmount {}", pos.toShortString(), amountRemaining, originalState.getFluidState().getAmount());
+                    }
+                }
+
+            } finally {
+                FlowingFluids.isManeuveringFluids = false;
+            }
+        }
+    }
 }

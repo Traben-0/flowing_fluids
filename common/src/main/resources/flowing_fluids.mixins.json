@@ -13,7 +13,6 @@
     "MixinFarmBlock",
     "MixinFlowingFluid",
     "MixinLavaFluid",
-    "MixinLevel",
     "MixinLiquidBlock",
     "MixinPlayerConnect",
     "MixinTallSeaGrassBlock",

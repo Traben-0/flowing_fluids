@@ -69,8 +69,7 @@ public abstract class MixinFlowingFluid extends Fluid {
     public abstract int getAmount(final FluidState state);
 
 
-    @Shadow
-    public abstract void beforeDestroyingBlock(final LevelAccessor level, final BlockPos pos, final BlockState state);
+
 
     @Inject(method = "getFlow", at = @At(value = "HEAD"), cancellable = true)
     private void ff$hideFlowingTexture(final BlockGetter blockReader, final BlockPos pos, final FluidState fluidState, final CallbackInfoReturnable<Vec3> cir) {

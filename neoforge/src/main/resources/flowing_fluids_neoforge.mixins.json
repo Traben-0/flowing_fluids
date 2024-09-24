@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "traben.flowing_fluids.neoforge.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "minVersion": "0.8",
+  "client": [
+  ],
+  "mixins": [
+    "MixinLevel"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

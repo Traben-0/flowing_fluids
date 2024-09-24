@@ -1,5 +1,5 @@
 modLoader = "javafml"
-loaderVersion = "[2,)"
+loaderVersion = "[1,)"
 #issueTrackerURL = ""
 license = "GNU LGPL 3.0"
 
@@ -24,10 +24,13 @@ side = "BOTH"
 [[dependencies.flowing_fluids]]
 modId = "minecraft"
 type = "required"
-versionRange = "[1.21.1,)"
+versionRange = "[1.21,)"
 ordering = "NONE"
 side = "BOTH"
 
 
 [[mixins]]
 config = "flowing_fluids.mixins.json"
+
+[[mixins]]
+config = "flowing_fluids_neoforge.mixins.json"
