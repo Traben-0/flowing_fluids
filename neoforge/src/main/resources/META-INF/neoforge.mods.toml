@@ -7,7 +7,7 @@ license = "GNU LGPL 3.0"
 modId = "flowing_fluids"
 version = "${version}"
 displayName = "FlowingFluids"
-authors = ""
+authors = "Traben"
 description = '''
 Gives fluids realistic flowing physics, making them mostly finite.
 With various settings for performance, visuals, and gameplay interaction.

@@ -7,7 +7,7 @@ license = "GNU LGPL 3.0"
 modId = "flowing_fluids"
 version = "${version}"
 displayName = "Flowing Fluids"
-authors = ""
+authors = "Traben"
 description = '''
 Gives fluids realistic flowing physics, making them mostly finite.
 With various settings for performance, visuals, and gameplay interaction.
@@ -28,6 +28,3 @@ versionRange = "[1.21,)"
 ordering = "NONE"
 side = "BOTH"
 
-
-[[mixins]]
-config = "flowing_fluids.mixins.json"
