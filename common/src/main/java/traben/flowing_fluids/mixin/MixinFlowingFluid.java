@@ -71,15 +71,16 @@ public abstract class MixinFlowingFluid extends Fluid {
 
 
 
-    @Inject(method = "getFlow", at = @At(value = "HEAD"), cancellable = true)
-    private void ff$hideFlowingTexture(final BlockGetter blockReader, final BlockPos pos, final FluidState fluidState, final CallbackInfoReturnable<Vec3> cir) {
-        if (FlowingFluids.config.enableMod
-                && (Thread.currentThread().getName().startsWith("Render thread")
-                || Thread.currentThread().getName().startsWith("Chunk Render Task Executor"))
-                && FlowingFluids.config.hideFlowingTexture) {
-            cir.setReturnValue(Vec3.ZERO);
-        }
-    }
+//    @Inject(method = "getFlow", at = @At(value = "HEAD"), cancellable = true)
+//    private void ff$hideFlowingTexture(final BlockGetter blockReader, final BlockPos pos, final FluidState fluidState, final CallbackInfoReturnable<Vec3> cir) {
+//        if (FlowingFluids.config.enableMod
+//                && (Thread.currentThread().getName().startsWith("Render thread")
+//                || Thread.currentThread().getName().startsWith("Chunk Render Task Executor"))
+//                && FlowingFluids.config.hideFlowingTexture) {
+//
+//            cir.setReturnValue(Vec3.ZERO);
+//        }
+//    }
 
     @Inject(method = "getOwnHeight", at = @At(value = "HEAD"), cancellable = true)
     private void ff$differentRenderHeight(final FluidState state, final CallbackInfoReturnable<Float> cir) {
