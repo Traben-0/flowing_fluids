@@ -3,23 +3,23 @@
 
 <span align="center">
 
-![Flowing Fluids Banner](.github/assets/logo_wide.png)
+![Flowing Fluids Banner](https://i.imgur.com/hBR2oop.png)
 
-[![discord](.github/assets/discord.png)](https://discord.com/invite/rURmwrzUcz)
-![-](.github/assets/dash.png)
-[![curseforge](.github/assets/cf.png)]()
-![-](.github/assets/dash.png)
-[![modrinth](.github/assets/mr.png)]()
-![-](.github/assets/dash.png)
-[![github](.github/assets/gh.png)]()
-![-](.github/assets/dash.png)
-[![kofi](.github/assets/kofi.png)](https://ko-fi.com/traben)
+[![discord](https://i.imgur.com/vU8pcbf.png)](https://discord.com/invite/rURmwrzUcz)
+![-](https://i.imgur.com/yZzzW4Q.pngg)
+[![curseforge](https://i.imgur.com/rpoyjVG.png)]()
+![-](https://i.imgur.com/yZzzW4Q.png)
+[![modrinth](https://i.imgur.com/7fioiRx.png)]()
+![-](https://i.imgur.com/yZzzW4Q.png)
+[![github](https://i.imgur.com/EYNx6oL.png)]()
+![-](https://i.imgur.com/yZzzW4Q.png)
+[![kofi](https://i.imgur.com/xdhWKwC.png)](https://ko-fi.com/traben)
 
 
 
 ---
 
-![example](.github/assets/gifs/lava.gif)
+![example](https://i.imgur.com/cchiXTD.gif)
 
 </span>
 
@@ -60,19 +60,19 @@ Fluids will flow and spread outwards and down inclines, filling up spaces and cr
 
 This can be tweaked in various ways, such as how far they flow, and how aggressively the fluid tries to level itself in pools.
 
-![bucket](.github/assets/gifs/bucket.gif)
+![bucket](https://i.imgur.com/2hTCIJH.gif)
 
 This means you can create things like aqueducts.
 
-![aquaduct_2](.github/assets/gifs/aquaduct_2.gif)
+![aquaduct_2](https://i.imgur.com/grBktwe.gif)
 
 or flood areas with water.
 
-![water_2](.github/assets/gifs/water_2.gif)
+![water_2](https://i.imgur.com/NDWqyRH.gif)
 
 or lava.
 
-![lava](.github/assets/gifs/lava.gif)
+![lava](https://i.imgur.com/cchiXTD.gif)
 
 or even modded fluids.
 
@@ -81,28 +81,28 @@ or even modded fluids.
 
 Fluids are finite, and will flow until they run out, or are blocked.
 
-![finite_1](.github/assets/gifs/finite_1.gif)
+![finite_1](https://i.imgur.com/dTs4G4O.gif)
 
 This means you will need to manage your water supply, and can't just place 2 water source blocks and have infinite water.
 
-![aquaduct_1](.github/assets/gifs/aquaduct_1.gif)
+![aquaduct_1](https://i.imgur.com/S5R0pPM.gif)
 
 Oceans, Rivers, and Swamps however, will act as infinite water sources, but there is a limit to how fast they will refill,
 and they can still be drained *(Controlled in settings)*.
 
-![ocean](.github/assets/gifs/ocean.gif)
+![ocean](https://i.imgur.com/H1GpmCs.gif)
 
 Fluids will also be displaced by blocks wherever possible to avoid losing any fluid.
 
-![fill_and_displace](.github/assets/gifs/fill_and_displace.gif)
+![fill_and_displace](https://i.imgur.com/kD6eeE7.gif)
 
 ## **Piston Pumps**:
 
 Fluids can be moved by pistons to pump them upwards automatically.
 
-![piston_1](.github/assets/gifs/piston_1.gif)
+![piston_1](https://i.imgur.com/BMVSyJG.gif)
 
-![piston_2](.github/assets/gifs/piston_2.gif)
+![piston_2](https://i.imgur.com/86PC5cV.gif)
 
 ## **Gameplay Elements**:
 
@@ -110,20 +110,20 @@ There are a few new gameplay elements that will drain or use water, to encourage
 
 Such as farmlands draining a water level whenever it hydrates.
 
-![farmland](.github/assets/gifs/farmland.gif)
+![farmland](https://i.imgur.com/NoTbe63.gif)
 
 Bottles will consume 2-3 water levels when filled.
 
-![finite_2](.github/assets/gifs/finite_2.gif)
+![finite_2](https://i.imgur.com/DYaWKoX.gif)
 
 Buckets are able to pick up 1 - 8 levels of fluid, and can be used to place down precise amounts.
 
-![buckets](.github/assets/buckets.png)
+![buckets](https://i.imgur.com/2fVOcKW.png)
 
 With fluids being displaced by block placement, you will need to find other ways to drain it away, such as using sponges, creating drains, 
 or tweaking the evaporation settings mentioned below.
 
-![displacement](.github/assets/gifs/displacement.gif)
+![displacement](https://i.imgur.com/aLXbkdG.gif)
 
 There are also various ways in which water specifically naturally evaporates or refills *(Rates customizable via settings)*
 
@@ -132,7 +132,7 @@ There are also various ways in which water specifically naturally evaporates or 
 - Any water blocks that are not full *(levels 1-7)* will refill over time when exposed to rain.
 - Any water blocks that are not full *(levels 1-7)* will refill over time when in Ocean, River, or Swamp biomes, below sea level, and exposed to skylight.'
 
-![commands](.github/assets/commands_2.png)
+![commands](https://i.imgur.com/8INEzZB.png)
 
 ## **Mod and Vanilla backwards compatibility**:
 
@@ -147,42 +147,42 @@ And all 'non-full' fluids *(1-7 levels)* will be saved as a vanilla flowing bloc
 
 The mod renders fluids completely normally, using the regular vanilla fluid rendering, this allows it to be compatible with shaders.
 
-![shaders](.github/assets/shaders.png)
+![shaders](https://i.imgur.com/BOT5Qvw.png)
 
 The mod allows hiding the flowing texture that normally appears on fluids when there is a height difference. *(enabled by default)*
 
 `/flowing_fluids settings appearance flowing_texture`
 
-![flow](.github/assets/flow.png)
+![flow](https://i.imgur.com/tzK8HeZ.png)
 
-![still](.github/assets/still.png)
+![still](https://i.imgur.com/tj5ovML.png)
 
 The mod also allows changing the heights at which 'full' fluids render.
 
 `/flowing_fluids settings appearance fluid_height`
 
-![regular](.github/assets/regular.png)
+![regular](https://i.imgur.com/7vhITCK.png)
 
-![full](.github/assets/full.png)
+![full](https://i.imgur.com/dVohNTb.png)
 
 You can also prevent minimum level fluids from flowing over edges, if you prefer that visual.
 
 `/flowing_fluids settings behaviour flow_over_edges`
 
-![edge](.github/assets/edge.png)
+![edge](https://i.imgur.com/ItAgKff.png)
 
 ## **Performance**:
 
 The mod is designed to be as performant as possible. However, massive amounts of flow affecting hundreds or thousands of blocks,
 such as quickly draining an ocean, is going to cause some unavoidable server side lag. As much as any other thing affecting this many blocks would.
 
-![lag](.github/assets/gifs/ocean.gif)
+![lag](https://i.imgur.com/H1GpmCs.gif)
 
 The primary performance setting available to you right now is `/flowing_fluids settings fast_mode`. 
 
 Fast mode uses a much simpler and faster fluid flowing algorithm, limiting fluids to only spread to their direct neighbours, instead of seeking out the nearest ledge within 4 blocks.
 
-![commands](.github/assets/commands.png)
+![commands](https://i.imgur.com/PVouZ07.png)
 
 
 # Planned features
@@ -199,6 +199,6 @@ Fast mode uses a much simpler and faster fluid flowing algorithm, limiting fluid
 
 <span align="center">
 
-![Banner](.github/assets/wide.png)
+![Banner](https://i.imgur.com/j86ZaXm.png)
 
 </span>
