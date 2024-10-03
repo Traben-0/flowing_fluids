@@ -1,5 +1,6 @@
 package traben.flowing_fluids.mixin;
 
+import com.google.common.collect.ImmutableMap;
 import com.mojang.serialization.MapCodec;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
 import net.minecraft.world.level.block.Block;
@@ -26,9 +27,17 @@ public abstract class MixinBlockState extends StateHolder<Block, BlockState> {
     @Deprecated
     private boolean liquid;
 
+#if MC > MC_20_1
     protected MixinBlockState(final Block owner, final Reference2ObjectArrayMap<Property<?>, Comparable<?>> values, final MapCodec<BlockState> propertiesCodec) {
         super(owner, values, propertiesCodec);
     }
+#else
+    protected MixinBlockState(final Block owner, final ImmutableMap<Property<?>, Comparable<?>> values, final MapCodec<BlockState> propertiesCodec) {
+        super(owner, values, propertiesCodec);
+    }
+#endif
+
+
 
     @Inject(method = "getPistonPushReaction", at = @At(value = "RETURN"), cancellable = true)
     private void flowing_fluids$overridePushReaction(final CallbackInfoReturnable<PushReaction> cir) {

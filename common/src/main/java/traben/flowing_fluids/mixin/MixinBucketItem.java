@@ -4,8 +4,10 @@ package traben.flowing_fluids.mixin;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+#if MC > MC_20_1
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
+#endif
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -113,9 +115,13 @@ public abstract class MixinBucketItem extends Item {
                             resultBucket = getEmptySuccessItem(heldBucket, player);
                         } else {
                             resultBucket = heldBucket.copy();
+                            #if MC > MC_20_1
                             resultBucket.applyComponents(DataComponentMap.builder()
                                     .set(DataComponents.DAMAGE, 8 - remainder)
                                     .set(DataComponents.MAX_DAMAGE, 8).build());
+                            #else
+                            resultBucket.setDamageValue(8 - remainder);
+                            #endif
                         }
 
                         ItemStack itemStack2 = ItemUtils.createFilledResult(heldBucket, player, resultBucket);
@@ -145,7 +151,7 @@ public abstract class MixinBucketItem extends Item {
 
             if (!canPlaceLiquidInPos && state.getBlock() instanceof LiquidBlockContainer container) {
 //                System.out.println("is liquid block container");
-                canPlaceLiquidInPos = amount == 8 && container.canPlaceLiquid(player, level, blockPos, state, this.content);
+                canPlaceLiquidInPos = amount == 8 && container.canPlaceLiquid(#if MC > MC_20_1 player,#endif level, blockPos, state, this.content);
             }
 
             if (!canPlaceLiquidInPos) {
@@ -205,5 +211,16 @@ public abstract class MixinBucketItem extends Item {
             }
         }
     }
+
+#if MC <= MC_20_1
+
+    @Override
+    public int getMaxDamage() {
+        if (FlowingFluids.config.enableMod && content instanceof FlowingFluid) {
+            return 8;
+        }
+        return super.getMaxDamage();
+    }
+    #endif
 
 }

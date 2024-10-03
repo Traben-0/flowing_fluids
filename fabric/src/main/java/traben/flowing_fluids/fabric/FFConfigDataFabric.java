@@ -1,5 +1,5 @@
 package traben.flowing_fluids.fabric;
-
+#if MC > MC_20_1
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.FriendlyByteBuf;
@@ -51,3 +51,4 @@ public class FFConfigDataFabric extends FFConfigData {
         return packet;
     }
 }
+#endif

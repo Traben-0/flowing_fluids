@@ -2,9 +2,12 @@
 /fabric/build/*
 /.idea/*
 /.gradle/*
+/build/*
 /common/.gradle/*
 /fabric/.gradle/*
 /forge/.gradle/*
 /forge/build/*
 /neoforge/.gradle/*
 /neoforge/build/*
+/fabric-like/build/*
+/fabric-like/.gradle/*

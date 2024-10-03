@@ -2,31 +2,60 @@ package traben.flowing_fluids.forge;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.event.network.CustomPayloadEvent;
 import net.minecraftforge.fml.loading.FMLEnvironment;
+
+#if MC > MC_20_1
+import net.minecraftforge.event.network.CustomPayloadEvent;
 import net.minecraftforge.network.ChannelBuilder;
 import net.minecraftforge.network.SimpleChannel;
+#else
+import net.minecraftforge.network.simple.SimpleChannel;
+import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.network.NetworkRegistry;
+import traben.flowing_fluids.FFFluidUtils;
+import traben.flowing_fluids.config.FFConfig;
+import java.util.function.Supplier;
+#endif
+
 import traben.flowing_fluids.FlowingFluids;
 import traben.flowing_fluids.config.FFConfig;
 
 public class ForgePacketHandler {
     private static final int PROTOCOL_VERSION = 1;
 
-    public static final SimpleChannel INSTANCE = ChannelBuilder
+    public static final SimpleChannel INSTANCE =
+        #if MC > MC_20_1
+            ChannelBuilder
             .named(FlowingFluids.MOD_ID + "_channel")
             .networkProtocolVersion(PROTOCOL_VERSION)
             .simpleChannel();
+        #else
+            NetworkRegistry.newSimpleChannel(
+                FFFluidUtils.res(FlowingFluids.MOD_ID, "channel"),
+                () -> String.valueOf(PROTOCOL_VERSION),
+                    String.valueOf(PROTOCOL_VERSION)::equals,
+                    String.valueOf(PROTOCOL_VERSION)::equals
+            );
+        #endif
 
 
     public static void init() {
-
-        INSTANCE.messageBuilder(FFConfigPacket.class)
+        #if MC > MC_20_1
+            INSTANCE.messageBuilder(FFConfigPacket.class)
                 .encoder(FFConfigPacket::encoder)
                 .decoder(FFConfigPacket::decoder)
                 .consumerMainThread(FFConfigPacket::messageConsumer)
                 .add();
-
+        #else
+        INSTANCE.registerMessage(0,
+                FFConfigPacket.class,
+                FFConfigPacket::encoder,
+                FFConfigPacket::decoder,
+                FFConfigPacket::messageConsumer);
+        #endif
     }
+
+
 
     public static class FFConfigPacket extends FFConfig {
         private boolean is_valid;
@@ -59,9 +88,9 @@ public class ForgePacketHandler {
             }
             return packet;
         }
-
+#if MC > MC_20_1
         public static void messageConsumer(FFConfigPacket packet, CustomPayloadEvent.Context ctx) {
-            // Handle message
+        // Handle message
             if (packet.is_valid) {
                 FlowingFluids.config = packet;
                 FlowingFluids.LOG.info("[Flowing Fluids] - Server Config data received and synced");
@@ -71,6 +100,20 @@ public class ForgePacketHandler {
             }
             ctx.setPacketHandled(true);
         }
+#else
+        public void messageConsumer(Supplier<NetworkEvent.Context> ctx) {
+            // Handle message
+            if (is_valid) {
+                FlowingFluids.config = this;
+                FlowingFluids.LOG.info("[Flowing Fluids] - Server Config data received and synced");
+            } else {
+                FlowingFluids.LOG.error("[Flowing Fluids] - Server Config data received and failed to sync");
+                throw new RuntimeException("[Flowing Fluids] - Server Config data received and failed to sync");
+            }
+            ctx.get().setPacketHandled(true);
+        }
+#endif
+
 
         // A class MessagePacket
         public void encoder(FriendlyByteBuf buffer) {
@@ -78,4 +121,5 @@ public class ForgePacketHandler {
             FlowingFluids.config.encodeToByteBuffer(buffer);
         }
     }
+
 }

@@ -1,5 +1,5 @@
 package traben.flowing_fluids.config;
-
+#if MC > MC_20_1
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
@@ -32,3 +32,4 @@ public abstract class FFConfigData implements CustomPacketPayload {
             delegate.encodeToByteBuffer(buf);
     }
 }
+#endif

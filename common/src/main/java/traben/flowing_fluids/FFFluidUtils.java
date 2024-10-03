@@ -2,6 +2,7 @@ package traben.flowing_fluids;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -14,12 +15,29 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class FFFluidUtils {
+
+    public static @NotNull ResourceLocation res(String fullPath){
+        #if MC >= MC_21
+        return ResourceLocation.parse(fullPath);
+        #else
+        return new ResourceLocation(fullPath);
+        #endif
+    }
+
+    public static @NotNull ResourceLocation res(String namespace, String path){
+        #if MC >= MC_21
+        return ResourceLocation.fromNamespaceAndPath(namespace, path);
+        #else
+        return new ResourceLocation(namespace, path);
+        #endif
+    }
 
     static final List<Direction> CARDINALS = new ArrayList<>();
 
@@ -55,7 +73,7 @@ public class FFFluidUtils {
                 return liquidBlockContainer.placeLiquid(levelAccessor, pos, blockState, getStateForFluidByAmount(fluid, newAmount));
             }else if (blockState.getBlock() instanceof BucketPickup bucketPickup) {
                 //always drain the water loggable block if it's not full
-                bucketPickup.pickupBlock(null, levelAccessor, pos, blockState);
+                bucketPickup.pickupBlock(#if MC > MC_20_1 null, #endif levelAccessor, pos, blockState);
                 return true;
             }
             //if we cant fill or drain it check if we can just replace it with the new fluid level by itself
@@ -76,7 +94,7 @@ public class FFFluidUtils {
         var blockState = levelAccessor.getBlockState(pos);
         if (blockState.getBlock() instanceof LiquidBlockContainer
                 && blockState.getBlock() instanceof BucketPickup bucketPickup) {
-            bucketPickup.pickupBlock(null, levelAccessor, pos, blockState);
+            bucketPickup.pickupBlock(#if MC > MC_20_1 null, #endif levelAccessor, pos, blockState);
             return true;
         }
 
@@ -215,7 +233,7 @@ public class FFFluidUtils {
     }
 
     public static List<Direction> getCardinalsShuffle(RandomSource random) {
-        Collections.shuffle(CARDINALS, random::nextInt);
+        Collections.shuffle(CARDINALS #if MC > MC_20_1 , random::nextInt #endif);
         return CARDINALS;
     }
 

@@ -395,7 +395,7 @@ public abstract class MixinFlowingFluid extends Fluid {
 
         //if none, then choose from the initial sorted & filtered list
         if (spreadDirection == null && !requiresSlope) {
-            return directionsCanSpreadToSortedByAmount.getFirst();
+            return directionsCanSpreadToSortedByAmount.get(0);
         }
         return spreadDirection;
     }

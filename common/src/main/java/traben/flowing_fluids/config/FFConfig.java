@@ -1,6 +1,8 @@
 package traben.flowing_fluids.config;
 
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
 
 public class FFConfig {
@@ -20,6 +22,9 @@ public class FFConfig {
     public boolean hideFlowingTexture = true;
     public LiquidHeight fullLiquidHeight = LiquidHeight.REGULAR;
     public boolean farmlandDrainsWater = true;
+
+    public CreateWaterWheelMode create_waterWheelMode = CreateWaterWheelMode.REQUIRE_FLOW_OR_RIVER;
+    public boolean create_infinitePipes = false;
 
 
     public FFConfig() {
@@ -46,6 +51,8 @@ public class FFConfig {
         hideFlowingTexture = buffer.readBoolean();
         fullLiquidHeight = buffer.readEnum(LiquidHeight.class);
         farmlandDrainsWater = buffer.readBoolean();
+        create_waterWheelMode = buffer.readEnum(CreateWaterWheelMode.class);
+        create_infinitePipes = buffer.readBoolean();
         ///////////////////////////////////////////////
     }
 
@@ -70,6 +77,8 @@ public class FFConfig {
         buffer.writeBoolean(hideFlowingTexture);
         buffer.writeEnum(fullLiquidHeight);
         buffer.writeBoolean(farmlandDrainsWater);
+        buffer.writeEnum(create_waterWheelMode);
+        buffer.writeBoolean(create_infinitePipes);
         ///////////////////////////////////////////////
     }
 
@@ -80,6 +89,35 @@ public class FFConfig {
         FORCE_LEVEL
     }
 
+    public enum CreateWaterWheelMode {
+        ALWAYS,
+        REQUIRE_FLOW,
+        REQUIRE_FLOW_OR_RIVER,
+        REQUIRE_FLUID,
+        REQUIRE_FULL_FLUID,
+        REQUIRE_FLOW_OR_RIVER_OPPOSITE,
+        REQUIRE_FLUID_OPPOSITE,
+        REQUIRE_FULL_FLUID_OPPOSITE,
+        ALWAYS_OPPOSITE;
+
+        public boolean isCounterSpin() {
+            return this.ordinal() > 4;
+        }
+
+        public boolean isRiver() {
+            return this == REQUIRE_FLOW_OR_RIVER || this == REQUIRE_FLOW_OR_RIVER_OPPOSITE;
+        }
+
+        public boolean needsFullFluid() {
+            return this == REQUIRE_FULL_FLUID || this == REQUIRE_FULL_FLUID_OPPOSITE;
+        }
+
+        public boolean always(){
+            return this == ALWAYS || this == ALWAYS_OPPOSITE;
+        }
+
+    }
+
     public enum LiquidHeight {
         REGULAR,
         REGULAR_LOWER_BOUND,
@@ -88,4 +126,10 @@ public class FFConfig {
         SLAB,
         CARPET
     }
+
+    #if MC <= MC_20_1
+    public static final ResourceLocation SERVER_CONFIG_PACKET_ID = FFFluidUtils.res("floiwing_fluids:server_config_packet");
+
+
+    #endif
 }

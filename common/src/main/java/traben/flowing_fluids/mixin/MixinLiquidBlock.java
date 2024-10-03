@@ -2,8 +2,10 @@ package traben.flowing_fluids.mixin;
 
 
 import net.minecraft.core.BlockPos;
+#if MC > MC_20_1
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
+#endif
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.LevelAccessor;
@@ -52,9 +54,13 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
 
 
     @Inject(method = "pickupBlock", at = @At(value = "RETURN"), cancellable = true)
-    private void flowing_fluids$modifyBucket(final Player player, final LevelAccessor levelAccessor, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<ItemStack> cir) {
-//        System.out.println("pickup");
-        if (cir.getReturnValue().isEmpty() && FlowingFluids.config.enableMod) {
+#if MC > MC_20_1
+    private void ff$modifyBucket(final Player player, final LevelAccessor levelAccessor, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<ItemStack> cir) {
+#else
+    private void ff$modifyBucket(final LevelAccessor levelAccessor, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<ItemStack> cir) {
+#endif
+
+            if (cir.getReturnValue().isEmpty() && FlowingFluids.config.enableMod) {
 
             int level = FFFluidUtils.collectConnectedFluidAmountAndRemove(levelAccessor, blockPos, 1, 8, this.fluid);
             if (level > 0) {
@@ -64,9 +70,13 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
                 } else {
                     //add damage flag
                     var stack = new ItemStack(this.fluid.getBucket());
-                    stack.applyComponents(DataComponentMap.builder()
-                            .set(DataComponents.DAMAGE, 8 - level)
-                            .set(DataComponents.MAX_DAMAGE, 8).build());
+                            #if MC > MC_20_1
+                            stack.applyComponents(DataComponentMap.builder()
+                                    .set(DataComponents.DAMAGE, 8 - level)
+                                    .set(DataComponents.MAX_DAMAGE, 8).build());
+                            #else
+                    stack.setDamageValue(8 - level);
+                            #endif
                     cir.setReturnValue(stack);
                 }
             }

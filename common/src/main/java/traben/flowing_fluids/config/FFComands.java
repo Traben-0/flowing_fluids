@@ -27,7 +27,7 @@ public class FFComands {
     }
 
     public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, @SuppressWarnings("unused") CommandBuildContext var2, @SuppressWarnings("unused") Commands.CommandSelection var3) {
-        dispatcher.register(Commands.literal("flowing_fluids")
+        var commands = Commands.literal("flowing_fluids")
                 .requires(source -> source.hasPermission(4) || (source.getServer().isSingleplayer() && source.getPlayer() != null && source.getServer().isSingleplayerOwner(source.getPlayer().getGameProfile()))
                 ).then(Commands.literal("help")
                         .executes(c -> message(c, "Use any of the commands without adding any of it's arguments, E.G '/flowing_fluids settings', to get a description of what the command does and it's current value."))
@@ -257,8 +257,84 @@ public class FFComands {
                                         })
                                 )
                         )
-                )
+                );
 
-        );
+        if (FlowingFluidsPlatform.isThisModLoaded("create")){
+            commands.then(Commands.literal("create_compat")
+                    .executes(commandContext -> message(commandContext, "Settings for Create Mod compatibility, use these to change how fluids interact with Create water wheels and pipes."))
+                    .then(Commands.literal("info")
+                            .executes(c -> message(c, "The Create mod uses water wheels as it's most primitive power source. Flowing Fluids has settings to change how these water wheels get powered due to the additional challenges of the flowing fluids mod interactions with fluids."))
+                    )
+                    .then(Commands.literal("water_wheel_requirements")
+                            .executes(cont -> message(cont, "Changes how the Create Mod's water wheels interact with fluids, select an mode to get further information. Default is flow. Water wheel mode is currently set to " + FlowingFluids.config.create_waterWheelMode))
+                            .then(Commands.literal("flow")
+                                    .executes(cont -> {
+                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FLOW;
+                                        return messageAndSaveConfig(cont, "Water wheel mode is now set to require flow.\nWater wheels will only spin if the water has a level gradient, which almost always requires the water to be actively flowing.");
+                                    })
+                            ).then(Commands.literal("flow_or_river")
+                                    .executes(cont -> {
+                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FLOW_OR_RIVER;
+                                        return messageAndSaveConfig(cont, "Water wheel mode is now set to require flow or river.\nWater wheels will only spin if the water has a level gradient, which almost always requires the water to be actively flowing, or if the water is in a river biome touching any water, and within 5 blocks of sea level. Will always spin in the same direction when using a river as a source.");
+                                    })
+                            ).then(Commands.literal("flow_or_river_opposite_spin")
+                                    .executes(cont -> {
+                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FLOW_OR_RIVER_OPPOSITE;
+                                        return messageAndSaveConfig(cont, "Water wheel mode is now set to require flow or river with opposite spin.\nWater wheels will only spin if the water has a level gradient, which almost always requires the water to be actively flowing, or if the water is in a river biome touching any water, and within 5 blocks of sea level. Will spin in the opposite direction to the other river mode.");
+                                    })
+                            ).then(Commands.literal("fluid")
+                                    .executes(cont -> {
+                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FLUID;
+                                        return messageAndSaveConfig(cont, "Water wheel mode is now set to only require fluid to be present in the checked spaces. Will always spin in the same direction.");
+                                    })
+                            ).then(Commands.literal("fluid_opposite_spin")
+                                    .executes(cont -> {
+                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FLUID_OPPOSITE;
+                                        return messageAndSaveConfig(cont, "Water wheel mode is now set to only require fluid to be present in the checked spaces. Will spin in the opposite direction to the other fluid mode.");
+                                    })
+                            ).then(Commands.literal("full_fluid")
+                                    .executes(cont -> {
+                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FULL_FLUID;
+                                        return messageAndSaveConfig(cont, "Water wheel mode is now set to only require a full 8 levels of fluid to be present in the checked spaces. Will always spin in the same direction.");
+                                    })
+                            ).then(Commands.literal("full_fluid_opposite_spin")
+                                    .executes(cont -> {
+                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FULL_FLUID_OPPOSITE;
+                                        return messageAndSaveConfig(cont, "Water wheel mode is now set to only require a full 8 levels of fluid to be present in the checked spaces. Will spin in the opposite direction to the other full fluid mode.");
+                                    })
+                            ).then(Commands.literal("always")
+                                    .executes(cont -> {
+                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.ALWAYS;
+                                        return messageAndSaveConfig(cont, "water wheel mode is now set to always spin.\nWater wheels will always spin with max strength regardless of present fluids.");
+                                    })
+                            ).then(Commands.literal("always_opposite_spin")
+                                    .executes(cont -> {
+                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.ALWAYS_OPPOSITE;
+                                        return messageAndSaveConfig(cont, "water wheel mode is now set to always spin with opposite spin.\nWater wheels will always spin with max strength regardless of present fluids, and will spin in the opposite direction to the other always mode.");
+                                    })
+                            )
+                    ).then(Commands.literal("pipes")
+                            .then(Commands.literal("infinite_pipe_fluid_source")
+                                    .executes(cont -> message(cont, "Pipes will now " + (FlowingFluids.config.create_infinitePipes ? "not consume the source fluid block." : "consume the source fluid block.")))
+                                    .then(Commands.literal("on")
+                                            .executes(cont -> {
+                                                FlowingFluids.config.create_infinitePipes = true;
+                                                return messageAndSaveConfig(cont, "Pipes will no longer consume the source fluid block.");
+                                            })
+                                    ).then(Commands.literal("off")
+                                            .executes(cont -> {
+                                                FlowingFluids.config.create_infinitePipes = false;
+                                                return messageAndSaveConfig(cont, "Pipes will now consume the source fluid block.");
+                                            })
+                                    )
+                            ).then(Commands.literal("info")
+                                    .executes(c -> message(c, "Create mod pipes will draw fluids only when the entire input block is full (8 levels of fluid). This is required for fluid levels to remain consistent between bucket and other usages, and for Flowing Fluids to be as unobtrusive as possible to the Create mod's inner workings. That being said if you want an easy time of using pipes without worrying about water usage, then enable the infinite pipes setting. You can also disable Create pipes from outputting water blocks in it's own config settings"))
+                            )
+                    )
+
+            );
+        }
+
+        dispatcher.register(commands);
     }
 }

@@ -24,7 +24,7 @@ side = "BOTH"
 [[dependencies.flowing_fluids]]
 modId = "minecraft"
 mandatory = true
-versionRange = "[1.21,)"
+versionRange = "[${compatible_mc_forge})"
 ordering = "NONE"
 side = "BOTH"
 

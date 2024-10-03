@@ -28,6 +28,14 @@ configurations {
     }
 }
 
+repositories {
+    if (project.create_enabled as int == 1) {
+        maven { url = "https://mvn.devos.one/snapshots/" }// Create Fabric
+        maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
+        maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" }
+    }
+}
+
 dependencies {
     modImplementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
 
@@ -35,6 +43,11 @@ dependencies {
 
     common(project(path: ':common', configuration: 'namedElements')) { transitive false }
     shadowBundle project(path: ':common', configuration: 'transformProductionFabric')
+
+    if (project.create_enabled as int == 1) {
+        // Create - dependencies are added transitively
+        modImplementation("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
+    }
 }
 
 processResources {

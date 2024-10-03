@@ -16,4 +16,8 @@ public class FlowingFluidsPlatform {
     public static void sendConfigToClient(ServerPlayer player) {
     }
 
+    @ExpectPlatform
+    public static boolean isThisModLoaded(String modId) {
+        throw new AssertionError();
+    }
 }

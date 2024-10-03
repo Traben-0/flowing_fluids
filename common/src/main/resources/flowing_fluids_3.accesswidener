@@ -1,0 +1,8 @@
+accessWidener v2  named
+
+accessible method net/minecraft/world/level/material/FlowingFluid canPassThroughWall (Lnet/minecraft/core/Direction;Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)Z
+accessible method net/minecraft/world/level/material/FlowingFluid canHoldFluid (Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/material/Fluid;)Z
+
+accessible method net/minecraft/world/level/material/FlowingFluid beforeDestroyingBlock (Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V
+
+extendable method net/minecraft/world/item/Item getMaxDamage ()I

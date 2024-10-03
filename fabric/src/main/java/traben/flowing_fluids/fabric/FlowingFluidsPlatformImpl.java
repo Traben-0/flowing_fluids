@@ -6,6 +6,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import traben.flowing_fluids.FlowingFluids;
+import traben.flowing_fluids.config.FFConfig;
 
 import java.nio.file.Path;
 
@@ -20,6 +21,16 @@ public class FlowingFluidsPlatformImpl {
 
         FlowingFluids.config.encodeToByteBuffer(buf);
         FlowingFluids.LOG.info("[Flowing Fluids] - Sending server config to [" + player.getName().getString() + "]");
-        ServerPlayNetworking.send(player, FFConfigDataFabric.read(buf));//todo just init and send the object normally in 1.20.6+ ?????
+        ServerPlayNetworking.send(player,
+                #if MC > MC_20_1
+                    FFConfigDataFabric.read(buf)
+                #else
+                FFConfig.SERVER_CONFIG_PACKET_ID, buf
+                #endif
+        );
+    }
+
+    public static boolean isThisModLoaded(final String modId) {
+        return FabricLoader.getInstance().isModLoaded(modId);
     }
 }
