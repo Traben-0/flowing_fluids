@@ -143,6 +143,41 @@ I plan to add support for blacklisting modded fluids in the future, and prefill 
 This mod can also be disabled (`/flowing_fluids settings enable_mod on|off`) or removed at any time without breaking the world, as any fluid that is 'full' *(8 levels)* will be saved as a vanilla source block. 
 And all 'non-full' fluids *(1-7 levels)* will be saved as a vanilla flowing blocks which will just disappear once updated in vanilla.
 
+## **The Create Mod - (1.20.1 only right now)**
+
+Flowing Fluids has special compatibility settings for use with the Create mod, to modify the behaviour of water wheels and pipes.
+
+![create](https://i.imgur.com/fR4fpji.gif)
+
+Create Mod pipes can move fluids around finitely, and can optionally be set to treat all fluids as infinite sources via the `/flowing_fluids create_compat pipes infinite_pipe_fluid_source on|off` command.
+
+![pipes](https://i.imgur.com/hM95cFe.gif)
+
+Create Mod water wheels will work normally given a constant flow of fluid.
+
+![wheels](https://i.imgur.com/f7G3L2f.gif)
+
+By default, water wheels will also work without flow in river biomes at sea level.
+
+![wheels](https://i.imgur.com/l2TV14C.gif)
+
+![wheels](https://i.imgur.com/E00rDkE.gif)
+
+This behaviour can be modified via the `/flowing_fluids create_compat water_wheel_requirements ...` command, with the following options:
+- `flow` - Requires a constant flow of fluid
+- `flow_or_river` - Requires a constant flow of fluid, or to be touching water in a river biome near sea level ***(Default)***
+- `fluid` - Requires contact with any fluid blocks, regardless of flow
+- `full_fluid` - Requires contact with full *(8 levels)* fluid blocks only, regardless of flow
+- `always` - All water wheels will always be spinning
+
+
+For the options that don't require a constant flow of fluid, the wheels will always spin in the same direction, 
+the following options exists to swap this arbitrary direction:
+- `flow_or_river_opposite_spin`
+- `fluid_opposite_spin`
+- `full_fluid_opposite_spin`
+- `always_opposite_spin`
+
 ## **Visuals**:
 
 The mod renders fluids completely normally, using the regular vanilla fluid rendering, this allows it to be compatible with shaders.

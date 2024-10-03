@@ -5,4 +5,5 @@ accessible method net/minecraft/world/level/material/FlowingFluid canHoldFluid (
 
 accessible method net/minecraft/world/level/material/FlowingFluid beforeDestroyingBlock (Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V
 
-extendable method net/minecraft/world/item/Item getMaxDamage ()I
+accessible field net/minecraft/world/item/Item maxDamage I
+mutable field net/minecraft/world/item/Item maxDamage I

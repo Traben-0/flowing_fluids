@@ -39,6 +39,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
@@ -214,13 +215,11 @@ public abstract class MixinBucketItem extends Item {
 
 #if MC <= MC_20_1
 
-    @Override
-    public int getMaxDamage() {
-        if (FlowingFluids.config.enableMod && content instanceof FlowingFluid) {
-            return 8;
-        }
-        return super.getMaxDamage();
+    @Inject(method = "<init>", at = @At(value = "TAIL"))
+    public void getMaxDamage(final CallbackInfo ci) {
+        maxDamage = 8;
     }
-    #endif
+
+#endif
 
 }
