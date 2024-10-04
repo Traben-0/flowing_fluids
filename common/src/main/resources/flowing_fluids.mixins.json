@@ -19,7 +19,9 @@
     "MixinTallSeaGrassBlock",
     "MixinWaterFluid",
     "create.MixinPipe",
-    "create.MixinWaterWheel"
+    "create.MixinWaterWheel",
+    "sodium.MixinFluidRenderer",
+    "sodium.MixinFluidRenderer2"
   ],
   "injectors": {
     "defaultRequire": 1

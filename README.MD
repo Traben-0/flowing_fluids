@@ -88,7 +88,9 @@ This means you will need to manage your water supply, and can't just place 2 wat
 ![aquaduct_1](https://i.imgur.com/S5R0pPM.gif)
 
 Oceans, Rivers, and Swamps however, will act as infinite water sources, but there is a limit to how fast they will refill,
-and they can still be drained *(Controlled in settings)*.
+and they can still be drained *(refill speed controlled in settings)*. 
+
+These biomes will also slowly absorb any non-full water that flows back into it at sea level, at the exact same rate as the refill setting.
 
 ![ocean](https://i.imgur.com/H1GpmCs.gif)
 
@@ -226,9 +228,7 @@ Fast mode uses a much simpler and faster fluid flowing algorithm, limiting fluid
 - setting to blacklist specific fluids
 - further settings for as many minute variables that affect performance as makes sense to add
 - further gameplay elements to encourage water management, such as the farmlands draining water
-- maybe backport to 1.20.1 *(and no further)*
-- settings for interaction with the `Create` mod once it's on 1.21, to affect pipe and water wheel behaviours *(it should already partially work anyway, but may need balancing)*
-
+- translations on command messages once I have finalised all the messages and commands
 
 
 

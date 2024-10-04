@@ -3,19 +3,20 @@ package traben.flowing_fluids.mixin;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.BiomeTags;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.material.FlowingFluid;
-import net.minecraft.world.level.material.Fluid;
-import net.minecraft.world.level.material.FluidState;
-import net.minecraft.world.level.material.WaterFluid;
+import net.minecraft.world.level.material.*;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
 
@@ -47,7 +48,7 @@ public abstract class MixinWaterFluid extends FlowingFluid {
                         FlowingFluids.LOG.info("[Flowing Fluids] --- Water was filled by rain. Chance: {}", FlowingFluids.config.rainRefillChance);
                     return;
                 }
-                if (ff$tryBiomeFill(level, blockPos, amount, level.random.nextFloat())) {
+                if (ff$tryBiomeFillOrDrain(level, blockPos, amount, level.random.nextFloat())) {
                     if (FlowingFluids.config.printRandomTicks)
                         FlowingFluids.LOG.info("[Flowing Fluids] --- Water was filled by biome. Chance: {}", FlowingFluids.config.oceanRiverSwampRefillChance);
                     return;
@@ -91,12 +92,13 @@ public abstract class MixinWaterFluid extends FlowingFluid {
     }
 
     @Unique
-    private boolean ff$tryBiomeFill(final Level level, final BlockPos blockPos, int amount, float chance) {
+    private boolean ff$tryBiomeFillOrDrain(final Level level, final BlockPos blockPos, int amount, float chance) {
 
         if (chance < FlowingFluids.config.oceanRiverSwampRefillChance) {
-            //if in ocean or river and below or at sea level and above 0
+            //if in ocean or river and below, at, or just above, sea level
             var biome = level.getBiome(blockPos);
-            if (level.getSeaLevel() >= blockPos.getY()//between sea level and 0
+            int seaLevelTop = level.getSeaLevel();
+            if (seaLevelTop >= blockPos.getY()
                     && level.getBrightness(LightLayer.SKY, blockPos) > 0 // is close enough to sky/atmosphere access
                     && (biome.is(BiomeTags.IS_OCEAN)// is biome with refilling water
                     || biome.is(BiomeTags.IS_RIVER)
@@ -104,7 +106,10 @@ public abstract class MixinWaterFluid extends FlowingFluid {
                     || biome.is(Biomes.SWAMP)
                     || biome.is(Biomes.MANGROVE_SWAMP))) {
 
-                level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this,amount + 1));
+                //increase if below sea level, and drain if just above sea level
+                int modifiedAmount = amount + (seaLevelTop == blockPos.getY() ? -1 : 1);
+
+                level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this, modifiedAmount));
                 return true;
             }
         }
@@ -142,5 +147,19 @@ public abstract class MixinWaterFluid extends FlowingFluid {
             }
         }
         return false;
+    }
+
+    @Inject(method = "getSlopeFindDistance", at = @At(value = "RETURN"), cancellable = true)
+    private void ff$modifySlopeDistance(final LevelReader level, final CallbackInfoReturnable<Integer> cir) {
+        if (FlowingFluids.config.enableMod && FlowingFluids.config.edgeFlowDistanceModifier != 1) {
+            cir.setReturnValue(Mth.clamp((int) (cir.getReturnValue() * FlowingFluids.config.edgeFlowDistanceModifier),1,8));
+        }
+    }
+
+    @Inject(method = "getTickDelay", at = @At(value = "RETURN"), cancellable = true)
+    private void ff$modifyTickDelay(final LevelReader level, final CallbackInfoReturnable<Integer> cir) {
+        if (FlowingFluids.config.enableMod && FlowingFluids.config.waterTickDelayModifier != 1) {
+            cir.setReturnValue(Mth.clamp((int) (cir.getReturnValue() * FlowingFluids.config.waterTickDelayModifier),0,255));
+        }
     }
 }

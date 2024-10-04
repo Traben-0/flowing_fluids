@@ -5,7 +5,7 @@ import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import traben.flowing_fluids.FlowingFluids;
-import traben.flowing_fluids.config.FFComands;
+import traben.flowing_fluids.config.FFCommands;
 
 
 @Mod(FlowingFluids.MOD_ID)
@@ -20,6 +20,6 @@ public final class FlowingFluidsForge {
     @SubscribeEvent
     public static void onRegisterCommandEvent(RegisterCommandsEvent event) {
         FlowingFluids.LOG.info("[Flowing Fluids] commands registered");
-        FFComands.registerCommands(event.getDispatcher(), null, null);
+        FFCommands.registerCommands(event.getDispatcher(), null, null);
     }
 }

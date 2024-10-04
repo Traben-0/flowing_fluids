@@ -18,7 +18,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
-import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -34,6 +33,7 @@ import traben.flowing_fluids.config.FFConfig;
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.ToIntFunction;
 
 import static traben.flowing_fluids.FFFluidUtils.getStateForFluidByAmount;
@@ -73,11 +73,9 @@ public abstract class MixinFlowingFluid extends Fluid {
 
 //    @Inject(method = "getFlow", at = @At(value = "HEAD"), cancellable = true)
 //    private void ff$hideFlowingTexture(final BlockGetter blockReader, final BlockPos pos, final FluidState fluidState, final CallbackInfoReturnable<Vec3> cir) {
-//        if (FlowingFluids.config.enableMod
-//                && (Thread.currentThread().getName().startsWith("Render thread")
-//                || Thread.currentThread().getName().startsWith("Chunk Render Task Executor"))
+//        if (RenderSystem.isOnRenderThread()
+//                && FlowingFluids.config.enableMod
 //                && FlowingFluids.config.hideFlowingTexture) {
-//
 //            cir.setReturnValue(Vec3.ZERO);
 //        }
 //    }
@@ -360,7 +358,7 @@ public abstract class MixinFlowingFluid extends Fluid {
 
     @Unique
     private @Nullable Direction flowing_fluids$getLowestSpreadableLookingFor4BlockDrops(
-            Level level, BlockPos blockPos, FluidState fluidState, int amount, boolean requiresSlope) {
+            Level level, BlockPos blockPos, FluidState fluidState, int amount, final boolean requiresSlope) {
 
         //use simpler direction choice if fast mode is enabled
         if (FlowingFluids.config.fastmode) {
@@ -372,8 +370,11 @@ public abstract class MixinFlowingFluid extends Fluid {
         //state cache for each position
         Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos = new Short2ObjectOpenHashMap<>();
 
+        AtomicBoolean anyFlowableNeighbours2LevelsLowerOrMore = new AtomicBoolean(requiresSlope);
+
         //get the cardinal directions that are valid flow locations sorted by the amount of fluid in them,
         //ties are randomly sorted by initial shuffle
+
         List<Direction> directionsCanSpreadToSortedByAmount = FFFluidUtils.getCardinalsShuffle(level.random).stream()
                 .sorted(Comparator.comparingInt((dir1) -> level.getFluidState(blockPos.relative(dir1)).getAmount()))
                 .filter(dir -> {
@@ -382,19 +383,26 @@ public abstract class MixinFlowingFluid extends Fluid {
                     var statesDir = flowing_fluids$getSetPosCache(key, level, statesAtPos, posDir);
                     BlockState stateDir = statesDir.getFirst();
                     var fluidStateDir = statesDir.getSecond();
-                    return flowing_fluids$canSpreadToOptionallySameOrEmpty(fluidState.getType(), amount, level, blockPos,
+                    boolean canFlow = flowing_fluids$canSpreadToOptionallySameOrEmpty(fluidState.getType(), amount, level, blockPos,
                             level.getBlockState(blockPos), dir, posDir, stateDir, fluidStateDir, requiresSlope);
+                    if (canFlow && !anyFlowableNeighbours2LevelsLowerOrMore.get()) {
+                        anyFlowableNeighbours2LevelsLowerOrMore.set(fluidStateDir.getAmount() < amount - 1);
+                    }
+                    return canFlow;
                 })
                 .toList();
 
         //early escape if no valid neighbours to spread too
         if (directionsCanSpreadToSortedByAmount.isEmpty()) return null;
 
+        //force require slope to flow if no neighbours are 2 levels lower or more
+        final boolean finalRequiresSlope = requiresSlope || !anyFlowableNeighbours2LevelsLowerOrMore.get();
+
         //perform a deep search for the best direction to spread to with the nearest slope
-        Direction spreadDirection = flowing_fluids$getValidDirectionFromDeepSpreadSearch(level, blockPos, fluidState, amount, requiresSlope, directionsCanSpreadToSortedByAmount, statesAtPos);
+        Direction spreadDirection = flowing_fluids$getValidDirectionFromDeepSpreadSearch(level, blockPos, fluidState, amount, finalRequiresSlope, directionsCanSpreadToSortedByAmount, statesAtPos);
 
         //if none, then choose from the initial sorted & filtered list
-        if (spreadDirection == null && !requiresSlope) {
+        if (spreadDirection == null && !finalRequiresSlope) {
             return directionsCanSpreadToSortedByAmount.get(0);
         }
         return spreadDirection;
@@ -426,8 +434,7 @@ public abstract class MixinFlowingFluid extends Fluid {
                     var posDir = blockPos.relative(dir);
                     short key = getCacheKey(blockPos, posDir);
                     //check if we can flow down here, if so, return the direction
-                    boolean canFlowBelow = flowing_fluids$getSetFlowDownCache(key, level, posCanFlowDown, posDir, fluidState.getType(), requiresSlope);
-                    if (canFlowBelow) {
+                    if (level.getFluidState(posDir).getAmount() < (amount - 1) || flowing_fluids$getSetFlowDownCache(key, level, posCanFlowDown, posDir, fluidState.getType(), requiresSlope)) {
                         return Pair.of(dir, 0);
                     } else {
                         //else, perform a deep search for the nearest slope
@@ -479,7 +486,8 @@ public abstract class MixinFlowingFluid extends Fluid {
                         searchStates.getFirst(), searchStates.getSecond(), forceSlopeDownSameOrEmpty)) {
 
                     //if we can flow down, cache the result of this and return this distance as it's the smallest
-                    if (flowing_fluids$getSetFlowDownCache(searchKey, level, posCanFlowDown, searchPos, sourceFluid, forceSlopeDownSameOrEmpty)) {
+                    if (searchStates.getSecond().getAmount() < (sourceAmount - 2)
+                            || flowing_fluids$getSetFlowDownCache(searchKey, level, posCanFlowDown, searchPos, sourceFluid, forceSlopeDownSameOrEmpty)) {
                         //cache the result to both keys as we may also come back to this position from another direction
                         return searchDistance;
                     }

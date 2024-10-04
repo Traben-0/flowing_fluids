@@ -3,8 +3,10 @@ package traben.flowing_fluids.mixin;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
@@ -34,6 +36,20 @@ public abstract class MixinLavaFluid {
     private void ff$fizzOnlyForNonLava(final LevelAccessor level, final BlockPos pos, final BlockState state, final CallbackInfo ci) {
         if (FlowingFluids.config.enableMod && isSame(state.getFluidState().getType())) {
             ci.cancel();
+        }
+    }
+
+    @Inject(method = "getSlopeFindDistance", at = @At(value = "RETURN"), cancellable = true)
+    private void ff$modifySlopeDistance(final LevelReader level, final CallbackInfoReturnable<Integer> cir) {
+        if (FlowingFluids.config.enableMod && FlowingFluids.config.edgeFlowDistanceModifier != 1) {
+            cir.setReturnValue(Mth.clamp((int) (cir.getReturnValue() * FlowingFluids.config.edgeFlowDistanceModifier),1,8));
+        }
+    }
+
+    @Inject(method = "getTickDelay", at = @At(value = "RETURN"), cancellable = true)
+    private void ff$modifyTickDelay(final LevelReader level, final CallbackInfoReturnable<Integer> cir) {
+        if (FlowingFluids.config.enableMod && FlowingFluids.config.lavaTickDelayModifier != 1) {
+            cir.setReturnValue(Mth.clamp((int) (cir.getReturnValue() * FlowingFluids.config.lavaTickDelayModifier),0,255));
         }
     }
 }

@@ -8,6 +8,8 @@ repositories{
         maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
         maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" }
     }
+
+    maven { url = "https://api.modrinth.com/maven" }
 }
 
 dependencies {
@@ -15,6 +17,7 @@ dependencies {
     // which get remapped to the correct annotations on each platform.
     // Do NOT use other classes from Fabric Loader.
     modImplementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
+
     if (project.create_enabled as int == 1) {
         // Compile against Create Fabric in common
         // beware of differences across platforms!
@@ -23,6 +26,12 @@ dependencies {
         // Flywheel and Registrate must also be used carefully due to differences.
         modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
     }
+
+    modImplementation("maven.modrinth:sodium:${project.sodium_version}") {
+        exclude(group: "net.fabricmc.fabric-api")
+    }
+
+    modImplementation files ("build/sodium-fabric-0.6.0-beta.2+mc1.21.1.jar")
 }
 loom {
     accessWidenerPath = file("src/main/resources/flowing_fluids_${project.mc_build}.accesswidener")

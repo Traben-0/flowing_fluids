@@ -2,8 +2,11 @@ package traben.flowing_fluids.config;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FastColor;
 import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
+
+import java.awt.*;
 
 public class FFConfig {
     public boolean fastmode = false;
@@ -22,6 +25,10 @@ public class FFConfig {
     public boolean hideFlowingTexture = true;
     public LiquidHeight fullLiquidHeight = LiquidHeight.REGULAR;
     public boolean farmlandDrainsWater = true;
+    public float edgeFlowDistanceModifier = 1;
+    public float waterTickDelayModifier = 1;
+    public float lavaTickDelayModifier = 1;
+    public boolean debugWaterLevelColours = false;
 
     public CreateWaterWheelMode create_waterWheelMode = CreateWaterWheelMode.REQUIRE_FLOW_OR_RIVER;
     public boolean create_infinitePipes = false;
@@ -29,6 +36,18 @@ public class FFConfig {
 
     public FFConfig() {
     }
+
+    //color range from red to blue over 8 steps
+    public static int[] waterLevelColours ={
+            FastColor.ARGB32.color(0,0,255),
+            FastColor.ARGB32.color(0,128,255),
+            FastColor.ARGB32.color(0,255,192),
+            FastColor.ARGB32.color(0,255,0),
+            FastColor.ARGB32.color(255,255,0),
+            FastColor.ARGB32.color(255,128,0),
+            FastColor.ARGB32.color(255,0,0),
+            FastColor.ARGB32.color(255,255,255)
+    };
 
     public FFConfig(FriendlyByteBuf buffer) {
 
@@ -51,6 +70,10 @@ public class FFConfig {
         hideFlowingTexture = buffer.readBoolean();
         fullLiquidHeight = buffer.readEnum(LiquidHeight.class);
         farmlandDrainsWater = buffer.readBoolean();
+        edgeFlowDistanceModifier = buffer.readFloat();
+        waterTickDelayModifier = buffer.readFloat();
+        lavaTickDelayModifier = buffer.readFloat();
+        debugWaterLevelColours = buffer.readBoolean();
         create_waterWheelMode = buffer.readEnum(CreateWaterWheelMode.class);
         create_infinitePipes = buffer.readBoolean();
         ///////////////////////////////////////////////
@@ -77,6 +100,10 @@ public class FFConfig {
         buffer.writeBoolean(hideFlowingTexture);
         buffer.writeEnum(fullLiquidHeight);
         buffer.writeBoolean(farmlandDrainsWater);
+        buffer.writeFloat(edgeFlowDistanceModifier);
+        buffer.writeFloat(waterTickDelayModifier);
+        buffer.writeFloat(lavaTickDelayModifier);
+        buffer.writeBoolean(debugWaterLevelColours);
         buffer.writeEnum(create_waterWheelMode);
         buffer.writeBoolean(create_infinitePipes);
         ///////////////////////////////////////////////

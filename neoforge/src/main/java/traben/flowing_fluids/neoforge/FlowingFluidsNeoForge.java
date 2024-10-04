@@ -8,7 +8,7 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import traben.flowing_fluids.FlowingFluids;
-import traben.flowing_fluids.config.FFComands;
+import traben.flowing_fluids.config.FFCommands;
 import traben.flowing_fluids.config.FFConfigData;
 
 @Mod(FlowingFluids.MOD_ID)
@@ -23,7 +23,7 @@ public final class FlowingFluidsNeoForge {
     @SubscribeEvent
     public static void onRegisterCommandEvent(RegisterCommandsEvent event) {
         FlowingFluids.LOG.info("[Flowing Fluids] commands registered");
-        FFComands.registerCommands(event.getDispatcher(), null, null);
+        FFCommands.registerCommands(event.getDispatcher(), null, null);
     }
 }
 

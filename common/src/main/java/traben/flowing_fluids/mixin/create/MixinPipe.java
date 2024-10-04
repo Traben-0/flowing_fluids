@@ -3,9 +3,9 @@ package traben.flowing_fluids.mixin.create;
 #if CREATE == 0
 
 import org.spongepowered.asm.mixin.Mixin;
-import traben.flowing_fluids.config.FFComands;
+import traben.flowing_fluids.config.FFCommands;
 
-@Mixin(FFComands.class)
+@Mixin(FFCommands.class)
 public abstract class MixinPipe{
 }
 #else

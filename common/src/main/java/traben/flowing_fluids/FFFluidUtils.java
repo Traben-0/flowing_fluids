@@ -15,6 +15,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -49,6 +50,9 @@ public class FFFluidUtils {
     }
 
     public static FluidState getStateForFluidByAmount(Fluid fluid, int amount) {
+        if (amount < 1) {
+            return Fluids.EMPTY.defaultFluidState();
+        }
         if (fluid instanceof FlowingFluid flowing) {
             return amount == 8 ? flowing.getSource(false) : flowing.getFlowing(amount, false);
         }
@@ -98,7 +102,7 @@ public class FFFluidUtils {
             return true;
         }
 
-        if (!blockState.isAir() && fluid instanceof FlowingFluid flowingFluid) {
+        if (!blockState.isAir() && fluid instanceof FlowingFluid flowingFluid) {//todo needed for remove??
             flowingFluid.beforeDestroyingBlock(levelAccessor, pos, blockState);
         }
 
