@@ -4,3 +4,4 @@ accessible method net/minecraft/world/level/material/FlowingFluid canPassThrough
 accessible method net/minecraft/world/level/material/FlowingFluid canHoldFluid (Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/material/Fluid;)Z
 
 accessible method net/minecraft/world/level/material/FlowingFluid beforeDestroyingBlock (Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V
+accessible method net/minecraft/core/dispenser/DefaultDispenseItemBehavior execute (Lnet/minecraft/core/dispenser/BlockSource;Lnet/minecraft/world/item/ItemStack;)Lnet/minecraft/world/item/ItemStack;

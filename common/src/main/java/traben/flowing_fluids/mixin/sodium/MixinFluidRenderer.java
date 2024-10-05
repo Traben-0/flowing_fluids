@@ -1,12 +1,7 @@
 package traben.flowing_fluids.mixin.sodium;
 
-import com.llamalad7.mixinextras.sugar.Local;
 import me.jellysquid.mods.sodium.client.model.color.ColorProvider;
-import me.jellysquid.mods.sodium.client.model.quad.ModelQuadView;
 import me.jellysquid.mods.sodium.client.render.chunk.compile.pipeline.FluidRenderer;
-import me.jellysquid.mods.sodium.client.world.WorldSlice;
-import net.minecraft.client.renderer.block.LiquidBlockRenderer;
-import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;

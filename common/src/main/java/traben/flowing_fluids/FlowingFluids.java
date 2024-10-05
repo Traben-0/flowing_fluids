@@ -22,6 +22,7 @@ public final class FlowingFluids {
     public static boolean isManeuveringFluids = false;
     public static long debug_killFluidUpdatesUntilTime = 0;
 
+
     public static FFConfig config = new FFConfig();
 
     public static void init() {
@@ -69,5 +70,6 @@ public final class FlowingFluids {
         } catch (IOException ignored) {
         }
     }
+
 
 }

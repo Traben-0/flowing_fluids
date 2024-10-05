@@ -11,6 +11,7 @@
     "MixinBlockState",
     "MixinBottleItem",
     "MixinBucketItem",
+    "MixinDispenserBlock",
     "MixinFarmBlock",
     "MixinFlowingFluid",
     "MixinLavaFluid",

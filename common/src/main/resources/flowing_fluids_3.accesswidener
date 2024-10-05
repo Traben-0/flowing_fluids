@@ -7,3 +7,5 @@ accessible method net/minecraft/world/level/material/FlowingFluid beforeDestroyi
 
 accessible field net/minecraft/world/item/Item maxDamage I
 mutable field net/minecraft/world/item/Item maxDamage I
+
+accessible method net/minecraft/core/dispenser/DefaultDispenseItemBehavior execute (Lnet/minecraft/core/dispenser/BlockSource;Lnet/minecraft/world/item/ItemStack;)Lnet/minecraft/world/item/ItemStack;

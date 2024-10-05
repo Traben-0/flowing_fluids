@@ -4,10 +4,8 @@ package traben.flowing_fluids.mixin;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-#if MC > MC_20_1
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
-#endif
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -17,10 +15,7 @@ import net.minecraft.tags.FluidTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.BucketItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemUtils;
+import net.minecraft.world.item.*;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -35,18 +30,17 @@ import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import traben.flowing_fluids.FFBucketItem;
 import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
 
 
 @Mixin(BucketItem.class)
-public abstract class MixinBucketItem extends Item {
+public abstract class MixinBucketItem extends Item implements FFBucketItem {
 
     @Shadow
     @Final
@@ -103,7 +97,7 @@ public abstract class MixinBucketItem extends Item {
                             || (this.content.isSame(fluidState.getType()) && fluidState.getAmount() < 8)
                             ? blockPos : blockPos2;
                     int amount = 8 - heldBucket.getDamageValue();
-                    int remainder = this.flowing_fluids$emptyContents_AndGetRemainder(player, level, blockPos3, blockHitResult, amount);
+                    int remainder = this.ff$emptyContents_AndGetRemainder(player, level, blockPos3, blockHitResult, amount);
                     if (remainder != amount) {
                         this.checkExtraContent(player, level, heldBucket, blockPos3);
                         if (player instanceof ServerPlayer) {
@@ -115,14 +109,7 @@ public abstract class MixinBucketItem extends Item {
                         if (remainder == 0) {
                             resultBucket = getEmptySuccessItem(heldBucket, player);
                         } else {
-                            resultBucket = heldBucket.copy();
-                            #if MC > MC_20_1
-                            resultBucket.applyComponents(DataComponentMap.builder()
-                                    .set(DataComponents.DAMAGE, 8 - remainder)
-                                    .set(DataComponents.MAX_DAMAGE, 8).build());
-                            #else
-                            resultBucket.setDamageValue(8 - remainder);
-                            #endif
+                            resultBucket = ff$bucketOfAmount(heldBucket,remainder);
                         }
 
                         ItemStack itemStack2 = ItemUtils.createFilledResult(heldBucket, player, resultBucket);
@@ -138,8 +125,8 @@ public abstract class MixinBucketItem extends Item {
         //continue normally
     }
 
-    @Unique
-    private int flowing_fluids$emptyContents_AndGetRemainder(@Nullable Player player, Level level, BlockPos blockPos, @Nullable BlockHitResult blockHitResult, int amount) {
+    @Override
+    public int ff$emptyContents_AndGetRemainder(@Nullable Player player, Level level, BlockPos blockPos, @Nullable BlockHitResult blockHitResult, int amount) {
         if (!(this.content instanceof FlowingFluid flowingFluid)) {
             return amount;
         } else {
@@ -158,7 +145,7 @@ public abstract class MixinBucketItem extends Item {
             if (!canPlaceLiquidInPos) {
 //                System.out.println("cannot place liquid");
                 if (blockHitResult == null) return amount;
-                return this.flowing_fluids$emptyContents_AndGetRemainder(player, level, blockHitResult.getBlockPos().relative(blockHitResult.getDirection()), null, amount);
+                return this.ff$emptyContents_AndGetRemainder(player, level, blockHitResult.getBlockPos().relative(blockHitResult.getDirection()), null, amount);
             } else if (level.dimensionType().ultraWarm() && this.content.is(FluidTags.WATER)) {
                 int i = blockPos.getX();
                 int j = blockPos.getY();
@@ -196,14 +183,14 @@ public abstract class MixinBucketItem extends Item {
                     int levelAtBlock = level.getBlockState(blockPos).getFluidState().getAmount();
                     int total = levelAtBlock + amount;
                     if (total > 8) {
-                        success = level.setBlock(blockPos, FFFluidUtils.getBlockForFluidByAmount(content,8), 11);
+                        success = level.setBlock(blockPos, FFFluidUtils.getBlockForFluidByAmount(content, 8), 11);
                         remainder = total - 8;
                     } else {
-                        success = level.setBlock(blockPos, FFFluidUtils.getBlockForFluidByAmount(content,total), 11);
+                        success = level.setBlock(blockPos, FFFluidUtils.getBlockForFluidByAmount(content, total), 11);
                         remainder = 0;
                     }
                 } else {
-                    success = level.setBlock(blockPos, FFFluidUtils.getBlockForFluidByAmount(content,amount), 11);
+                    success = level.setBlock(blockPos, FFFluidUtils.getBlockForFluidByAmount(content, amount), 11);
                     remainder = 0;
                 }
 
@@ -213,7 +200,24 @@ public abstract class MixinBucketItem extends Item {
         }
     }
 
-#if MC <= MC_20_1
+    @Override
+    public ItemStack ff$bucketOfAmount(ItemStack originalItemData ,final int amount) {
+        if (amount == 0) {
+            return Items.BUCKET.getDefaultInstance();
+        } else {
+            var resultBucket = originalItemData.copy();
+            #if MC > MC_20_1
+            resultBucket.applyComponents(DataComponentMap.builder()
+                    .set(DataComponents.DAMAGE, 8 - amount)
+                    .set(DataComponents.MAX_DAMAGE, 8).build());
+            #else
+            resultBucket.setDamageValue(8 - remainder);
+            #endif
+            return resultBucket;
+        }
+    }
+
+    #if MC <= MC_20_1
 
     @Inject(method = "<init>", at = @At(value = "TAIL"))
     public void getMaxDamage(final CallbackInfo ci) {

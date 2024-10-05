@@ -1,12 +1,8 @@
 package traben.flowing_fluids.config;
 
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FastColor;
-import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
-
-import java.awt.*;
 
 public class FFConfig {
     public boolean fastmode = false;
@@ -88,6 +84,7 @@ public class FFConfig {
     }
 
     public void encodeToByteBuffer(FriendlyByteBuf buffer) {
+
         FlowingFluids.LOG.info("[Flowing Fluids] - Encoding server config packet for client.");
 
         //PRESERVE WRITE ORDER IN READ
