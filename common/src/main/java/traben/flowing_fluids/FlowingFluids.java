@@ -20,6 +20,7 @@ public final class FlowingFluids {
     public static BigDecimal totalDebugMilliseconds = BigDecimal.valueOf(0);
     public static long totalDebugTicks = 0;
     public static boolean isManeuveringFluids = false;
+    public static long debug_killFluidUpdatesUntilTime = 0;
 
     public static FFConfig config = new FFConfig();
 

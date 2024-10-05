@@ -1,7 +1,6 @@
 package traben.flowing_fluids.mixin;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.TallSeagrassBlock;
@@ -28,12 +27,8 @@ public class MixinTallSeaGrassBlock {
                 && state.getValue(HALF) == DoubleBlockHalf.UPPER) {
 
             //break the plant if its water can flow out of it
-            for (Direction direction :Direction.Plane.HORIZONTAL) {
-                if (FFFluidUtils.canFluidFlowFromPosToDirection(Fluids.WATER,8,accessor,pos,direction)) {
-                    cir.setReturnValue(false);
-                    return;
-                }
-
+            if(FFFluidUtils.canFluidFlowToNeighbourFromPos(accessor, pos, Fluids.WATER, 8)) {
+                cir.setReturnValue(false);
             }
         }
     }

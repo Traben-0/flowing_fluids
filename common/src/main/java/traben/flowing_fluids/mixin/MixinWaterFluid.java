@@ -151,15 +151,15 @@ public abstract class MixinWaterFluid extends FlowingFluid {
 
     @Inject(method = "getSlopeFindDistance", at = @At(value = "RETURN"), cancellable = true)
     private void ff$modifySlopeDistance(final LevelReader level, final CallbackInfoReturnable<Integer> cir) {
-        if (FlowingFluids.config.enableMod && FlowingFluids.config.edgeFlowDistanceModifier != 1) {
-            cir.setReturnValue(Mth.clamp((int) (cir.getReturnValue() * FlowingFluids.config.edgeFlowDistanceModifier),1,8));
+        if (FlowingFluids.config.enableMod ) {
+            cir.setReturnValue(Mth.clamp(FlowingFluids.config.waterFlowDistance,1,8));
         }
     }
 
     @Inject(method = "getTickDelay", at = @At(value = "RETURN"), cancellable = true)
     private void ff$modifyTickDelay(final LevelReader level, final CallbackInfoReturnable<Integer> cir) {
-        if (FlowingFluids.config.enableMod && FlowingFluids.config.waterTickDelayModifier != 1) {
-            cir.setReturnValue(Mth.clamp((int) (cir.getReturnValue() * FlowingFluids.config.waterTickDelayModifier),0,255));
+        if (FlowingFluids.config.enableMod) {
+            cir.setReturnValue(Mth.clamp(FlowingFluids.config.waterTickDelay,1,255));
         }
     }
 }

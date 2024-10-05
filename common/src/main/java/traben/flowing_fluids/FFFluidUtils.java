@@ -49,14 +49,24 @@ public class FFFluidUtils {
         CARDINALS.add(Direction.WEST);
     }
 
+    public static boolean canFluidFlowToNeighbourFromPos(LevelAccessor accessor, BlockPos pos, FlowingFluid fluid, int amount) {
+        for (Direction direction :Direction.Plane.HORIZONTAL) {
+            if (FFFluidUtils.canFluidFlowFromPosToDirection(fluid, amount, accessor, pos, direction)) {
+
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static FluidState getStateForFluidByAmount(Fluid fluid, int amount) {
         if (amount < 1) {
             return Fluids.EMPTY.defaultFluidState();
         }
         if (fluid instanceof FlowingFluid flowing) {
-            return amount == 8 ? flowing.getSource(false) : flowing.getFlowing(amount, false);
+            return amount >= 8 ? flowing.getSource(false) : flowing.getFlowing(amount, false);
         }
-        return amount == 8 ? fluid.defaultFluidState() : fluid.defaultFluidState().trySetValue(FlowingFluid.LEVEL, amount);
+        return amount >= 8 ? fluid.defaultFluidState() : fluid.defaultFluidState().trySetValue(FlowingFluid.LEVEL, amount);
     }
 
 

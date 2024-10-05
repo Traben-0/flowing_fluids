@@ -11,7 +11,7 @@ import java.awt.*;
 public class FFConfig {
     public boolean fastmode = false;
     public boolean flowToEdges = true;
-    public LevelingBehaviour levelingBehaviour = LevelingBehaviour.LAZY_LEVEL;
+//    public LevelingBehaviour levelingBehaviour = LevelingBehaviour.LAZY_LEVEL;
     public boolean enableMod = true;
     public boolean debugSpread = false;
     public boolean debugSpreadPrint = false;
@@ -25,10 +25,14 @@ public class FFConfig {
     public boolean hideFlowingTexture = true;
     public LiquidHeight fullLiquidHeight = LiquidHeight.REGULAR;
     public boolean farmlandDrainsWater = true;
-    public float edgeFlowDistanceModifier = 1;
-    public float waterTickDelayModifier = 1;
-    public float lavaTickDelayModifier = 1;
     public boolean debugWaterLevelColours = false;
+    public WaterLogFlowMode waterLogFlowMode = WaterLogFlowMode.IN_FROM_SIDES_OUT_DOWN;
+    public int waterFlowDistance = 4;
+    public int lavaFlowDistance = 2;
+    public int lavaNetherFlowDistance = 4;
+    public int waterTickDelay = 5;
+    public int lavaTickDelay= 30;
+    public int lavaNetherTickDelay = 10;
 
     public CreateWaterWheelMode create_waterWheelMode = CreateWaterWheelMode.REQUIRE_FLOW_OR_RIVER;
     public boolean create_infinitePipes = false;
@@ -56,7 +60,7 @@ public class FFConfig {
         /////////////////////////////////////////
         fastmode = buffer.readBoolean();
         flowToEdges = buffer.readBoolean();
-        levelingBehaviour = buffer.readEnum(LevelingBehaviour.class);
+//        levelingBehaviour = buffer.readEnum(LevelingBehaviour.class);
         enableMod = buffer.readBoolean();
         debugSpread = buffer.readBoolean();
         debugSpreadPrint = buffer.readBoolean();
@@ -70,10 +74,14 @@ public class FFConfig {
         hideFlowingTexture = buffer.readBoolean();
         fullLiquidHeight = buffer.readEnum(LiquidHeight.class);
         farmlandDrainsWater = buffer.readBoolean();
-        edgeFlowDistanceModifier = buffer.readFloat();
-        waterTickDelayModifier = buffer.readFloat();
-        lavaTickDelayModifier = buffer.readFloat();
         debugWaterLevelColours = buffer.readBoolean();
+        waterLogFlowMode = buffer.readEnum(WaterLogFlowMode.class);
+        waterFlowDistance = buffer.readVarInt();
+        lavaFlowDistance = buffer.readVarInt();
+        lavaNetherFlowDistance = buffer.readVarInt();
+        waterTickDelay = buffer.readVarInt();
+        lavaTickDelay = buffer.readVarInt();
+        lavaNetherTickDelay = buffer.readVarInt();
         create_waterWheelMode = buffer.readEnum(CreateWaterWheelMode.class);
         create_infinitePipes = buffer.readBoolean();
         ///////////////////////////////////////////////
@@ -86,7 +94,7 @@ public class FFConfig {
         /////////////////////////////////////////
         buffer.writeBoolean(fastmode);
         buffer.writeBoolean(flowToEdges);
-        buffer.writeEnum(levelingBehaviour);
+//        buffer.writeEnum(levelingBehaviour);
         buffer.writeBoolean(enableMod);
         buffer.writeBoolean(debugSpread);
         buffer.writeBoolean(debugSpreadPrint);
@@ -100,20 +108,43 @@ public class FFConfig {
         buffer.writeBoolean(hideFlowingTexture);
         buffer.writeEnum(fullLiquidHeight);
         buffer.writeBoolean(farmlandDrainsWater);
-        buffer.writeFloat(edgeFlowDistanceModifier);
-        buffer.writeFloat(waterTickDelayModifier);
-        buffer.writeFloat(lavaTickDelayModifier);
         buffer.writeBoolean(debugWaterLevelColours);
+        buffer.writeEnum(waterLogFlowMode);
+        buffer.writeVarInt(waterFlowDistance);
+        buffer.writeVarInt(lavaFlowDistance);
+        buffer.writeVarInt(lavaNetherFlowDistance);
+        buffer.writeVarInt(waterTickDelay);
+        buffer.writeVarInt(lavaTickDelay);
+        buffer.writeVarInt(lavaNetherTickDelay);
         buffer.writeEnum(create_waterWheelMode);
         buffer.writeBoolean(create_infinitePipes);
         ///////////////////////////////////////////////
     }
 
-    public enum LevelingBehaviour {
-        VANILLA_LIKE,
-        LAZY_LEVEL,
-        STRONG_LEVEL,
-        FORCE_LEVEL
+//    public enum LevelingBehaviour {
+//        VANILLA_LIKE,
+//        LAZY_LEVEL,
+//        STRONG_LEVEL,
+//        FORCE_LEVEL
+//    }
+
+    public enum WaterLogFlowMode {
+        ONLY_IN,
+        ONLY_OUT,
+        IN_FROM_SIDES_OUT_DOWN,
+        IGNORE;
+
+        public boolean blocksFlowOutDown(){
+            return this == ONLY_IN || this == IGNORE;
+        }
+
+        public boolean blocksFlowIn(){
+            return this == ONLY_OUT || this == IGNORE;
+        }
+
+        public boolean blocksFlowOutSides(){
+            return this == ONLY_IN || this == IN_FROM_SIDES_OUT_DOWN || this == IGNORE;
+        }
     }
 
     public enum CreateWaterWheelMode {

@@ -2,6 +2,7 @@ package traben.flowing_fluids.config;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.FloatArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
@@ -101,30 +102,57 @@ public class FFCommands {
                                 )
                         ).then(Commands.literal("behaviour")
                                 .executes(commandContext -> message(commandContext, "Behaviour settings for Flowing Fluids, use these to change how fluids behave."))
-                                .then(Commands.literal("slope_search_distance_modifier")
-                                        .executes(cont -> message(cont, "Modifies the distance fluids will search to flow to a lower slope.\nThe number is not constant for all fluids so you must use a modifier to affect it, the actual value is multiplied by this modifier.\nThe vanilla value is always 4 for water but lava will vary between 2 and 4 depending on if it is in the Nether, current setting: [" + FlowingFluids.config.edgeFlowDistanceModifier + "], the result of the modifier will always be clamped between 1 and 8, as higher values can easily cause IMMENSE lag and will freeze your world."))
-                                        .then(Commands.argument("modifier", FloatArgumentType.floatArg(0, 10))
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.edgeFlowDistanceModifier = cont.getArgument("modifier", Float.class);
-                                                    return messageAndSaveConfig(cont, "Fluid slope search distance modifier set to " + FlowingFluids.config.edgeFlowDistanceModifier);
-                                                })
-                                        )
-                                ).then(Commands.literal("tick_delay_modifiers")
-                                        .executes(cont -> message(cont, "Modifies the tick delay fluids will have between spreading updates, the number is not constant for all fluids so you must use a modifier to affect it, the actual value is multiplied by this modifier.\nThe vanilla value is always 5 for water but lava will vary between 10 and 30 depending on if it is in the Nether, the results of the modifiers will always be clamped between 0 and 256."))
+                                .then(Commands.literal("flow_distances")
+                                        .executes(cont -> message(cont, "Modifies the distance fluids will search for slopes to flow down.\nThe vanilla value is always 4 for water but lava will vary between 2 and 4 depending on if it is in the Nether.\n§4WARNING: this setting is the biggest source of lag for all fluid flowing, this value is limited to 8 (as any higher will freeze your world) and I strongly suggest you never raise it above the default 4, if you set it to 1, just enable the fast mode setting instead as it will be the same effect just more efficient."))
                                         .then(Commands.literal("water")
-                                                .executes(cont -> message(cont, "Modifies the tick delay fluids will have between spreading updates, the number is not constant for all fluids so you must use a modifier to affect it, the actual value is multiplied by this modifier.\nThe vanilla value is always 5 for water but lava will vary between 10 and 30 depending on if it is in the Nether, the results of the modifiers will always be clamped between 0 and 256.\nWater tick delay modifier is currently set to " + FlowingFluids.config.waterTickDelayModifier))
-                                                .then(Commands.argument("modifier", FloatArgumentType.floatArg(0, 255))
+                                                .executes(cont -> message(cont, "Modifies the distance water will search for slopes to flow down.\nThe vanilla value is always 4 for water.\nWater flow distance modifier is currently set to " + FlowingFluids.config.waterFlowDistance))
+                                                .then(Commands.argument("distance", IntegerArgumentType.integer(0, 8))
                                                         .executes(cont -> {
-                                                            FlowingFluids.config.waterTickDelayModifier = cont.getArgument("modifier", Float.class);
-                                                            return messageAndSaveConfig(cont, "Water tick delay modifier set to " + FlowingFluids.config.waterTickDelayModifier);
+                                                            FlowingFluids.config.waterFlowDistance = cont.getArgument("distance", Integer.class);
+                                                            return messageAndSaveConfig(cont, "Water flow distance set to " + FlowingFluids.config.waterFlowDistance + (FlowingFluids.config.waterFlowDistance == 1 ? ", because the value is 1 turning on Fast mode is highly recommended as you get the same effect but with a more efficient algorithm." : "."));
                                                         })
                                                 )
                                         ).then(Commands.literal("lava")
-                                                .executes(cont -> message(cont, "Modifies the tick delay fluids will have between spreading updates, the number is not constant for all fluids so you must use a modifier to affect it, the actual value is multiplied by this modifier.\nThe vanilla value is always 5 for water but lava will vary between 10 and 30 depending on if it is in the Nether, the results of the modifiers will always be clamped between 0 and 256.\nLava tick delay modifier is currently set to " + FlowingFluids.config.lavaTickDelayModifier))
-                                                .then(Commands.argument("modifier", FloatArgumentType.floatArg(0, 255))
+                                                .executes(cont -> message(cont, "Modifies the distance lava will search for slopes to flow down in the overworld.\nThe vanilla value is always 2 for lava in the overworld.\nLava flow distance modifier is currently set to " + FlowingFluids.config.lavaFlowDistance))
+                                                .then(Commands.argument("distance", IntegerArgumentType.integer(0, 8))
                                                         .executes(cont -> {
-                                                            FlowingFluids.config.lavaTickDelayModifier = cont.getArgument("modifier", Float.class);
-                                                            return messageAndSaveConfig(cont, "Lava tick delay modifier set to " + FlowingFluids.config.lavaTickDelayModifier);
+                                                            FlowingFluids.config.lavaFlowDistance = cont.getArgument("distance", Integer.class);
+                                                            return messageAndSaveConfig(cont, "Water flow distance set to " + FlowingFluids.config.lavaFlowDistance + (FlowingFluids.config.lavaFlowDistance == 1 ? ", because the value is 1 turning on Fast mode is highly recommended as you get the same effect but with a more efficient algorithm." : "."));
+                                                        })
+                                                )
+                                        ).then(Commands.literal("lava_nether")
+                                                .executes(cont -> message(cont, "Modifies the distance lava will search for slopes to flow down in the nether.\nThe vanilla value is always 4 for lava in the nether.\nLava flow distance modifier is currently set to " + FlowingFluids.config.lavaNetherFlowDistance))
+                                                .then(Commands.argument("distance", IntegerArgumentType.integer(0, 8))
+                                                        .executes(cont -> {
+                                                            FlowingFluids.config.lavaNetherFlowDistance = cont.getArgument("distance", Integer.class);
+                                                            return messageAndSaveConfig(cont, "Water flow distance set to " + FlowingFluids.config.lavaNetherFlowDistance + (FlowingFluids.config.lavaNetherFlowDistance == 1 ? ", because the value is 1 turning on Fast mode is highly recommended as you get the same effect but with a more efficient algorithm." : "."));
+                                                        })
+                                                )
+                                        )
+                                ).then(Commands.literal("tick_delays")
+                                        .executes(cont -> message(cont, "Modifies the tick delay fluids will have between spreading updates\nThe vanilla value is always 5 for water but lava will vary between 10 and 30 depending on if it is in the Nether."))
+                                        .then(Commands.literal("water")
+                                                .executes(cont -> message(cont, "Modifies the tick delay water will have between spreading updates.\nThe vanilla value is always 5 for water.\nWater tick delay modifier is currently set to " + FlowingFluids.config.waterTickDelay))
+                                                .then(Commands.argument("delay", IntegerArgumentType.integer(1, 255))
+                                                        .executes(cont -> {
+                                                            FlowingFluids.config.waterTickDelay = cont.getArgument("delay", Integer.class);
+                                                            return messageAndSaveConfig(cont, "Water tick delay set to " + FlowingFluids.config.waterTickDelay);
+                                                        })
+                                                )
+                                        ).then(Commands.literal("lava")
+                                                .executes(cont -> message(cont, "Modifies the tick delay lava will have between spreading updates in the overworld.\nThe vanilla value is always 30 for lava in the overworld.\nLava tick delay modifier is currently set to " + FlowingFluids.config.lavaTickDelay))
+                                                .then(Commands.argument("delay", IntegerArgumentType.integer(1, 255))
+                                                        .executes(cont -> {
+                                                            FlowingFluids.config.lavaTickDelay = cont.getArgument("delay", Integer.class);
+                                                            return messageAndSaveConfig(cont, "Lava tick delay set to " + FlowingFluids.config.lavaTickDelay);
+                                                        })
+                                                )
+                                        ).then(Commands.literal("lava_nether")
+                                                .executes(cont -> message(cont, "Modifies the tick delay lava will have between spreading updates in the nether.\nThe vanilla value is always 10 for lava in the nether.\nLava tick delay modifier is currently set to " + FlowingFluids.config.lavaNetherTickDelay))
+                                                .then(Commands.argument("delay", IntegerArgumentType.integer(1, 255))
+                                                        .executes(cont -> {
+                                                            FlowingFluids.config.lavaNetherTickDelay = cont.getArgument("delay", Integer.class);
+                                                            return messageAndSaveConfig(cont, "Lava_nether tick delay set to " + FlowingFluids.config.lavaNetherTickDelay);
                                                         })
                                                 )
                                         )
@@ -167,27 +195,27 @@ public class FFCommands {
                                                     return messageAndSaveConfig(cont, "Placed blocks displacing fluids is now disabled.\nLiquids will no longer be displaced by blocks placed inside them.");
                                                 })
                                         )
-                                ).then(Commands.literal("leveling_behaviour")
-                                        .executes(cont -> message(cont, "Controls how liquids split when flowing, if a block with 5 water levels splits its flow to its neighbour it will have 1 remaining, this chooses what to do with it to try and achieve level, current setting: " + FlowingFluids.config.levelingBehaviour))
-                                        .then(Commands.literal("vanilla")
+                                ).then(Commands.literal("waterlogged_blocks_flow_mode")
+                                        .executes(cont -> message(cont, "Controls how water flows into or out fo water loggable blocks, due to limitations you cannot have two side by side waterloggable blocks flow into each other as they would flicker endlessly, Sea grass and kelp are excluded from this setting and will always break in waters absence, current setting: " + FlowingFluids.config.waterLogFlowMode))
+                                        .then(Commands.literal("only_in")
                                                 .executes(cont -> {
-                                                    FlowingFluids.config.levelingBehaviour = FFConfig.LevelingBehaviour.VANILLA_LIKE;
-                                                    return messageAndSaveConfig(cont, "Liquids will consider themselves 'level' when their neighbours are the same level or 1 level lower. This means water wont flow more than 8 blocks, like vanilla :).");
+                                                    FlowingFluids.config.waterLogFlowMode = FFConfig.WaterLogFlowMode.ONLY_IN;
+                                                    return messageAndSaveConfig(cont, "Water will only flow into water loggable blocks, and never out of them.");
                                                 })
-                                        ).then(Commands.literal("lazy")
+                                        ).then(Commands.literal("only_out")
                                                 .executes(cont -> {
-                                                    FlowingFluids.config.levelingBehaviour = FFConfig.LevelingBehaviour.LAZY_LEVEL;
-                                                    return messageAndSaveConfig(cont, "Liquids will lazily try to enforce 'true level' however, if a pool of 5 high water has a single block of level 6, instead of wandering endlessly, it will eventually randomly stop looking for a gap to fit in, with a high random chance to stop.");
+                                                    FlowingFluids.config.waterLogFlowMode = FFConfig.WaterLogFlowMode.ONLY_OUT;
+                                                    return messageAndSaveConfig(cont, "Water will only flow out of water loggable blocks, and never into them.");
                                                 })
-                                        ).then(Commands.literal("strong")
+                                        ).then(Commands.literal("in_from_sides_or_top_out_down")
                                                 .executes(cont -> {
-                                                    FlowingFluids.config.levelingBehaviour = FFConfig.LevelingBehaviour.STRONG_LEVEL;
-                                                    return messageAndSaveConfig(cont, "Liquids will strongly try to enforce 'true level', if a pool of 5 high water has a single block of level 6, the extra level will wander near endlessly, it will eventually randomly stop looking for a gap to fit in, with a low random chance to stop.");
+                                                    FlowingFluids.config.waterLogFlowMode = FFConfig.WaterLogFlowMode.IN_FROM_SIDES_OUT_DOWN;
+                                                    return messageAndSaveConfig(cont, "Water will flow into water loggable blocks from the sides or top, and out of them from the bottom, if possible.");
                                                 })
-                                        ).then(Commands.literal("force")
+                                        ).then(Commands.literal("ignore")
                                                 .executes(cont -> {
-                                                    FlowingFluids.config.levelingBehaviour = FFConfig.LevelingBehaviour.FORCE_LEVEL;
-                                                    return messageAndSaveConfig(cont, "Liquids will always try to enforce 'true level' if a pool of 5 high water has a single block of level 6, it will tirelessly wander the entire pool looking for a chance to flow down and level it self.\nThis is the most realistic but not recommended for lag reasons, consider either strong or lazy leveling instead.");
+                                                    FlowingFluids.config.waterLogFlowMode = FFConfig.WaterLogFlowMode.IGNORE;
+                                                    return messageAndSaveConfig(cont, "Water flowing will ignore water loggable blocks entirely.");
                                                 })
                                         )
                                 ).then(Commands.literal("flow_over_edges")
@@ -296,6 +324,11 @@ public class FFCommands {
                                             return messageAndSaveConfig(cont, "water_level_tinting is now disabled.");
                                         })
                                 )
+                        ).then(Commands.literal("kill_all_current_fluid_updates")
+                                .executes(cont -> {
+                                    FlowingFluids.debug_killFluidUpdatesUntilTime = System.currentTimeMillis() + 3000;
+                                    return message(cont, "All fluid flowing ticks will be ignored and allowed to freeze in place over the next 3 seconds.\nAll fluids that are loaded and ticking during this time will completely stop updating and freeze in place until the next time they get updated.");
+                                })
                         )
                 );
 

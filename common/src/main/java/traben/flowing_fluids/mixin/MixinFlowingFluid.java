@@ -102,6 +102,10 @@ public abstract class MixinFlowingFluid extends Fluid {
             //cancel the original tick
             ci.cancel();
 
+            if(System.currentTimeMillis() < FlowingFluids.debug_killFluidUpdatesUntilTime){
+                return; //kill this update
+            }
+
             FlowingFluids.isManeuveringFluids = true;
             try {
 
@@ -201,12 +205,12 @@ public abstract class MixinFlowingFluid extends Fluid {
         int difference = amount - destFluidAmount;
 
         //must force total flow of fluid because of waterloggables
-        if (ff$handleWaterLoggedFlowAndReturnIfHandled(level, blockPos, fluidState, amount, thisState, posDir, destFluidAmount,true)) return;
+        if (ff$handleWaterLoggedFlowAndReturnIfHandled(level, blockPos, fluidState, amount, thisState, posDir, destFluidAmount,false)) return;
 
-        //vast majority of changes are only 1, so we can skip the rest of the logic
-        //if the remainder is left in the source block, we can return if the difference is 1, or less (less is impossible but also a safety check)
-        if (FlowingFluids.config.levelingBehaviour == FFConfig.LevelingBehaviour.VANILLA_LIKE && difference <= 1)
-            return;
+//        //vast majority of changes are only 1, so we can skip the rest of the logic
+//        //if the remainder is left in the source block, we can return if the difference is 1, or less (less is impossible but also a safety check)
+//        if (FlowingFluids.config.levelingBehaviour == FFConfig.LevelingBehaviour.VANILLA_LIKE && difference <= 1)
+//            return;
 
         //calculate the amount that would level both liquids
         final int averageLevel = destFluidAmount + difference / 2;
@@ -217,30 +221,30 @@ public abstract class MixinFlowingFluid extends Fluid {
         int fromAmount;
         int toAmount;
         if (hasRemainder) {
-            switch (FlowingFluids.config.levelingBehaviour) {
-                case VANILLA_LIKE -> {
-                    fromAmount = averageLevel + 1;
-                    toAmount = averageLevel;
-                }
-                case FORCE_LEVEL -> {
+//            switch (FlowingFluids.config.levelingBehaviour) {
+//                case VANILLA_LIKE -> {
+//                    fromAmount = averageLevel + 1;
+//                    toAmount = averageLevel;
+//                }
+//                case FORCE_LEVEL -> {
                     fromAmount = averageLevel;
                     toAmount = averageLevel + 1;
-                }
-                case LAZY_LEVEL -> {
-                    //give the flow an average amount of attempts to level itself out
-                    boolean from = level.random.nextInt(FlowingFluids.config.fastmode ? 2 : 4) < 2;
-                    fromAmount = from ? averageLevel + 1 : averageLevel;
-                    toAmount = from ? averageLevel : averageLevel + 1;
-                }
-                case STRONG_LEVEL -> {
-                    //give the flow a high average amount of attempts to level itself out
-                    boolean from = level.random.nextInt(FlowingFluids.config.fastmode ? 3 : 10) == 0;
-                    fromAmount = from ? averageLevel + 1 : averageLevel;
-                    toAmount = from ? averageLevel : averageLevel + 1;
-                }
-                default ->
-                        throw new IllegalStateException("Unexpected value for split decision: " + FlowingFluids.config.levelingBehaviour);
-            }
+//                }
+//                case LAZY_LEVEL -> {
+//                    //give the flow an average amount of attempts to level itself out
+//                    boolean from = level.random.nextInt(FlowingFluids.config.fastmode ? 2 : 4) < 2;
+//                    fromAmount = from ? averageLevel + 1 : averageLevel;
+//                    toAmount = from ? averageLevel : averageLevel + 1;
+//                }
+//                case STRONG_LEVEL -> {
+//                    //give the flow a high average amount of attempts to level itself out
+//                    boolean from = level.random.nextInt(FlowingFluids.config.fastmode ? 3 : 10) == 0;
+//                    fromAmount = from ? averageLevel + 1 : averageLevel;
+//                    toAmount = from ? averageLevel : averageLevel + 1;
+//                }
+//                default ->
+//                        throw new IllegalStateException("Unexpected value for split decision: " + FlowingFluids.config.levelingBehaviour);
+//            }
         } else {
             fromAmount = averageLevel;
             toAmount = averageLevel;
@@ -262,41 +266,50 @@ public abstract class MixinFlowingFluid extends Fluid {
     }
 
     @Unique
-    private static boolean ff$handleWaterLoggedFlowAndReturnIfHandled(final Level level, final BlockPos blockPos, final FluidState fluidState, final int amount,
-                                                                      final BlockState thisState, final BlockPos posDir, final int destFluidAmount,
-                                                                      boolean cannotFlowOut
+    private static boolean ff$handleWaterLoggedFlowAndReturnIfHandled(final Level level, final BlockPos posFrom, final FluidState fluidState, final int amount,
+                                                                      final BlockState thisState, final BlockPos posTo, final int destFluidAmount,
+                                                                      boolean flowingDown
     ) {
-        var blockTo = level.getBlockState(posDir).getBlock();
-        boolean requireTotalFlowFrom = thisState.getBlock() instanceof LiquidBlockContainer && thisState.getBlock() instanceof BucketPickup;
-
-        if (cannotFlowOut && requireTotalFlowFrom) {
+        //check if either too or from is water loggable and if so exit early if we cannot perform this flow due to settings
+        boolean fromIsWaterloggable = thisState.getBlock() instanceof LiquidBlockContainer && thisState.getBlock() instanceof BucketPickup;
+        if (fromIsWaterloggable
+                && (flowingDown ? //cannot flow out
+                    FlowingFluids.config.waterLogFlowMode.blocksFlowOutDown()
+                    : FlowingFluids.config.waterLogFlowMode.blocksFlowOutSides())) {
             return true;
         }
 
-        boolean requireTotalFlowTo = blockTo instanceof LiquidBlockContainer && blockTo instanceof BucketPickup;
+        var blockTo = level.getBlockState(posTo).getBlock();
+        boolean toIsWaterloggable = blockTo instanceof LiquidBlockContainer && blockTo instanceof BucketPickup;
+        if (toIsWaterloggable && FlowingFluids.config.waterLogFlowMode.blocksFlowIn()) {//cannot flow in
+            return true;
+        }
 
-        boolean requiresTotalFlow = requireTotalFlowFrom || requireTotalFlowTo;
-        if (requiresTotalFlow){
+        //from here the flow is allowed to proceed, but there is special handling for water loggables that might need to happen
+
+        if (fromIsWaterloggable || toIsWaterloggable){
+            //here we are handling flow to or from a waterloggable block
             int totalAmount = destFluidAmount + amount;
-            if (totalAmount < 8) {
-                return true;
+            if (totalAmount < 8) { //crucial this only runs after we confirm they are waterloggables, as otherwise return should be false
+                return true; //do nothing
             }else{
-                //both
-                if(requireTotalFlowTo && requireTotalFlowFrom){
-                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, blockPos, fluidState.getType(), 0);
-                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, posDir, fluidState.getType(), 8);
-                }else if (requireTotalFlowTo) {
-                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, blockPos, fluidState.getType(), totalAmount-8);
-                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, posDir, fluidState.getType(), 8);
+                //both should only be possible when flowing down
+                if(toIsWaterloggable && fromIsWaterloggable){
+                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, posFrom, fluidState.getType(), 0);
+                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, posTo, fluidState.getType(), 8);
+                }else if (toIsWaterloggable) {
+                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, posFrom, fluidState.getType(), totalAmount-8);
+                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, posTo, fluidState.getType(), 8);
                 }else{//from
-                    //dont flow out if we would lose water
+                    //don't flow out if destination cannot take all 8 levels of fluid
                     if (destFluidAmount > 0) return true;
-                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, blockPos, fluidState.getType(), 0);
-                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, posDir, fluidState.getType(), 8);
+                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, posFrom, fluidState.getType(), 0);
+                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, posTo, fluidState.getType(), 8);
                 }
             }
             return true;
         }
+        //no water loggables
         return false;
     }
 
@@ -320,7 +333,7 @@ public abstract class MixinFlowingFluid extends Fluid {
                 //flow into lower space
                 int fluidDownAmount = downFState.getAmount();
 
-                if (ff$handleWaterLoggedFlowAndReturnIfHandled(level, blockPos, fluidState, amount, thisState, posDown, fluidDownAmount, false))
+                if (ff$handleWaterLoggedFlowAndReturnIfHandled(level, blockPos, fluidState, amount, thisState, posDown, fluidDownAmount, true))
                     return level.getFluidState(blockPos).getAmount();
 
                 int amountDestCanAccept = Math.min(8 - fluidDownAmount, amount);

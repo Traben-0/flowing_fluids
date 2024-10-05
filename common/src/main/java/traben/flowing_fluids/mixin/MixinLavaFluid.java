@@ -41,15 +41,21 @@ public abstract class MixinLavaFluid {
 
     @Inject(method = "getSlopeFindDistance", at = @At(value = "RETURN"), cancellable = true)
     private void ff$modifySlopeDistance(final LevelReader level, final CallbackInfoReturnable<Integer> cir) {
-        if (FlowingFluids.config.enableMod && FlowingFluids.config.edgeFlowDistanceModifier != 1) {
-            cir.setReturnValue(Mth.clamp((int) (cir.getReturnValue() * FlowingFluids.config.edgeFlowDistanceModifier),1,8));
+        if (FlowingFluids.config.enableMod) {
+            cir.setReturnValue(Mth.clamp(level.dimensionType().ultraWarm()
+                    ? FlowingFluids.config.lavaNetherFlowDistance
+                    : FlowingFluids.config.lavaFlowDistance,
+                    1,8));
         }
     }
 
     @Inject(method = "getTickDelay", at = @At(value = "RETURN"), cancellable = true)
     private void ff$modifyTickDelay(final LevelReader level, final CallbackInfoReturnable<Integer> cir) {
-        if (FlowingFluids.config.enableMod && FlowingFluids.config.lavaTickDelayModifier != 1) {
-            cir.setReturnValue(Mth.clamp((int) (cir.getReturnValue() * FlowingFluids.config.lavaTickDelayModifier),0,255));
+        if (FlowingFluids.config.enableMod) {
+            cir.setReturnValue(Mth.clamp(level.dimensionType().ultraWarm()
+                    ? FlowingFluids.config.lavaNetherTickDelay
+                    : FlowingFluids.config.lavaTickDelay,
+                    1,255));
         }
     }
 }
