@@ -21,7 +21,8 @@ public abstract class MixinLiquidBlockRenderer {
             , ordinal = 0
     )
     private Vec3 ff$alterFlowDir(final Vec3 value) {
-        if (FlowingFluids.config.enableMod && FlowingFluids.config.hideFlowingTexture) {
+        if (FlowingFluids.config.enableMod
+                && FlowingFluids.config.hideFlowingTexture) {
             return Vec3.ZERO;
         }
         return value;
@@ -34,7 +35,8 @@ public abstract class MixinLiquidBlockRenderer {
             ordinal = 0
     )
     private int ff$alterColor(final int value, @Local(argsOnly = true) FluidState fluidState) {
-        if (FlowingFluids.config.enableMod && FlowingFluids.config.debugWaterLevelColours) {
+        if (FlowingFluids.config.enableMod
+                && FlowingFluids.config.debugWaterLevelColours) {
             return FFConfig.waterLevelColours[fluidState.getAmount()-1];
         }
         return value;

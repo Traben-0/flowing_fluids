@@ -30,7 +30,9 @@ public class MixinBottleItem {
             index = 2
     )
     private ClipContext.Fluid flowing_fluids$allowAnyFluid(final ClipContext.Fluid par3) {
-        if (FlowingFluids.config.enableMod && par3 == ClipContext.Fluid.SOURCE_ONLY) {
+        if (FlowingFluids.config.enableMod
+                && FlowingFluids.config.isWaterAllowed()
+                && par3 == ClipContext.Fluid.SOURCE_ONLY) {
             return ClipContext.Fluid.ANY;
         }
         return par3;
@@ -44,7 +46,8 @@ public class MixinBottleItem {
             locals = LocalCapture.CAPTURE_FAILHARD,
             cancellable = true)
     private void ff$drainWater(final Level level, final Player player, final InteractionHand usedHand, final CallbackInfoReturnable<InteractionResultHolder<ItemStack>> cir, final List<?> list, final ItemStack itemStack, final BlockHitResult blockHitResult, final BlockPos blockPos) {
-        if (FlowingFluids.config.enableMod){
+        if (FlowingFluids.config.enableMod
+                && FlowingFluids.config.isWaterAllowed()){
             int foundAmount = FFFluidUtils.collectConnectedFluidAmountAndRemove(level, blockPos, 2, 3, Fluids.WATER);
             if (foundAmount == 0) {
                 cir.setReturnValue(InteractionResultHolder.pass(itemStack));

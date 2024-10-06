@@ -50,6 +50,7 @@ public class MixinDispenserBlock {
                             Level level = blockSource.level();
                             var fState = level.getFluidState(blockPos);
                             if (fState.getType() instanceof FlowingFluid flowingFluid
+                                    && FlowingFluids.config.isFluidAllowed(fState)
                                     && fState.getAmount() > 0 && fState.getAmount() < 8){
                                 //we intervene for partial blocks
                                 int found = FFFluidUtils.collectConnectedFluidAmountAndRemove(level, blockPos, 1, 8, flowingFluid);
@@ -67,7 +68,9 @@ public class MixinDispenserBlock {
             }else{
                 wrappedBehaviour = new DefaultDispenseItemBehavior() {
                     public @NotNull ItemStack execute(BlockSource blockSource, ItemStack item) {
-                        if (FlowingFluids.config.enableMod && item.getItem() instanceof FFBucketItem bucket) {
+                        if (FlowingFluids.config.enableMod
+                                && item.getItem() instanceof FFBucketItem bucket
+                                && FlowingFluids.config.isFluidAllowed(bucket.ff$getFluid())) {
                             BlockPos blockPos = blockSource.pos().relative(blockSource.state().getValue(DispenserBlock.FACING));
                             Level level = blockSource.level();
                             var fState = level.getFluidState(blockPos);

@@ -77,7 +77,9 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
     @Inject(method = "use", at = @At(value = "HEAD"), cancellable = true)
     private void flowing_fluids$alterBehaviourIfPartial(final Level level, final Player player, final InteractionHand interactionHand, final CallbackInfoReturnable<InteractionResultHolder<ItemStack>> cir) {
         if (FlowingFluids.config.enableMod
-                && content instanceof FlowingFluid) {//not empty and is flowing
+                && content instanceof FlowingFluid
+                && FlowingFluids.config.isFluidAllowed(content)
+        ) {//not empty and is flowing
             ItemStack heldBucket = player.getItemInHand(interactionHand);
 
             //todo infinite logic
@@ -127,7 +129,8 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
 
     @Override
     public int ff$emptyContents_AndGetRemainder(@Nullable Player player, Level level, BlockPos blockPos, @Nullable BlockHitResult blockHitResult, int amount) {
-        if (!(this.content instanceof FlowingFluid flowingFluid)) {
+        if (!(this.content instanceof FlowingFluid flowingFluid)
+                || !FlowingFluids.config.isFluidAllowed(content)) {
             return amount;
         } else {
 
@@ -204,8 +207,11 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
     public ItemStack ff$bucketOfAmount(ItemStack originalItemData ,final int amount) {
         if (amount == 0) {
             return Items.BUCKET.getDefaultInstance();
+        } else if(!FlowingFluids.config.isFluidAllowed(content)){
+            return originalItemData;
         } else {
             var resultBucket = originalItemData.copy();
+
             #if MC > MC_20_1
             resultBucket.applyComponents(DataComponentMap.builder()
                     .set(DataComponents.DAMAGE, 8 - amount)
@@ -226,4 +232,8 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
 
 #endif
 
+    @Override
+    public Fluid ff$getFluid() {
+        return content;
+    }
 }

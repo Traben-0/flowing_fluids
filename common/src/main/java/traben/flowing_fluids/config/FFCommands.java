@@ -1,17 +1,24 @@
 package traben.flowing_fluids.config;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.LiteralMessage;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.blocks.BlockStateArgument;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.material.FlowingFluid;
 import traben.flowing_fluids.FlowingFluids;
 import traben.flowing_fluids.FlowingFluidsPlatform;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.stream.Collectors;
 
 public class FFCommands {
     private static int messageAndSaveConfig(CommandContext<CommandSourceStack> context, String text) {
@@ -27,13 +34,55 @@ public class FFCommands {
         return 1;
     }
 
-    public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, @SuppressWarnings("unused") CommandBuildContext var2, @SuppressWarnings("unused") Commands.CommandSelection var3) {
+    public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext commandBuildContext, @SuppressWarnings("unused") Commands.CommandSelection var3) {
+        var notFluidException = new SimpleCommandExceptionType(new LiteralMessage("The block you provided is not a fluid block, or is not a fluid block that can flow."));
+
         var commands = Commands.literal("flowing_fluids")
                 .requires(source -> source.hasPermission(4) || (source.getServer().isSingleplayer() && source.getPlayer() != null && source.getServer().isSingleplayerOwner(source.getPlayer().getGameProfile()))
                 ).then(Commands.literal("help")
                         .executes(c -> message(c, "Use any of the commands without adding any of it's arguments, E.G '/flowing_fluids settings', to get a description of what the command does and it's current value."))
                 ).then(Commands.literal("settings")
                         .executes(commandContext -> message(commandContext, "Settings for Flowing Fluids, use these to change how fluids behave."))
+                        .then(Commands.literal("ignored_fluids")
+                                .executes(cont -> message(cont, "Control which fluids do or do not get affected by this mod."))
+                                .then(Commands.literal("list")
+                                        .executes(cont -> message(cont, "The following fluids are currently ignored by Flowing Fluids: " + FlowingFluids.config.fluidBlacklist))
+                                )
+                                .then(Commands.literal("list_all_fluid_names")
+                                        .executes(cont -> message(cont, "This is a list of all registered fluids as Flowing Fluids knows them: " +
+                                                BuiltInRegistries.FLUID.stream().map(fluid -> BuiltInRegistries.FLUID.getKey(fluid).toString()).collect(Collectors.toCollection(HashSet::new))))
+                                )
+                                .then(Commands.literal("add")
+                                        .then(Commands.argument("fluid",  BlockStateArgument.block(commandBuildContext))
+                                                .executes(cont -> {
+                                                    var fluidState = BlockStateArgument.getBlock(cont, "fluid").getState().getFluidState();
+                                                    if(fluidState.isEmpty() || !(fluidState.getType() instanceof FlowingFluid flows)){
+                                                        throw notFluidException.create();
+                                                    }
+                                                    String source = BuiltInRegistries.FLUID.getKey(flows.getSource()).toString();
+                                                    FlowingFluids.config.fluidBlacklist.add(source);
+                                                    String flowing = BuiltInRegistries.FLUID.getKey(flows.getFlowing()).toString();
+                                                    FlowingFluids.config.fluidBlacklist.add(flowing);
+                                                    return messageAndSaveConfig(cont, "Added the fluids " + source + " and " + flowing + " to the ignored fluids list. The list is now: " + FlowingFluids.config.fluidBlacklist);
+                                                })
+                                        )
+                                )
+                                .then(Commands.literal("remove")
+                                        .then(Commands.argument("fluid",  BlockStateArgument.block(commandBuildContext))
+                                                .executes(cont -> {
+                                                    var fluidState = BlockStateArgument.getBlock(cont, "fluid").getState().getFluidState();
+                                                    if(fluidState.isEmpty() || !(fluidState.getType() instanceof FlowingFluid flows)){
+                                                        throw notFluidException.create();
+                                                    }
+                                                    String source = BuiltInRegistries.FLUID.getKey(flows.getSource()).toString();
+                                                    FlowingFluids.config.fluidBlacklist.remove(source);
+                                                    String flowing = BuiltInRegistries.FLUID.getKey(flows.getFlowing()).toString();
+                                                    FlowingFluids.config.fluidBlacklist.remove(flowing);
+                                                    return messageAndSaveConfig(cont, "Removed the fluids " + source + " and " + flowing + " from the ignored fluids list. The list is now: " + FlowingFluids.config.fluidBlacklist);
+                                                })
+                                        )
+                                )
+                        )
                         .then(Commands.literal("reset_all")
                                 .executes(cont -> {
                                     FlowingFluids.config = new FFConfig();
@@ -129,7 +178,7 @@ public class FFCommands {
                                                         })
                                                 )
                                         )
-                                ).then(Commands.literal("tick_delays")
+                                ).then(Commands.literal("tick_delays__aka__flow_speeds")
                                         .executes(cont -> message(cont, "Modifies the tick delay fluids will have between spreading updates\nThe vanilla value is always 5 for water but lava will vary between 10 and 30 depending on if it is in the Nether."))
                                         .then(Commands.literal("water")
                                                 .executes(cont -> message(cont, "Modifies the tick delay water will have between spreading updates.\nThe vanilla value is always 5 for water.\nWater tick delay modifier is currently set to " + FlowingFluids.config.waterTickDelay))
@@ -209,7 +258,7 @@ public class FFCommands {
                                                 })
                                         ).then(Commands.literal("in_from_sides_or_top_out_down")
                                                 .executes(cont -> {
-                                                    FlowingFluids.config.waterLogFlowMode = FFConfig.WaterLogFlowMode.IN_FROM_SIDES_OUT_DOWN;
+                                                    FlowingFluids.config.waterLogFlowMode = FFConfig.WaterLogFlowMode.OUT_DOWN_ELSE_IN;
                                                     return messageAndSaveConfig(cont, "Water will flow into water loggable blocks from the sides or top, and out of them from the bottom, if possible.");
                                                 })
                                         ).then(Commands.literal("ignore")
@@ -333,7 +382,7 @@ public class FFCommands {
                 );
 
         if (FlowingFluidsPlatform.isThisModLoaded("create")){
-            commands.then(Commands.literal("create_compat")
+            commands.then(Commands.literal("create_mod_compat")
                     .executes(commandContext -> message(commandContext, "Settings for Create Mod compatibility, use these to change how fluids interact with Create water wheels and pipes."))
                     .then(Commands.literal("info")
                             .executes(c -> message(c, "The Create mod uses water wheels as it's most primitive power source. Flowing Fluids has settings to change how these water wheels get powered due to the additional challenges of the flowing fluids mod interactions with fluids."))

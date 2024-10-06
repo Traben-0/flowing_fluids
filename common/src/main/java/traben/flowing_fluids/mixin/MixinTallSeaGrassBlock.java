@@ -24,6 +24,7 @@ public class MixinTallSeaGrassBlock {
         if (FlowingFluids.config.enableMod
                 && level instanceof LevelAccessor accessor
                 && cir.getReturnValue()
+                && FlowingFluids.config.isWaterAllowed()
                 && state.getValue(HALF) == DoubleBlockHalf.UPPER) {
 
             //break the plant if its water can flow out of it

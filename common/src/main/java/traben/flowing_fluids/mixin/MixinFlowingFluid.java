@@ -82,7 +82,9 @@ public abstract class MixinFlowingFluid extends Fluid {
 
     @Inject(method = "getOwnHeight", at = @At(value = "HEAD"), cancellable = true)
     private void ff$differentRenderHeight(final FluidState state, final CallbackInfoReturnable<Float> cir) {
-        if (FlowingFluids.config.enableMod && FlowingFluids.config.fullLiquidHeight != FFConfig.LiquidHeight.REGULAR) {
+        if (FlowingFluids.config.enableMod
+                && FlowingFluids.config.isFluidAllowed(state)
+                && FlowingFluids.config.fullLiquidHeight != FFConfig.LiquidHeight.REGULAR) {
             cir.setReturnValue(
                     switch (FlowingFluids.config.fullLiquidHeight) {
                         case BLOCK -> state.getAmount() / 8F;
@@ -98,7 +100,8 @@ public abstract class MixinFlowingFluid extends Fluid {
 
     @Inject(method = "tick", at = @At(value = "HEAD"), cancellable = true)
     private void ff$tickMixin(final Level level, final BlockPos blockPos, final FluidState fluidState, final CallbackInfo ci) {
-        if (FlowingFluids.config.enableMod) {
+        if (FlowingFluids.config.enableMod
+                && FlowingFluids.config.isFluidAllowed(fluidState)) {
             //cancel the original tick
             ci.cancel();
 
@@ -281,7 +284,7 @@ public abstract class MixinFlowingFluid extends Fluid {
 
         var blockTo = level.getBlockState(posTo).getBlock();
         boolean toIsWaterloggable = blockTo instanceof LiquidBlockContainer && blockTo instanceof BucketPickup;
-        if (toIsWaterloggable && FlowingFluids.config.waterLogFlowMode.blocksFlowIn()) {//cannot flow in
+        if (toIsWaterloggable && FlowingFluids.config.waterLogFlowMode.blocksFlowIn(flowingDown)) {//cannot flow in
             return true;
         }
 
@@ -363,7 +366,8 @@ public abstract class MixinFlowingFluid extends Fluid {
 
     @Inject(method = "getNewLiquid", at = @At(value = "HEAD"), cancellable = true)
     private void flowing_fluids$validateLiquidMixin(final Level level, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<FluidState> cir) {
-        if (FlowingFluids.config.enableMod) {
+        if (FlowingFluids.config.enableMod
+                && FlowingFluids.config.isFluidAllowed(this)) {
             var state = level.getFluidState(blockPos);
             cir.setReturnValue(getStateForFluidByAmount(state.getType(), state.getAmount()));
         }

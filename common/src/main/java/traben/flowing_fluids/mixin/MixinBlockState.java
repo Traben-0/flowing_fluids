@@ -7,6 +7,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateHolder;
 import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.PushReaction;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -26,7 +27,10 @@ public abstract class MixinBlockState extends StateHolder<Block, BlockState> {
     @Deprecated
     private boolean liquid;
 
-#if MC > MC_20_1
+    @Shadow
+    public abstract FluidState getFluidState();
+
+    #if MC > MC_20_1
     protected MixinBlockState(final Block owner, final Reference2ObjectArrayMap<Property<?>, Comparable<?>> values, final MapCodec<BlockState> propertiesCodec) {
         super(owner, values, propertiesCodec);
     }
@@ -40,14 +44,21 @@ public abstract class MixinBlockState extends StateHolder<Block, BlockState> {
 
     @Inject(method = "getPistonPushReaction", at = @At(value = "RETURN"), cancellable = true)
     private void flowing_fluids$overridePushReaction(final CallbackInfoReturnable<PushReaction> cir) {
-        if (FlowingFluids.config.enableMod && FlowingFluids.config.enablePistonPushing && liquid) {
+        if (liquid
+                && FlowingFluids.config.enableMod
+                && FlowingFluids.config.enablePistonPushing
+                && FlowingFluids.config.isFluidAllowed(getFluidState())
+        ) {
             cir.setReturnValue(PushReaction.PUSH_ONLY);
         }
     }
 
     @Inject(method = "isRandomlyTicking", at = @At(value = "RETURN"), cancellable = true)
     private void flowing_fluids$overrideRandomTickCheck(final CallbackInfoReturnable<Boolean> cir) {
-        if (FlowingFluids.config.enableMod && FlowingFluids.config.enablePistonPushing && liquid) {
+        if (liquid
+                && FlowingFluids.config.enableMod
+                && FlowingFluids.config.enablePistonPushing
+                && FlowingFluids.config.isFluidAllowed(getFluidState())) {
             cir.setReturnValue(true);
         }
     }

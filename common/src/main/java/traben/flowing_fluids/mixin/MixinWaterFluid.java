@@ -38,57 +38,60 @@ public abstract class MixinWaterFluid extends FlowingFluid {
     protected void randomTick(final Level level, final BlockPos blockPos, final FluidState fluidState, final RandomSource randomSource) {
 
         super.randomTick(level, blockPos, fluidState, randomSource);
-        if (level.isClientSide()) return;
+        if (level.isClientSide()
+                || fluidState.isEmpty()
+                || !FlowingFluids.config.enableMod
+                || !FlowingFluids.config.isFluidAllowed(fluidState)) return;
 
-        if (FlowingFluids.config.enableMod && !fluidState.isEmpty()) {
 
-            // if (print) FlowingFluids.LOG.info("[Flowing Fluids] - Random water ticked at {}", blockPos.toShortString());
+        // if (print) FlowingFluids.LOG.info("[Flowing Fluids] - Random water ticked at {}", blockPos.toShortString());
 
-            int amount = fluidState.getAmount();
-            if (amount < 8) {
-                if (ff$tryRainFill(level, blockPos, amount, level.random.nextFloat())) {
-                    if (FlowingFluids.config.printRandomTicks)
-                        FlowingFluids.LOG.info("[Flowing Fluids] --- Water was filled by rain. Chance: {}", FlowingFluids.config.rainRefillChance);
-                    return;
-                }
-                if (ff$tryBiomeFillOrDrain(level, blockPos, amount, level.random.nextFloat())) {
-                    if (FlowingFluids.config.printRandomTicks)
-                        FlowingFluids.LOG.info("[Flowing Fluids] --- Water was filled by biome. Chance: {}", FlowingFluids.config.oceanRiverSwampRefillChance);
-                    return;
-                }
-                if (ff$tryEvaporateNether(level, blockPos, amount, level.random.nextFloat())) {
-                    if (FlowingFluids.config.printRandomTicks)
-                        FlowingFluids.LOG.info("[Flowing Fluids] --- Water was evaporated via Nether. Chance: {}", FlowingFluids.config.evaporationChance);
-                    return;
-                }
-                if (ff$tryEvaporate(level, blockPos, amount, level.random.nextFloat())) {
-                    if (FlowingFluids.config.printRandomTicks)
-                        FlowingFluids.LOG.info("[Flowing Fluids] --- Water was evaporated - non Nether. Chance: {}", FlowingFluids.config.evaporationChance);
+        int amount = fluidState.getAmount();
+        if (amount < 8) {
+            if (ff$tryRainFill(level, blockPos, amount, level.random.nextFloat())) {
+                if (FlowingFluids.config.printRandomTicks)
+                    FlowingFluids.LOG.info("[Flowing Fluids] --- Water was filled by rain. Chance: {}", FlowingFluids.config.rainRefillChance);
+                return;
+            }
+            if (ff$tryBiomeFillOrDrain(level, blockPos, amount, level.random.nextFloat())) {
+                if (FlowingFluids.config.printRandomTicks)
+                    FlowingFluids.LOG.info("[Flowing Fluids] --- Water was filled by biome. Chance: {}", FlowingFluids.config.oceanRiverSwampRefillChance);
+                return;
+            }
+            if (ff$tryEvaporateNether(level, blockPos, amount, level.random.nextFloat())) {
+                if (FlowingFluids.config.printRandomTicks)
+                    FlowingFluids.LOG.info("[Flowing Fluids] --- Water was evaporated via Nether. Chance: {}", FlowingFluids.config.evaporationChance);
+                return;
+            }
+            if (ff$tryEvaporate(level, blockPos, amount, level.random.nextFloat())) {
+                if (FlowingFluids.config.printRandomTicks)
+                    FlowingFluids.LOG.info("[Flowing Fluids] --- Water was evaporated - non Nether. Chance: {}", FlowingFluids.config.evaporationChance);
 //                    return;
-                }
+            }
 
 //                if (print)
 //                    FlowingFluids.LOG.info("[Flowing Fluids] --- Random tick did nothing. Chances:\nRain: {}\nBiome: {}\nEvaporation: {}",
 //                            FlowingFluids.config.rainRefillChance, FlowingFluids.config.oceanRiverSwampRefillChance, FlowingFluids.config.evaporationChance);
-            }
+        }
 //            else {
 //                if (print) FlowingFluids.LOG.info("[Flowing Fluids] --- Water was full. No action taken.");
 //            }
-        }
+
     }
 
     @Override
     protected boolean isRandomlyTicking() {
-        if (FlowingFluids.config.enableMod) return true;
+        if (FlowingFluids.config.enableMod
+                && FlowingFluids.config.isFluidAllowed(this))
+            return true;
         return super.isRandomlyTicking();
     }
 
 
     @Unique
     private boolean ff$tryRainFill(final Level level, final BlockPos blockPos, int amount, float chance) {
-
         if (chance < FlowingFluids.config.rainRefillChance && level.isRaining() && level.canSeeSky(blockPos)) {//can see sky and raining
-            level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this,amount + 1));
+            level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this, amount + 1));
             return true;
         }
         return false;
@@ -121,9 +124,9 @@ public abstract class MixinWaterFluid extends FlowingFluid {
 
     @Unique
     private boolean ff$tryEvaporate(final Level level, final BlockPos blockPos, int amount, float chance) {
-        if (chance < FlowingFluids.config.evaporationChance){
+        if (chance < FlowingFluids.config.evaporationChance) {
             //evaporate over time if exposed to any sky light and is day
-            if(amount <= getDropOff(level)
+            if (amount <= getDropOff(level)
                     && level.isDay() && !level.isRaining()
                     && level.getFluidState(blockPos.below()).isEmpty()
                     && level.getBrightness(LightLayer.SKY, blockPos) > 0) {
@@ -138,13 +141,13 @@ public abstract class MixinWaterFluid extends FlowingFluid {
     @Unique
     private boolean ff$tryEvaporateNether(final Level level, final BlockPos blockPos, int amount, float chance) {
 
-        if (chance < FlowingFluids.config.evaporationNetherChance){
+        if (chance < FlowingFluids.config.evaporationNetherChance) {
             //evaporate always if nether
-            if (level.getBiome(blockPos).is(BiomeTags.IS_NETHER)){
-                if (amount == 1){
+            if (level.getBiome(blockPos).is(BiomeTags.IS_NETHER)) {
+                if (amount == 1) {
                     level.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());
-                }else {
-                    level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this,amount - 1));
+                } else {
+                    level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this, amount - 1));
                 }
                 return true;
             }
@@ -154,15 +157,15 @@ public abstract class MixinWaterFluid extends FlowingFluid {
 
     @Inject(method = "getSlopeFindDistance", at = @At(value = "RETURN"), cancellable = true)
     private void ff$modifySlopeDistance(final LevelReader level, final CallbackInfoReturnable<Integer> cir) {
-        if (FlowingFluids.config.enableMod ) {
-            cir.setReturnValue(Mth.clamp(FlowingFluids.config.waterFlowDistance,1,8));
+        if (FlowingFluids.config.enableMod && FlowingFluids.config.isFluidAllowed(this)) {
+            cir.setReturnValue(Mth.clamp(FlowingFluids.config.waterFlowDistance, 1, 8));
         }
     }
 
     @Inject(method = "getTickDelay", at = @At(value = "RETURN"), cancellable = true)
     private void ff$modifyTickDelay(final LevelReader level, final CallbackInfoReturnable<Integer> cir) {
-        if (FlowingFluids.config.enableMod) {
-            cir.setReturnValue(Mth.clamp(FlowingFluids.config.waterTickDelay,1,255));
+        if (FlowingFluids.config.enableMod && FlowingFluids.config.isFluidAllowed(this)) {
+            cir.setReturnValue(Mth.clamp(FlowingFluids.config.waterTickDelay, 1, 255));
         }
     }
 }

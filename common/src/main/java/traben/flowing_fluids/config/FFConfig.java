@@ -1,8 +1,15 @@
 package traben.flowing_fluids.config;
 
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.util.FastColor;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
 import traben.flowing_fluids.FlowingFluids;
+
+import java.util.Set;
 
 public class FFConfig {
     public boolean fastmode = false;
@@ -13,26 +20,44 @@ public class FFConfig {
     public boolean debugSpreadPrint = false;
     public boolean enableDisplacement = true;
     public boolean enablePistonPushing = true;
-    public float rainRefillChance = 0.25f;
-    public float oceanRiverSwampRefillChance = 0.25f;
-    public float evaporationChance = 0.05f;
+    public float rainRefillChance = 0.33f;
+    public float oceanRiverSwampRefillChance = 1f;
+    public float evaporationChance = 0.02f;
     public float evaporationNetherChance = 0.1f;
     public boolean printRandomTicks = false;
     public boolean hideFlowingTexture = true;
     public LiquidHeight fullLiquidHeight = LiquidHeight.REGULAR;
     public boolean farmlandDrainsWater = true;
     public boolean debugWaterLevelColours = false;
-    public WaterLogFlowMode waterLogFlowMode = WaterLogFlowMode.IN_FROM_SIDES_OUT_DOWN;
+    public WaterLogFlowMode waterLogFlowMode = WaterLogFlowMode.IN_FROM_TOP_ELSE_OUT;
     public int waterFlowDistance = 4;
     public int lavaFlowDistance = 2;
     public int lavaNetherFlowDistance = 4;
-    public int waterTickDelay = 5;
-    public int lavaTickDelay= 30;
-    public int lavaNetherTickDelay = 10;
+    public int waterTickDelay = 2;
+    public int lavaTickDelay= 15;
+    public int lavaNetherTickDelay = 5;
 
+
+
+    //create mod options
     public CreateWaterWheelMode create_waterWheelMode = CreateWaterWheelMode.REQUIRE_FLOW_OR_RIVER;
     public boolean create_infinitePipes = false;
 
+    //fluid blacklist
+    public Set<String> fluidBlacklist = new ObjectOpenHashSet<>();
+
+    public boolean isFluidAllowed(Fluid fluid){
+        //quick most likely exits to avoid searching the blacklist
+        if (fluidBlacklist.isEmpty() || fluid == Fluids.EMPTY) return true;
+        return !fluidBlacklist.contains(BuiltInRegistries.FLUID.getKey(fluid).toString());
+    }
+    public boolean isFluidAllowed(FluidState fluid){
+        return isFluidAllowed(fluid.getType());
+    }
+
+    public boolean isWaterAllowed(){
+        return isFluidAllowed(Fluids.WATER);
+    }
 
     public FFConfig() {
     }
@@ -80,6 +105,9 @@ public class FFConfig {
         lavaNetherTickDelay = buffer.readVarInt();
         create_waterWheelMode = buffer.readEnum(CreateWaterWheelMode.class);
         create_infinitePipes = buffer.readBoolean();
+
+        //
+        fluidBlacklist = buffer.readCollection(ObjectOpenHashSet::new, FriendlyByteBuf::readUtf);
         ///////////////////////////////////////////////
     }
 
@@ -115,6 +143,9 @@ public class FFConfig {
         buffer.writeVarInt(lavaNetherTickDelay);
         buffer.writeEnum(create_waterWheelMode);
         buffer.writeBoolean(create_infinitePipes);
+
+        //
+        buffer.writeCollection(fluidBlacklist, FriendlyByteBuf::writeUtf);
         ///////////////////////////////////////////////
     }
 
@@ -128,22 +159,25 @@ public class FFConfig {
     public enum WaterLogFlowMode {
         ONLY_IN,
         ONLY_OUT,
-        IN_FROM_SIDES_OUT_DOWN,
+        IN_FROM_TOP_ELSE_OUT,
+        OUT_DOWN_ELSE_IN,
         IGNORE;
 
         public boolean blocksFlowOutDown(){
             return this == ONLY_IN || this == IGNORE;
         }
 
-        public boolean blocksFlowIn(){
-            return this == ONLY_OUT || this == IGNORE;
+        public boolean blocksFlowIn(boolean down){
+            if (down) return this == ONLY_OUT || this == IGNORE;
+            return this == ONLY_OUT || this == IN_FROM_TOP_ELSE_OUT || this == IGNORE;
         }
 
         public boolean blocksFlowOutSides(){
-            return this == ONLY_IN || this == IN_FROM_SIDES_OUT_DOWN || this == IGNORE;
+            return this == ONLY_IN || this == OUT_DOWN_ELSE_IN || this == IGNORE;
         }
     }
 
+    @SuppressWarnings("unused")
     public enum CreateWaterWheelMode {
         ALWAYS,
         REQUIRE_FLOW,

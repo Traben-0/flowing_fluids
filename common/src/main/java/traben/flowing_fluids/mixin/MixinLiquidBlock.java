@@ -58,7 +58,9 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
     private void ff$modifyBucket(final LevelAccessor levelAccessor, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<ItemStack> cir) {
 #endif
 
-            if (cir.getReturnValue().isEmpty() && FlowingFluids.config.enableMod) {
+        if (cir.getReturnValue().isEmpty()
+                && FlowingFluids.config.enableMod
+                && FlowingFluids.config.isFluidAllowed(this.fluid)) {
 
             int level = FFFluidUtils.collectConnectedFluidAmountAndRemove(levelAccessor, blockPos, 1, 8, this.fluid);
             if (level > 0) {
