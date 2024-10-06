@@ -34,13 +34,14 @@ public class MixinDispenserBlock {
     public static Map<Item, DispenseItemBehavior> DISPENSER_REGISTRY;
 
     @Inject(method = "registerBehavior", at = @At(value = "TAIL"))
-    private static void ff$drainWater(final ItemLike item, final DispenseItemBehavior behavior, final CallbackInfo ci) {
+    private static void ff$wrapBehaviour(final ItemLike item, final DispenseItemBehavior behavior, final CallbackInfo ci) {
         //execute on tail to allow any other mixins to apply
         if (item.asItem() instanceof FFBucketItem bucket){
 
             BiFunction<BlockSource, ItemStack, ItemStack> delegate = behavior instanceof DefaultDispenseItemBehavior d ? d::execute : behavior::dispense;
 
             DefaultDispenseItemBehavior wrappedBehaviour;
+
             if (bucket == Items.BUCKET){
                 wrappedBehaviour = new DefaultDispenseItemBehavior() {
                     public @NotNull ItemStack execute(BlockSource blockSource, ItemStack item) {
