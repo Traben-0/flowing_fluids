@@ -4,20 +4,36 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.LiteralMessage;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+import com.mojang.datafixers.util.Pair;
+import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.blocks.BlockStateArgument;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.*;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FlowingFluid;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
 import traben.flowing_fluids.FlowingFluids;
 import traben.flowing_fluids.FlowingFluidsPlatform;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class FFCommands {
@@ -32,6 +48,40 @@ public class FFCommands {
         String inputCommand = context.getInput();
         context.getSource().sendSystemMessage(Component.literal("\n§7§o/" + inputCommand + "§r\n" + text + "\n§7_____________________________"));
         return 1;
+    }
+
+    private static LiteralArgumentBuilder<CommandSourceStack> booleanCommand(String name, String description, String messageOn, String messageOff, BooleanConsumer setter, BooleanSupplier getter) {
+        return Commands.literal(name)
+                .executes(cont -> message(cont, description + "\n" + name + " is currently set to: " + (CommonComponents.optionStatus(getter.getAsBoolean()).getString().toLowerCase())))
+                .then(Commands.literal(CommonComponents.OPTION_ON.getString().toLowerCase())
+                        .executes(cont -> {
+                            setter.accept(true);
+                            return messageAndSaveConfig(cont, messageOn);
+                        })
+                ).then(Commands.literal(CommonComponents.OPTION_OFF.getString().toLowerCase())
+                        .executes(cont -> {
+                            setter.accept(false);
+                            return messageAndSaveConfig(cont, messageOff);
+                        })
+                );
+    }
+
+    @SafeVarargs
+    private static <E extends Enum<E>> LiteralArgumentBuilder<CommandSourceStack> enumCommand(String name, String description, Consumer<E> setter, Supplier<E> getter, Pair<E, String>... options) {
+        var command = Commands.literal(name)
+                .executes(cont -> message(cont, description + "\n" + name + " is currently set to: " + getter.get().toString().toLowerCase()));
+
+        for (var option : options) {
+            String message = option.getSecond();
+            E enumVal = option.getFirst();
+            command.then(Commands.literal(enumVal.toString().toLowerCase())
+                    .executes(cont -> {
+                        setter.accept(enumVal);
+                        return messageAndSaveConfig(cont, message);
+                    })
+            );
+        }
+        return command;
     }
 
     public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext commandBuildContext, @SuppressWarnings("unused") Commands.CommandSelection var3) {
@@ -53,10 +103,10 @@ public class FFCommands {
                                                 BuiltInRegistries.FLUID.stream().map(fluid -> BuiltInRegistries.FLUID.getKey(fluid).toString()).collect(Collectors.toCollection(HashSet::new))))
                                 )
                                 .then(Commands.literal("add")
-                                        .then(Commands.argument("fluid",  BlockStateArgument.block(commandBuildContext))
+                                        .then(Commands.argument("fluid", BlockStateArgument.block(commandBuildContext))
                                                 .executes(cont -> {
                                                     var fluidState = BlockStateArgument.getBlock(cont, "fluid").getState().getFluidState();
-                                                    if(fluidState.isEmpty() || !(fluidState.getType() instanceof FlowingFluid flows)){
+                                                    if (fluidState.isEmpty() || !(fluidState.getType() instanceof FlowingFluid flows)) {
                                                         throw notFluidException.create();
                                                     }
                                                     String source = BuiltInRegistries.FLUID.getKey(flows.getSource()).toString();
@@ -68,10 +118,10 @@ public class FFCommands {
                                         )
                                 )
                                 .then(Commands.literal("remove")
-                                        .then(Commands.argument("fluid",  BlockStateArgument.block(commandBuildContext))
+                                        .then(Commands.argument("fluid", BlockStateArgument.block(commandBuildContext))
                                                 .executes(cont -> {
                                                     var fluidState = BlockStateArgument.getBlock(cont, "fluid").getState().getFluidState();
-                                                    if(fluidState.isEmpty() || !(fluidState.getType() instanceof FlowingFluid flows)){
+                                                    if (fluidState.isEmpty() || !(fluidState.getType() instanceof FlowingFluid flows)) {
                                                         throw notFluidException.create();
                                                     }
                                                     String source = BuiltInRegistries.FLUID.getKey(flows.getSource()).toString();
@@ -82,8 +132,7 @@ public class FFCommands {
                                                 })
                                         )
                                 )
-                        )
-                        .then(Commands.literal("reset_all")
+                        ).then(Commands.literal("reset_all")
                                 .executes(cont -> {
                                     FlowingFluids.config = new FFConfig();
                                     return messageAndSaveConfig(cont, "All Flowing Fluids settings have been reset to defaults.");
@@ -103,54 +152,34 @@ public class FFCommands {
                                                     return messageAndSaveConfig(cont, "Flowing fluid texture is now visible.\nLiquids will now show the flowing texture on their surface.");
                                                 })
                                         )
-                                ).then(Commands.literal("fluid_height")
-                                        .executes(cont -> message(cont, "Changes the heights fluids render at, currently set to " + FlowingFluids.config.fullLiquidHeight + "."))
-                                        .then(Commands.literal("regular")
+                                ).then(enumCommand("fluid_height",
+                                        "Changes the heights fluids render at, currently set to " + FlowingFluids.config.fullLiquidHeight + ".",
+                                        a -> FlowingFluids.config.fullLiquidHeight = a, () -> FlowingFluids.config.fullLiquidHeight,
+                                        Pair.of(FFConfig.LiquidHeight.REGULAR, "Fluids now render up to regular height."),
+                                        Pair.of(FFConfig.LiquidHeight.REGULAR_LOWER_BOUND, "Fluids now render up to their regular height but will be almost flat at their lowest amount."),
+                                        Pair.of(FFConfig.LiquidHeight.BLOCK_LOWER_BOUND, "Fluids now render up to block height but will be almost flat at their lowest amount."),
+                                        Pair.of(FFConfig.LiquidHeight.BLOCK, "Fluids now render up to block height."),
+                                        Pair.of(FFConfig.LiquidHeight.SLAB, "Fluids now render up to half a block height."),
+                                        Pair.of(FFConfig.LiquidHeight.CARPET, "All Fluids now render with 1 pixel height."))
+                                )
+                        ).then(booleanCommand("enable_mod",
+                                "Enables or disables the mod, if disabled the mod will not affect any fluids.",
+                                "FlowingFluids is now enabled, liquids will now have physics using : " + (FlowingFluids.config.fastmode ? "Fast mode." : "Normal mode."),
+                                "FlowingFluids is now disabled, vanilla liquid behaviour will be restored, Buckets will retain their partial fill amount until used.",
+                                a -> FlowingFluids.config.enableMod = a,
+                                () -> FlowingFluids.config.enableMod)
+
+                        ).then(Commands.literal("behaviour")
+                                .executes(commandContext -> message(commandContext, "Behaviour settings for Flowing Fluids, use these to change how fluids behave."))
+                                .then(Commands.literal("random_tick_level_check_distance")
+                                        .executes(cont -> message(cont, "Sets the distance fluids will check for other fluids to level with during random ticks, 0 means disabled, currently set to " + FlowingFluids.config.randomTickLevelingDistance))
+                                        .then(Commands.argument("distance", IntegerArgumentType.integer(0, 64))
                                                 .executes(cont -> {
-                                                    FlowingFluids.config.fullLiquidHeight = FFConfig.LiquidHeight.REGULAR;
-                                                    return messageAndSaveConfig(cont, "Fluids now render up to regular height.");
-                                                })
-                                        ).then(Commands.literal("regular_with_lower_minimum")
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.fullLiquidHeight = FFConfig.LiquidHeight.REGULAR_LOWER_BOUND;
-                                                    return messageAndSaveConfig(cont, "Fluids now render up to their regular height but will be almost flat at their lowest amount.");
-                                                })
-                                        ).then(Commands.literal("block_with_lower_minimum")
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.fullLiquidHeight = FFConfig.LiquidHeight.BLOCK_LOWER_BOUND;
-                                                    return messageAndSaveConfig(cont, "Fluids now render up to block height but will be almost flat at their lowest amount.");
-                                                })
-                                        ).then(Commands.literal("block")
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.fullLiquidHeight = FFConfig.LiquidHeight.BLOCK;
-                                                    return messageAndSaveConfig(cont, "Fluids now render up to block height.");
-                                                })
-                                        ).then(Commands.literal("slab")
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.fullLiquidHeight = FFConfig.LiquidHeight.SLAB;
-                                                    return messageAndSaveConfig(cont, "Fluids now render up to half a block height.");
-                                                })
-                                        ).then(Commands.literal("carpet")
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.fullLiquidHeight = FFConfig.LiquidHeight.CARPET;
-                                                    return messageAndSaveConfig(cont, "All Fluids now render with 1 pixel height.");
+                                                    FlowingFluids.config.randomTickLevelingDistance = cont.getArgument("distance", Integer.class);
+                                                    return messageAndSaveConfig(cont, "Random tick level check distance set to " + FlowingFluids.config.randomTickLevelingDistance);
                                                 })
                                         )
                                 )
-                        ).then(Commands.literal("enable_mod")
-                                .then(Commands.literal("on")
-                                        .executes(cont -> {
-                                            FlowingFluids.config.enableMod = true;
-                                            return messageAndSaveConfig(cont, "FlowingFluids is now enabled, liquids will now have physics using : " + (FlowingFluids.config.fastmode ? "Fast mode." : "Quality mode."));
-                                        })
-                                ).then(Commands.literal("off")
-                                        .executes(cont -> {
-                                            FlowingFluids.config.enableMod = false;
-                                            return messageAndSaveConfig(cont, "FlowingFluids is now disabled, vanilla liquid behaviour will be restored, Buckets will retain their partial fill amount until used.");
-                                        })
-                                )
-                        ).then(Commands.literal("behaviour")
-                                .executes(commandContext -> message(commandContext, "Behaviour settings for Flowing Fluids, use these to change how fluids behave."))
                                 .then(Commands.literal("flow_distances")
                                         .executes(cont -> message(cont, "Modifies the distance fluids will search for slopes to flow down.\nThe vanilla value is always 4 for water but lava will vary between 2 and 4 depending on if it is in the Nether.\n§4WARNING: this setting is the biggest source of lag for all fluid flowing, this value is limited to 8 (as any higher will freeze your world) and I strongly suggest you never raise it above the default 4, if you set it to 1, just enable the fast mode setting instead as it will be the same effect just more efficient."))
                                         .then(Commands.literal("water")
@@ -205,45 +234,21 @@ public class FFCommands {
                                                         })
                                                 )
                                         )
-                                ).then(Commands.literal("fast_mode")
-                                        .executes(cont -> message(cont, "Fast mode is currently " + (FlowingFluids.config.fastmode ? "enabled." : "disabled.") + "\n Fast mode changes how liquids behave, and can be toggled on or off.\nFast mode will reduce the amount of checks liquids do to spread, changing from looking for edges 4 blocks away, to only 1, and may cause liquids to pool more frequently in places.\nIn a worst case scenario Fast mode improves water spread lag by 40 times, in actual practise this tends to vary around the 2-20 times faster."))
-                                        .then(Commands.literal("on")
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.fastmode = true;
-                                                    return messageAndSaveConfig(cont, "Fast mode is now enabled.\nLiquids will no longer check if they can move further than 1 block away from itself and may pool more frequently in places.\nThis reduces sideways spread positional checking from 4 - 160 times per update, down to only 4 times.");
-                                                })
-                                        ).then(Commands.literal("off")
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.fastmode = false;
-                                                    return messageAndSaveConfig(cont, "Fast mode is now disabled.\nLiquids will now check if they can move up to 4 blocks away from itself and will pool less frequently.\nThis increases sideways spread positional checking from 4 times per update, to up to 160 times.");
-                                                })
-                                        )
-                                ).then(Commands.literal("pistons_push_fluids")
-                                        .executes(cont -> message(cont, "Piston pushing is currently " + (FlowingFluids.config.enablePistonPushing ? "enabled." : "disabled.")))
-                                        .then(Commands.literal("on")
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.enablePistonPushing = true;
-                                                    return messageAndSaveConfig(cont, "Piston pushing is now enabled.\nLiquids will now be pushed by pistons.");
-                                                })
-                                        ).then(Commands.literal("off")
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.enablePistonPushing = false;
-                                                    return messageAndSaveConfig(cont, "Piston pushing is now disabled.\nLiquids will no longer be pushed by pistons.");
-                                                })
-                                        )
-                                ).then(Commands.literal("placed_blocks_displace_fluids")
-                                        .executes(cont -> message(cont, "Placed blocks displacing fluids is currently " + (FlowingFluids.config.enableDisplacement ? "enabled." : "disabled.")))
-                                        .then(Commands.literal("on")
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.enableDisplacement = true;
-                                                    return messageAndSaveConfig(cont, "Placed blocks displacing fluids is now enabled.\nLiquids will now be displaced by blocks placed inside them.");
-                                                })
-                                        ).then(Commands.literal("off")
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.enableDisplacement = false;
-                                                    return messageAndSaveConfig(cont, "Placed blocks displacing fluids is now disabled.\nLiquids will no longer be displaced by blocks placed inside them.");
-                                                })
-                                        )
+                                ).then(booleanCommand("fast_mode",
+                                        "Enables or disables fast mode, fast mode changes how liquids behave, and can be toggled on or off.\nFast mode will reduce the amount of checks liquids do to spread, changing from looking for edges 4 blocks away, to only 1, and may cause liquids to pool more frequently in places.\nIn a worst case scenario Fast mode improves water spread lag by 40 times, in actual practise this tends to vary around the 2-20 times faster.",
+                                        "Fast mode is now enabled.\nLiquids will no longer check if they can move further than 1 block away from itself and may pool more frequently in places.\nThis reduces sideways spread positional checking from 4 - 160 times per update, down to only 4 times.",
+                                        "Fast mode is now disabled.\nLiquids will now check if they can move up to 4 blocks away from itself and will pool less frequently.\nThis increases sideways spread positional checking from 4 times per update, to up to 160 times.",
+                                        a -> FlowingFluids.config.fastmode = a, () -> FlowingFluids.config.fastmode)
+                                ).then(booleanCommand("pistons_push_fluids",
+                                        "Enables or disables piston pushing, if disabled pistons will no longer push fluids.",
+                                        "Piston pushing is now enabled.\nLiquids will now be pushed by pistons.",
+                                        "Piston pushing is now disabled.\nLiquids will no longer be pushed by pistons.",
+                                        a -> FlowingFluids.config.enablePistonPushing = a, () -> FlowingFluids.config.enablePistonPushing)
+                                ).then(booleanCommand("placed_blocks_displace_fluids",
+                                        "Enables or disables placed blocks displacing fluids, if disabled placed blocks will no longer displace fluids.",
+                                        "Placed blocks displacing fluids is now enabled.\nLiquids will now be displaced by blocks placed inside them.",
+                                        "Placed blocks displacing fluids is now disabled.\nLiquids will no longer be displaced by blocks placed inside them.",
+                                        a -> FlowingFluids.config.enableDisplacement = a, () -> FlowingFluids.config.enableDisplacement)
                                 ).then(Commands.literal("waterlogged_blocks_flow_mode")
                                         .executes(cont -> message(cont, "Controls how water flows into or out fo water loggable blocks, due to limitations you cannot have two side by side waterloggable blocks flow into each other as they would flicker endlessly, Sea grass and kelp are excluded from this setting and will always break in waters absence, current setting: " + FlowingFluids.config.waterLogFlowMode))
                                         .then(Commands.literal("only_in")
@@ -267,19 +272,11 @@ public class FFCommands {
                                                     return messageAndSaveConfig(cont, "Water flowing will ignore water loggable blocks entirely.");
                                                 })
                                         )
-                                ).then(Commands.literal("flow_over_edges")
-                                        .executes(cont -> message(cont, "Controls if liquids flow over nearby edges, or will stay at the ledge. Currently they: " + (FlowingFluids.config.flowToEdges ? "flow." : "stay.")))
-                                        .then(Commands.literal("flow")
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.flowToEdges = true;
-                                                    return messageAndSaveConfig(cont, "Liquids at their minimum height will now flow to and over nearby edges, up to 4 blocks away if fast mode is disabled, or 1 block away if fast mode is enabled.");
-                                                })
-                                        ).then(Commands.literal("stay")
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.flowToEdges = false;
-                                                    return messageAndSaveConfig(cont, "Liquids at their minimum height will no longer flow to and over nearby edges.");
-                                                })
-                                        )
+                                ).then(booleanCommand("flow_over_edges",
+                                        "Controls if liquids flow over nearby edges, or will stay at the ledge.",
+                                        "Liquids at their minimum height will now flow to and over nearby edges, up to 4 blocks away if fast mode is disabled, or 1 block away if fast mode is enabled.",
+                                        "Liquids at their minimum height will no longer flow to and over nearby edges.",
+                                        a -> FlowingFluids.config.flowToEdges = a, () -> FlowingFluids.config.flowToEdges)
                                 )
                         ).then(Commands.literal("drainers_and_fillers")
                                 .executes(commandContext -> message(commandContext, "Set the chances of certain random tick interactions with fluids."))
@@ -315,19 +312,11 @@ public class FFCommands {
                                                     return messageAndSaveConfig(cont, "Water biome refill chance set to " + FlowingFluids.config.oceanRiverSwampRefillChance);
                                                 })
                                         )
-                                ).then(Commands.literal("farmland_drains_water")
-                                        .executes(cont -> message(cont, "Farmland blocks will drain 1 level of water whenever it performs its hydration check during random ticks. Currently: " + (FlowingFluids.config.farmlandDrainsWater ? "enabled." : "disabled.")))
-                                        .then(Commands.literal("on")
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.farmlandDrainsWater = true;
-                                                    return messageAndSaveConfig(cont, "Farmland blocks will now drain 1 level of water whenever it performs its hydration check during random ticks.");
-                                                })
-                                        ).then(Commands.literal("off")
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.farmlandDrainsWater = false;
-                                                    return messageAndSaveConfig(cont, "Farmland blocks will no longer drain 1 level of water whenever it performs its hydration check during random ticks.");
-                                                })
-                                        )
+                                ).then(booleanCommand("farm_land_drains_water",
+                                        "Enables or disables farmland blocks draining water during hydration checks.",
+                                        "Farmland blocks will now drain 1 level of water whenever it performs its hydration check during random ticks.",
+                                        "Farmland blocks will no longer drain 1 level of water whenever it performs its hydration check during random ticks.",
+                                        a -> FlowingFluids.config.farmlandDrainsWater = a, () -> FlowingFluids.config.farmlandDrainsWater)
                                 )
                         )
                 ).then(Commands.literal("debug").executes(cont -> message(cont, "Debug commands you probably don't need these."))
@@ -347,41 +336,42 @@ public class FFCommands {
                                 ).then(Commands.literal("average_tick_length")
                                         .executes(cont -> message(cont, "average water spread tick length is : " + FlowingFluids.getAverageDebugMilliseconds() + "ms"))
                                 )
-                        ).then(Commands.literal("random_ticks_printing")
-                                .executes(cont -> message(cont, "Random ticks printing is currently " + (FlowingFluids.config.printRandomTicks ? "enabled." : "disabled.")))
-                                .then(Commands.literal("on")
-                                        .executes(cont -> {
-                                            FlowingFluids.config.printRandomTicks = true;
-                                            return messageAndSaveConfig(cont, "Random ticks printing is now enabled.");
-                                        })
-                                ).then(Commands.literal("off")
-                                        .executes(cont -> {
-                                            FlowingFluids.config.printRandomTicks = false;
-                                            return messageAndSaveConfig(cont, "Random ticks printing is now disabled.");
-                                        })
-                                )
-                        ).then(Commands.literal("water_level_tinting")
-                                .executes(cont -> message(cont, "water_level_tinting is currently " + (FlowingFluids.config.debugWaterLevelColours ? "enabled." : "disabled.")))
-                                .then(Commands.literal("on")
-                                        .executes(cont -> {
-                                            FlowingFluids.config.debugWaterLevelColours = true;
-                                            return messageAndSaveConfig(cont, "water_level_tinting is now enabled.");
-                                        })
-                                ).then(Commands.literal("off")
-                                        .executes(cont -> {
-                                            FlowingFluids.config.debugWaterLevelColours = false;
-                                            return messageAndSaveConfig(cont, "water_level_tinting is now disabled.");
-                                        })
-                                )
+                        ).then(booleanCommand("random_ticks_printing",
+                                "Enables or disables printing of random tick events, this will spam your log with every random tick event that happens.",
+                                "Random ticks printing is now enabled.",
+                                "Random ticks printing is now disabled.",
+                                a -> FlowingFluids.config.printRandomTicks = a, () -> FlowingFluids.config.printRandomTicks)
+
+                        ).then(booleanCommand("water_level_tinting",
+                                "Enables or disables water level tinting, this will make water change colour based on its level.",
+                                "water_level_tinting is now enabled.",
+                                "water_level_tinting is now disabled.",
+                                a -> FlowingFluids.config.debugWaterLevelColours = a, () -> FlowingFluids.config.debugWaterLevelColours)
                         ).then(Commands.literal("kill_all_current_fluid_updates")
                                 .executes(cont -> {
                                     FlowingFluids.debug_killFluidUpdatesUntilTime = System.currentTimeMillis() + 3000;
                                     return message(cont, "All fluid flowing ticks will be ignored and allowed to freeze in place over the next 3 seconds.\nAll fluids that are loaded and ticking during this time will completely stop updating and freeze in place until the next time they get updated.");
                                 })
+                        ).then(Commands.literal("super_sponge_at_me")
+                                .executes(cont -> {
+                                    int drained = superSponge(cont.getSource().getLevel(), BlockPos.containing(cont.getSource().getPosition()), Fluids.WATER);
+                                    return message(cont, drained + " blocks of water have been drained.");
+                                })
+                                .then(Commands.argument("fluid", BlockStateArgument.block(commandBuildContext))
+                                    .executes(cont -> {
+                                                var fluidState = BlockStateArgument.getBlock(cont, "fluid").getState().getFluidState();
+                                                if (fluidState.isEmpty() || !(fluidState.getType() instanceof FlowingFluid flows)) {
+                                                    throw notFluidException.create();
+                                                }
+                                        int drained = superSponge(cont.getSource().getLevel(), BlockPos.containing(cont.getSource().getPosition()), flows);
+                                                return message(cont, drained + " blocks of " + flows.getSource().defaultFluidState().createLegacyBlock().getBlock().getName().getString() +" have been drained.");
+                                            }
+                                    )
+                                )
                         )
                 );
 
-        if (FlowingFluidsPlatform.isThisModLoaded("create")){
+        if (FlowingFluidsPlatform.isThisModLoaded("create")) {
             commands.then(Commands.literal("create_mod_compat")
                     .executes(commandContext -> message(commandContext, "Settings for Create Mod compatibility, use these to change how fluids interact with Create water wheels and pipes."))
                     .then(Commands.literal("info")
@@ -436,19 +426,11 @@ public class FFCommands {
                                     })
                             )
                     ).then(Commands.literal("pipes")
-                            .then(Commands.literal("infinite_pipe_fluid_source")
-                                    .executes(cont -> message(cont, "Pipes will now " + (FlowingFluids.config.create_infinitePipes ? "not consume the source fluid block." : "consume the source fluid block.")))
-                                    .then(Commands.literal("on")
-                                            .executes(cont -> {
-                                                FlowingFluids.config.create_infinitePipes = true;
-                                                return messageAndSaveConfig(cont, "Pipes will no longer consume the source fluid block.");
-                                            })
-                                    ).then(Commands.literal("off")
-                                            .executes(cont -> {
-                                                FlowingFluids.config.create_infinitePipes = false;
-                                                return messageAndSaveConfig(cont, "Pipes will now consume the source fluid block.");
-                                            })
-                                    )
+                            .then(booleanCommand("infinite_pipe_fluid_source",
+                                    "Enables or disables infinite pipe fluid source, if disabled pipes will consume the source fluid block.",
+                                    "Pipes will now not consume the source fluid block.",
+                                    "Pipes will now consume the source fluid block.",
+                                    a -> FlowingFluids.config.create_infinitePipes = a, () -> FlowingFluids.config.create_infinitePipes)
                             ).then(Commands.literal("info")
                                     .executes(c -> message(c, "Create mod pipes will draw fluids only when the entire input block is full (8 levels of fluid). This is required for fluid levels to remain consistent between bucket and other usages, and for Flowing Fluids to be as unobtrusive as possible to the Create mod's inner workings. That being said if you want an easy time of using pipes without worrying about water usage, then enable the infinite pipes setting. You can also disable Create pipes from outputting water blocks in it's own config settings"))
                             )
@@ -458,5 +440,44 @@ public class FFCommands {
         }
 
         dispatcher.register(commands);
+    }
+
+    private static int superSponge(Level level, BlockPos pos, Fluid fluid) {
+        return BlockPos.breadthFirstTraversal(pos, 32, 4000, (blockPos, consumer) -> {
+            for (Direction direction : Direction.values()) {
+                consumer.accept(blockPos.relative(direction));
+            }
+        }, (blockPos2) -> {
+            if (blockPos2.equals(pos)) {
+                return true;
+            } else {
+                BlockState blockState = level.getBlockState(blockPos2);
+                FluidState fluidState = level.getFluidState(blockPos2);
+                if (!fluidState.getType().isSame(fluid)) {
+                    return false;
+                } else {
+                    Block block = blockState.getBlock();
+                    if (block instanceof final BucketPickup bucketPickup) {
+                        if (!bucketPickup.pickupBlock(null, level, blockPos2, blockState).isEmpty()) {
+                            return true;
+                        }
+                    }
+
+                    if (blockState.getBlock() instanceof LiquidBlock) {
+                        level.setBlock(blockPos2, Blocks.AIR.defaultBlockState(), 3);
+                    } else {
+                        if (!blockState.is(Blocks.KELP) && !blockState.is(Blocks.KELP_PLANT) && !blockState.is(Blocks.SEAGRASS) && !blockState.is(Blocks.TALL_SEAGRASS)) {
+                            return false;
+                        }
+
+                        BlockEntity blockEntity = blockState.hasBlockEntity() ? level.getBlockEntity(blockPos2) : null;
+                        Block.dropResources(blockState, level, blockPos2, blockEntity);
+                        level.setBlock(blockPos2, Blocks.AIR.defaultBlockState(), 3);
+                    }
+
+                    return true;
+                }
+            }
+        });
     }
 }

@@ -173,6 +173,8 @@ public class FFFluidUtils {
     }
 
 
+
+
     private static boolean canFitIntoFluid(Fluid thisFluid, FluidState fluidStateTo, Direction direction, int amount, BlockState blockStateTo) {
         if (fluidStateTo.isEmpty()){
             return true;

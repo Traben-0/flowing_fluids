@@ -36,8 +36,8 @@ public abstract class MixinWaterFluid extends FlowingFluid {
 
     @Override
     protected void randomTick(final Level level, final BlockPos blockPos, final FluidState fluidState, final RandomSource randomSource) {
-
         super.randomTick(level, blockPos, fluidState, randomSource);
+
         if (level.isClientSide()
                 || fluidState.isEmpty()
                 || !FlowingFluids.config.enableMod
@@ -79,13 +79,7 @@ public abstract class MixinWaterFluid extends FlowingFluid {
 
     }
 
-    @Override
-    protected boolean isRandomlyTicking() {
-        if (FlowingFluids.config.enableMod
-                && FlowingFluids.config.isFluidAllowed(this))
-            return true;
-        return super.isRandomlyTicking();
-    }
+
 
 
     @Unique

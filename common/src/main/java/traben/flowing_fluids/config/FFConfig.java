@@ -22,7 +22,7 @@ public class FFConfig {
     public boolean enablePistonPushing = true;
     public float rainRefillChance = 0.33f;
     public float oceanRiverSwampRefillChance = 1f;
-    public float evaporationChance = 0.02f;
+    public float evaporationChance = 0.01f;
     public float evaporationNetherChance = 0.1f;
     public boolean printRandomTicks = false;
     public boolean hideFlowingTexture = true;
@@ -36,7 +36,7 @@ public class FFConfig {
     public int waterTickDelay = 2;
     public int lavaTickDelay= 15;
     public int lavaNetherTickDelay = 5;
-
+    public int randomTickLevelingDistance = 32;
 
 
     //create mod options
@@ -103,10 +103,14 @@ public class FFConfig {
         waterTickDelay = buffer.readVarInt();
         lavaTickDelay = buffer.readVarInt();
         lavaNetherTickDelay = buffer.readVarInt();
+        randomTickLevelingDistance = buffer.readVarInt();
+//        fluidLevelingStrength = buffer.readEnum(LevelingStrength.class);
+
+        //create mod options
         create_waterWheelMode = buffer.readEnum(CreateWaterWheelMode.class);
         create_infinitePipes = buffer.readBoolean();
 
-        //
+        //blacklist
         fluidBlacklist = buffer.readCollection(ObjectOpenHashSet::new, FriendlyByteBuf::readUtf);
         ///////////////////////////////////////////////
     }
@@ -141,10 +145,14 @@ public class FFConfig {
         buffer.writeVarInt(waterTickDelay);
         buffer.writeVarInt(lavaTickDelay);
         buffer.writeVarInt(lavaNetherTickDelay);
+        buffer.writeVarInt(randomTickLevelingDistance);
+//        buffer.writeEnum(fluidLevelingStrength);
+
+        //create mod options
         buffer.writeEnum(create_waterWheelMode);
         buffer.writeBoolean(create_infinitePipes);
 
-        //
+        //blacklist
         buffer.writeCollection(fluidBlacklist, FriendlyByteBuf::writeUtf);
         ///////////////////////////////////////////////
     }
@@ -206,6 +214,25 @@ public class FFConfig {
         }
 
     }
+
+//    public enum LevelingStrength {
+//        OFF(0),
+//        VERY_WEAK(0.8f),
+//        WEAK(0.7f),
+//        MILD(0.6f),
+//        STRONG(0.5f),
+//        EXTREME(0.4f);
+//
+//        private final float stopChance;
+//
+//        LevelingStrength(float stopChance) {
+//            this.stopChance = stopChance;
+//        }
+//
+//        public float getStopChance() {
+//            return stopChance;
+//        }
+//    }
 
     public enum LiquidHeight {
         REGULAR,

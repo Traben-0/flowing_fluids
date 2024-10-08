@@ -3,14 +3,13 @@ package traben.flowing_fluids.mixin;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.Fluid;
-import net.minecraft.world.level.material.FluidState;
-import net.minecraft.world.level.material.Fluids;
-import net.minecraft.world.level.material.LavaFluid;
+import net.minecraft.world.level.material.*;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -20,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import traben.flowing_fluids.FlowingFluids;
 
 @Mixin(LavaFluid.class)
-public abstract class MixinLavaFluid extends Fluid{
+public abstract class MixinLavaFluid extends FlowingFluid {
 
     @Shadow public abstract boolean isSame(final Fluid fluid);
 
@@ -62,6 +61,14 @@ public abstract class MixinLavaFluid extends Fluid{
                     ? FlowingFluids.config.lavaNetherTickDelay
                     : FlowingFluids.config.lavaTickDelay,
                     1,255));
+        }
+    }
+
+    @Inject(method = "randomTick", at = @At(value = "HEAD"))
+    private void ff$callSuper(final Level level, final BlockPos pos, final FluidState state, final RandomSource random, final CallbackInfo ci) {
+        if (FlowingFluids.config.enableMod
+                && FlowingFluids.config.isFluidAllowed(this)) {
+            super.randomTick(level, pos, state, random);
         }
     }
 }
