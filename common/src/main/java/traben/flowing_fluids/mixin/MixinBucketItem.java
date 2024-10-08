@@ -4,8 +4,10 @@ package traben.flowing_fluids.mixin;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+#if MC > MC_20_1
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
+#endif
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -33,6 +35,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import traben.flowing_fluids.FFBucketItem;
 import traben.flowing_fluids.FFFluidUtils;
@@ -217,7 +220,7 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
                     .set(DataComponents.DAMAGE, 8 - amount)
                     .set(DataComponents.MAX_DAMAGE, 8).build());
             #else
-            resultBucket.setDamageValue(8 - remainder);
+            resultBucket.setDamageValue(8 - amount);
             #endif
             return resultBucket;
         }

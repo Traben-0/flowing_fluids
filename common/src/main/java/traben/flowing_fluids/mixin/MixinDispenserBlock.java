@@ -1,7 +1,11 @@
 package traben.flowing_fluids.mixin;
 
 import net.minecraft.core.BlockPos;
+#if MC > MC_20_1
 import net.minecraft.core.dispenser.BlockSource;
+#else
+import net.minecraft.core.BlockSource;
+#endif
 import net.minecraft.core.dispenser.DefaultDispenseItemBehavior;
 import net.minecraft.core.dispenser.DispenseItemBehavior;
 import net.minecraft.world.item.DispensibleContainerItem;
@@ -46,8 +50,8 @@ public class MixinDispenserBlock {
                 wrappedBehaviour = new DefaultDispenseItemBehavior() {
                     public @NotNull ItemStack execute(BlockSource blockSource, ItemStack item) {
                         if (FlowingFluids.config.enableMod && item.getItem() instanceof FFBucketItem bucket) {
-                            BlockPos blockPos = blockSource.pos().relative(blockSource.state().getValue(DispenserBlock.FACING));
-                            Level level = blockSource.level();
+                            BlockPos blockPos = blockSource. #if MC == MC_20_1 getPos()  #else pos() #endif .relative(blockSource. #if MC == MC_20_1 getBlockState()  #else state() #endif .getValue(DispenserBlock.FACING));
+                            Level level = blockSource. #if MC == MC_20_1 getLevel()  #else level() #endif;
                             var fState = level.getFluidState(blockPos);
                             if (fState.getType() instanceof FlowingFluid flowingFluid
                                     && FlowingFluids.config.isFluidAllowed(fState)
@@ -55,7 +59,11 @@ public class MixinDispenserBlock {
                                 //we intervene for partial blocks
                                 int found = FFFluidUtils.collectConnectedFluidAmountAndRemove(level, blockPos, 1, 8, flowingFluid);
                                 if (found > 0){
+                                    #if MC == MC_20_1
+                                    return bucket.ff$bucketOfAmount(flowingFluid.getBucket().getDefaultInstance(), found);
+                                    #else
                                     return this.consumeWithRemainder(blockSource, item, bucket.ff$bucketOfAmount(flowingFluid.getBucket().getDefaultInstance(),found));
+                                    #endif
                                 }
                                 //this should never be reached as there will always be a partial fluid block to draw from
                                 return item;
@@ -71,8 +79,8 @@ public class MixinDispenserBlock {
                         if (FlowingFluids.config.enableMod
                                 && item.getItem() instanceof FFBucketItem bucket
                                 && FlowingFluids.config.isFluidAllowed(bucket.ff$getFluid())) {
-                            BlockPos blockPos = blockSource.pos().relative(blockSource.state().getValue(DispenserBlock.FACING));
-                            Level level = blockSource.level();
+                            BlockPos blockPos = blockSource.#if MC == MC_20_1 getPos()  #else pos() #endif .relative(blockSource. #if MC == MC_20_1 getBlockState()  #else state() #endif .getValue(DispenserBlock.FACING));
+                            Level level = blockSource.#if MC == MC_20_1 getLevel()  #else level() #endif;
                             var fState = level.getFluidState(blockPos);
                             if (fState.getAmount() > 0 || item.getDamageValue() > 0){
                                 //we intervene if the block can only accept partial water or if the bucket is not full
@@ -80,7 +88,11 @@ public class MixinDispenserBlock {
                                 int remainder = bucket.ff$emptyContents_AndGetRemainder(null, level, blockPos, null, amountInBucket);
                                 if (remainder != amountInBucket){
                                     ((DispensibleContainerItem)bucket).checkExtraContent(null, level, item, blockPos);
+                                    #if MC == MC_20_1
+                                    return bucket.ff$bucketOfAmount(item, remainder);
+                                    #else
                                     return this.consumeWithRemainder(blockSource, item, bucket.ff$bucketOfAmount(item,remainder));
+                                    #endif
                                 }
                                 return item;//no change and don't toss bucket as we want to prevent clogs from breaking these systems
                             }

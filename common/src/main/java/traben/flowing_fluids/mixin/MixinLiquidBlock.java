@@ -2,9 +2,11 @@ package traben.flowing_fluids.mixin;
 
 
 import net.minecraft.core.BlockPos;
+#if MC > MC_20_1
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.entity.player.Player;
+#endif
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;

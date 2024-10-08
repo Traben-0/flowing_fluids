@@ -34,7 +34,7 @@ public abstract class MixinPipe{
     private BlockState ff$modifyWaterRemoval(final BlockState blockState) {
         if (FlowingFluids.config.enableMod
                 && !FlowingFluids.config.create_infinitePipes
-                && !FlowingFluids.config.isFluidBlackListed(blockState.getFluidState())
+                && FlowingFluids.config.isFluidAllowed(blockState.getFluidState())
                 && AllConfigs.server().fluids.pipesPlaceFluidSourceBlocks.get()){
             return Blocks.AIR.defaultBlockState();
         }

@@ -458,7 +458,7 @@ public class FFCommands {
                 } else {
                     Block block = blockState.getBlock();
                     if (block instanceof final BucketPickup bucketPickup) {
-                        if (!bucketPickup.pickupBlock(null, level, blockPos2, blockState).isEmpty()) {
+                        if (!bucketPickup.pickupBlock(#if MC == MC_21 null, #endif level, blockPos2, blockState).isEmpty()) {
                             return true;
                         }
                     }

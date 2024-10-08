@@ -3,10 +3,12 @@ package traben.flowing_fluids.config;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FastColor;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
+import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
 
 import java.util.Set;
@@ -64,14 +66,14 @@ public class FFConfig {
 
     //color range from red to blue over 8 steps
     public static int[] waterLevelColours ={
-            FastColor.ARGB32.color(0,0,255),
-            FastColor.ARGB32.color(0,128,255),
-            FastColor.ARGB32.color(0,255,192),
-            FastColor.ARGB32.color(0,255,0),
-            FastColor.ARGB32.color(255,255,0),
-            FastColor.ARGB32.color(255,128,0),
-            FastColor.ARGB32.color(255,0,0),
-            FastColor.ARGB32.color(255,255,255)
+            FastColor.ARGB32.color(255,0,0,255),
+            FastColor.ARGB32.color(255,0,128,255),
+            FastColor.ARGB32.color(255,0,255,192),
+            FastColor.ARGB32.color(255,0,255,0),
+            FastColor.ARGB32.color(255,255,255,0),
+            FastColor.ARGB32.color(255,255,128,0),
+            FastColor.ARGB32.color(255,255,0,0),
+            FastColor.ARGB32.color(255,255,255,255)
     };
 
     public FFConfig(FriendlyByteBuf buffer) {

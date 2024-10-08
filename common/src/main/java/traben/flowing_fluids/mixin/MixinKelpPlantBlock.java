@@ -22,7 +22,7 @@ public abstract class MixinKelpPlantBlock extends GrowingPlantBodyBlock {
     }
 
     @Override
-    protected boolean canSurvive(final BlockState state, final LevelReader level, final BlockPos pos) {
+    #if MC > MC_20_1 protected #else public  #endif boolean canSurvive(final BlockState state, final LevelReader level, final BlockPos pos) {
         boolean canSurvive = super.canSurvive(state, level, pos);
         if (canSurvive && FlowingFluids.config.enableMod
                 && FlowingFluids.config.isWaterAllowed()

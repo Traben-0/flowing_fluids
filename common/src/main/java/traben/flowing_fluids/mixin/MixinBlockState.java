@@ -1,5 +1,6 @@
 package traben.flowing_fluids.mixin;
 
+import com.google.common.collect.ImmutableMap;
 import com.mojang.serialization.MapCodec;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
 import net.minecraft.world.level.block.Block;
