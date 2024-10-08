@@ -23,7 +23,7 @@ public final class FlowingFluidsNeoForge {
     @SubscribeEvent
     public static void onRegisterCommandEvent(RegisterCommandsEvent event) {
         FlowingFluids.LOG.info("[Flowing Fluids] commands registered");
-        FFCommands.registerCommands(event.getDispatcher(), null, null);
+        FFCommands.registerCommands(event.getDispatcher(), event.getBuildContext(), event.getCommandSelection());
     }
 }
 
