@@ -2,6 +2,7 @@ package traben.flowing_fluids.mixin;
 
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -34,8 +35,10 @@ public abstract class MixinWaterFluid extends FlowingFluid {
     public abstract boolean isSame(final Fluid fluid);
 
 
+
     @Override
-    protected void randomTick(final Level level, final BlockPos blockPos, final FluidState fluidState, final RandomSource randomSource) {
+    protected void randomTick(final #if MC > MC_21 ServerLevel #else Level #endif level,
+                              final BlockPos blockPos, final FluidState fluidState, final RandomSource randomSource) {
         super.randomTick(level, blockPos, fluidState, randomSource);
 
         if (level.isClientSide()

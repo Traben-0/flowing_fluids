@@ -16,7 +16,6 @@ import net.minecraft.commands.arguments.blocks.BlockStateArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.*;
@@ -52,13 +51,13 @@ public class FFCommands {
 
     private static LiteralArgumentBuilder<CommandSourceStack> booleanCommand(String name, String description, String messageOn, String messageOff, BooleanConsumer setter, BooleanSupplier getter) {
         return Commands.literal(name)
-                .executes(cont -> message(cont, description + "\n" + name + " is currently set to: " + (CommonComponents.optionStatus(getter.getAsBoolean()).getString().toLowerCase())))
-                .then(Commands.literal(CommonComponents.OPTION_ON.getString().toLowerCase())
+                .executes(cont -> message(cont, description + "\n" + name + " is currently set to: " + (getter.getAsBoolean() ? "on" : "off")))
+                .then(Commands.literal("on")
                         .executes(cont -> {
                             setter.accept(true);
                             return messageAndSaveConfig(cont, messageOn);
                         })
-                ).then(Commands.literal(CommonComponents.OPTION_OFF.getString().toLowerCase())
+                ).then(Commands.literal("off")
                         .executes(cont -> {
                             setter.accept(false);
                             return messageAndSaveConfig(cont, messageOff);
@@ -152,15 +151,6 @@ public class FFCommands {
                                                     return messageAndSaveConfig(cont, "Flowing fluid texture is now visible.\nLiquids will now show the flowing texture on their surface.");
                                                 })
                                         )
-                                ).then(enumCommand("fluid_height",
-                                        "Changes the heights fluids render at, currently set to " + FlowingFluids.config.fullLiquidHeight + ".",
-                                        a -> FlowingFluids.config.fullLiquidHeight = a, () -> FlowingFluids.config.fullLiquidHeight,
-                                        Pair.of(FFConfig.LiquidHeight.REGULAR, "Fluids now render up to regular height."),
-                                        Pair.of(FFConfig.LiquidHeight.REGULAR_LOWER_BOUND, "Fluids now render up to their regular height but will be almost flat at their lowest amount."),
-                                        Pair.of(FFConfig.LiquidHeight.BLOCK_LOWER_BOUND, "Fluids now render up to block height but will be almost flat at their lowest amount."),
-                                        Pair.of(FFConfig.LiquidHeight.BLOCK, "Fluids now render up to block height."),
-                                        Pair.of(FFConfig.LiquidHeight.SLAB, "Fluids now render up to half a block height."),
-                                        Pair.of(FFConfig.LiquidHeight.CARPET, "All Fluids now render with 1 pixel height."))
                                 )
                         ).then(booleanCommand("enable_mod",
                                 "Enables or disables the mod, if disabled the mod will not affect any fluids.",
@@ -179,6 +169,16 @@ public class FFCommands {
                                                     return messageAndSaveConfig(cont, "Random tick level check distance set to " + FlowingFluids.config.randomTickLevelingDistance);
                                                 })
                                         )
+                                )
+                                .then(enumCommand("fluid_height",
+                                        "Changes the heights fluids render/affect entities at, currently set to " + FlowingFluids.config.fullLiquidHeight + ".",
+                                        a -> FlowingFluids.config.fullLiquidHeight = a, () -> FlowingFluids.config.fullLiquidHeight,
+                                        Pair.of(FFConfig.LiquidHeight.REGULAR, "Fluids now render/affect entities up to regular height."),
+                                        Pair.of(FFConfig.LiquidHeight.REGULAR_LOWER_BOUND, "Fluids now render/affect entities up to their regular height but will be almost flat at their lowest amount."),
+                                        Pair.of(FFConfig.LiquidHeight.BLOCK_LOWER_BOUND, "Fluids now render/affect entities up to block height but will be almost flat at their lowest amount."),
+                                        Pair.of(FFConfig.LiquidHeight.BLOCK, "Fluids now render/affect entities up to block height."),
+                                        Pair.of(FFConfig.LiquidHeight.SLAB, "Fluids now render/affect entities up to half a block height."),
+                                        Pair.of(FFConfig.LiquidHeight.CARPET, "All Fluids now render/affect entities with 1 pixel height."))
                                 )
                                 .then(Commands.literal("flow_distances")
                                         .executes(cont -> message(cont, "Modifies the distance fluids will search for slopes to flow down.\nThe vanilla value is always 4 for water but lava will vary between 2 and 4 depending on if it is in the Nether.\n§4WARNING: this setting is the biggest source of lag for all fluid flowing, this value is limited to 8 (as any higher will freeze your world) and I strongly suggest you never raise it above the default 4, if you set it to 1, just enable the fast mode setting instead as it will be the same effect just more efficient."))
@@ -458,7 +458,7 @@ public class FFCommands {
                 } else {
                     Block block = blockState.getBlock();
                     if (block instanceof final BucketPickup bucketPickup) {
-                        if (!bucketPickup.pickupBlock(#if MC == MC_21 null, #endif level, blockPos2, blockState).isEmpty()) {
+                        if (!bucketPickup.pickupBlock(#if MC >= MC_21 null, #endif level, blockPos2, blockState).isEmpty()) {
                             return true;
                         }
                     }

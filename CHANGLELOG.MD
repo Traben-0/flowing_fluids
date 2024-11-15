@@ -1,3 +1,12 @@
+
+0.3
+- updated to 1.21.3
+- fixed ice displacing the water it is meant to replace
+- fixed a sodium / embeddium mixin crash
+- removed localization strings in commands text, due to inconsistencies, english "on" and "off" must be used.
+- fluid height command changed to behaviour category as it also has non-visual effects
+- bug: the debug water level color setting will not work with sodium / embeddium in 1.21.3 due to some workflow delays
+
 0.2
 
 - fixed the flowing texture hiding option not working with sodium

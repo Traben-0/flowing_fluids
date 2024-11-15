@@ -33,6 +33,7 @@ private void setupPreProcess(def index){
     MC_20_4 = 5
     MC_20_6 = 6
     MC_21   = 7
+    MC_21_2 = 8
     MC      = ${index}
     CREATE  = ${project.create_enabled as int}
     """
@@ -125,7 +126,7 @@ subprojects {
         implementation 'com.demonwav.mcdev:annotations:2.1.0'
 
         //annotationProcessor 'systems.manifold:manifold-preprocessor:2023.1.17'
-        annotationProcessor 'systems.manifold:manifold-preprocessor:2024.1.34'
+        annotationProcessor 'systems.manifold:manifold-preprocessor:2024.1.35'
     }
 
     processResources {

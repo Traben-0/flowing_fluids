@@ -3,6 +3,7 @@ package traben.flowing_fluids;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -254,17 +255,21 @@ public class FFFluidUtils {
     }
 
     public static void displaceFluids(final Level level, final BlockPos pos, final BlockState state, final int flags, final LevelChunk levelChunk, final BlockState originalState) {
+        //oof, this is a big one
+        //try and order in most likely to least likely to avoid unnecessary checks
+        //configs first
         if (!level.isClientSide()
                 && FlowingFluids.config.enableMod
                 && FlowingFluids.config.enableDisplacement
                 && !FlowingFluids.isManeuveringFluids
-                && !state.isAir()
-                && !((flags & 64) == 64) //Piston moved flag
-                && !state.is(Blocks.SPONGE)
-                && state.getFluidState().isEmpty()
-                && !originalState.getFluidState().isEmpty()
-                && !(state.getBlock() instanceof LiquidBlockContainer && originalState.getBlock() instanceof BucketPickup)
+                && !originalState.getFluidState().isEmpty()// assert that the original state is a fluid
                 && originalState.getFluidState().getType() instanceof FlowingFluid flowSource
+                && !state.isAir() // covers most block breaking updates
+                && state.getFluidState().isEmpty()// not placing a waterlogged or fluid block
+                && !((flags & 64) == 64) //Piston moved flag
+                && !state.is(BlockTags.ICE)
+                && !(state.getBlock() instanceof LiquidBlockContainer && originalState.getBlock() instanceof BucketPickup)
+                && !state.is(Blocks.SPONGE)
                ) {
             //fluid block was replaced, lets try and displace the fluid
             FlowingFluids.isManeuveringFluids = true;
@@ -289,7 +294,13 @@ public class FFFluidUtils {
                 if (amountRemaining > 0) {
                     //if we still have fluid left, try to displace upwards recursively
                     BlockPos.MutableBlockPos posTraversing = new BlockPos.MutableBlockPos(pos.getX(), pos.getY(), pos.getZ());
-                    int height = levelChunk.getMaxBuildHeight();
+                    int height = levelChunk
+                            #if MC > MC_21
+                                .getMaxY();
+                            #else
+                                .getMaxBuildHeight();
+                            #endif
+
                     while (amountRemaining > 0 && posTraversing.getY() < height) {
                         posTraversing.move(Direction.UP);
                         BlockState offsetState = level.getBlockState(posTraversing);

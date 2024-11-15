@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import traben.flowing_fluids.FlowingFluids;
 import traben.flowing_fluids.config.FFConfig;
 
-@Mixin(LiquidBlockRenderer.class)
+@Mixin(value = LiquidBlockRenderer.class, priority = 1001)
 public abstract class MixinLiquidBlockRenderer {
 
     @ModifyVariable(
@@ -28,16 +28,37 @@ public abstract class MixinLiquidBlockRenderer {
         return value;
     }
 
+// stopped working in 1.21.3, absolutely no idea why
+//    @ModifyVariable(
+//            method = "tesselate",
+//            at = @At(value = "STORE"),
+//            ordinal = 0
+//    )
+//    private int ff$alterColor(final int value, @Local(argsOnly = true) FluidState fluidState) {
+//        if (FlowingFluids.config.enableMod && FlowingFluids.config.debugWaterLevelColours) {
+//            return FFConfig.waterLevelColours[fluidState.getAmount()-1];
+//        }
+//        return value;
+//    }
 
-    @ModifyVariable(
-            method = "tesselate",
-            at = @At(value = "STORE"),
-            ordinal = 0
-    )
-    private int ff$alterColor(final int value, @Local(argsOnly = true) FluidState fluidState) {
-        if (FlowingFluids.config.enableMod
-                && FlowingFluids.config.debugWaterLevelColours) {
-            return FFConfig.waterLevelColours[fluidState.getAmount()-1];
+    @ModifyVariable(method = "tesselate", at = @At(value = "STORE"), ordinal = 0)
+    private float ff$f(final float value, @Local(argsOnly = true) FluidState fluidState) {
+        if (FlowingFluids.config.enableMod && FlowingFluids.config.debugWaterLevelColours) {
+            return (FFConfig.waterLevelColours[fluidState.getAmount()-1] >> 16 & 255) / 255.0F;
+        }
+        return value;
+    }
+    @ModifyVariable(method = "tesselate", at = @At(value = "STORE"), ordinal = 1)
+    private float ff$g(final float value, @Local(argsOnly = true) FluidState fluidState) {
+        if (FlowingFluids.config.enableMod && FlowingFluids.config.debugWaterLevelColours) {
+            return (FFConfig.waterLevelColours[fluidState.getAmount()-1] >> 8 & 255) / 255.0F;
+        }
+        return value;
+    }
+    @ModifyVariable(method = "tesselate", at = @At(value = "STORE"), ordinal = 2)
+    private float ff$h(final float value, @Local(argsOnly = true) FluidState fluidState) {
+        if (FlowingFluids.config.enableMod && FlowingFluids.config.debugWaterLevelColours) {
+            return (FFConfig.waterLevelColours[fluidState.getAmount()-1] & 255) / 255.0F;
         }
         return value;
     }

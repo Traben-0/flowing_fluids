@@ -4,7 +4,11 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
+#if MC > MC_21
+import net.minecraft.util.ARGB;
+#else
 import net.minecraft.util.FastColor;
+#endif
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
@@ -66,6 +70,17 @@ public class FFConfig {
 
     //color range from red to blue over 8 steps
     public static int[] waterLevelColours ={
+
+            #if MC > MC_21
+            ARGB.color(255,0,0,255),
+            ARGB.color(255,0,128,255),
+            ARGB.color(255,0,255,192),
+            ARGB.color(255,0,255,0),
+            ARGB.color(255,255,255,0),
+            ARGB.color(255,255,128,0),
+            ARGB.color(255,255,0,0),
+            ARGB.color(255,255,255,255)
+            #else
             FastColor.ARGB32.color(255,0,0,255),
             FastColor.ARGB32.color(255,0,128,255),
             FastColor.ARGB32.color(255,0,255,192),
@@ -74,6 +89,7 @@ public class FFConfig {
             FastColor.ARGB32.color(255,255,128,0),
             FastColor.ARGB32.color(255,255,0,0),
             FastColor.ARGB32.color(255,255,255,255)
+            #endif
     };
 
     public FFConfig(FriendlyByteBuf buffer) {

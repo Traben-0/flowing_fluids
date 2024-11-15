@@ -8,6 +8,7 @@ import it.unimi.dsi.fastutil.shorts.Short2ObjectMap;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -51,11 +52,14 @@ public abstract class MixinFlowingFluid extends Fluid {
     @Unique
     private static int flowing_fluids$debugCheckCountDowns = 0;
 
-    @Shadow
-    private static short getCacheKey(final BlockPos blockPos, final BlockPos blockPos2) {
-        System.out.println("MIXIN ERROR IN WATERLY");
-        return 0;
+    @Unique
+    private static short ffCacheKey(final BlockPos sourcePos, final BlockPos spreadPos) {
+        int i = spreadPos.getX() - sourcePos.getX();
+        int j = spreadPos.getZ() - sourcePos.getZ();
+        return (short)((i + 128 & 255) << 8 | j + 128 & 255);
     }
+
+
 
     @Unique
     private static boolean ff$handleWaterLoggedFlowAndReturnIfHandled(final Level level, final BlockPos posFrom, final FluidState fluidState, final int amount,
@@ -114,7 +118,7 @@ public abstract class MixinFlowingFluid extends Fluid {
     }
 
     @Override
-    protected void randomTick(final Level level, final BlockPos pos, final FluidState state, final RandomSource random) {
+    protected void randomTick(final #if MC > MC_21 ServerLevel #else Level #endif level, final BlockPos pos, final FluidState state, final RandomSource random) {
         super.randomTick(level, pos, state, random);
         //random settle behaviour
         if (FlowingFluids.config.enableMod
@@ -216,7 +220,7 @@ public abstract class MixinFlowingFluid extends Fluid {
     }
 
     @Inject(method = "tick", at = @At(value = "HEAD"), cancellable = true)
-    private void ff$tickMixin(final Level level, final BlockPos blockPos, final FluidState fluidState, final CallbackInfo ci) {
+    private void ff$tickMixin(final #if MC > MC_21 ServerLevel #else Level #endif level, final BlockPos blockPos,#if MC > MC_21 BlockState b, #endif final FluidState fluidState, final CallbackInfo ci) {
         if (FlowingFluids.config.enableMod
                 && FlowingFluids.config.isFluidAllowed(fluidState)) {
             //cancel the original tick
@@ -426,7 +430,7 @@ public abstract class MixinFlowingFluid extends Fluid {
     }
 
     @Inject(method = "getNewLiquid", at = @At(value = "HEAD"), cancellable = true)
-    private void flowing_fluids$validateLiquidMixin(final Level level, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<FluidState> cir) {
+    private void flowing_fluids$validateLiquidMixin(final #if MC > MC_21 ServerLevel #else Level #endif level, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<FluidState> cir) {
         if (FlowingFluids.config.enableMod
                 && FlowingFluids.config.isFluidAllowed(this)) {
             var state = level.getFluidState(blockPos);
@@ -457,7 +461,7 @@ public abstract class MixinFlowingFluid extends Fluid {
                 .sorted(Comparator.comparingInt((dir1) -> level.getFluidState(blockPos.relative(dir1)).getAmount()))
                 .filter(dir -> {
                     BlockPos posDir = blockPos.relative(dir);
-                    short key = getCacheKey(blockPos, posDir);
+                    short key = ffCacheKey(blockPos, posDir);
                     var statesDir = flowing_fluids$getSetPosCache(key, level, statesAtPos, posDir);
                     BlockState stateDir = statesDir.getFirst();
                     var fluidStateDir = statesDir.getSecond();
@@ -496,7 +500,7 @@ public abstract class MixinFlowingFluid extends Fluid {
 
         //cache for flowing down checks
         Short2BooleanMap posCanFlowDown = new Short2BooleanOpenHashMap();
-        posCanFlowDown.put(getCacheKey(blockPos, blockPos), false);//set not to flow back into source
+        posCanFlowDown.put(ffCacheKey(blockPos, blockPos), false);//set not to flow back into source
 
 
         //perform a deep search for the best direction to spread to with the nearest slope
@@ -511,7 +515,7 @@ public abstract class MixinFlowingFluid extends Fluid {
                     //we already know we can spread to this direction, so we can just check if we can flow down or
                     //if we need to perform a deeper search
                     var posDir = blockPos.relative(dir);
-                    short key = getCacheKey(blockPos, posDir);
+                    short key = ffCacheKey(blockPos, posDir);
                     //check if we can flow down here, if so, return the direction
                     if (level.getFluidState(posDir).getAmount() < (amount - 1) || flowing_fluids$getSetFlowDownCache(key, level, posCanFlowDown, posDir, fluidState.getType(), requiresSlope)) {
                         return Pair.of(dir, 0);
@@ -555,7 +559,7 @@ public abstract class MixinFlowingFluid extends Fluid {
             if (searchDir != fromDir) {
                 //get search context
                 var searchPos = newPos.relative(searchDir);
-                var searchKey = getCacheKey(sourcePosForKey, searchPos);
+                var searchKey = ffCacheKey(sourcePosForKey, searchPos);
                 var searchStates = flowing_fluids$getSetPosCache(searchKey, level, statesAtPos, searchPos);
 
                 //if we can spread to the searched direction

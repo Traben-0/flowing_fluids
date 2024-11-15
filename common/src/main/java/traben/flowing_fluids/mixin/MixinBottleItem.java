@@ -2,7 +2,11 @@ package traben.flowing_fluids.mixin;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
+#if MC > MC_21
+import net.minecraft.world.InteractionResult;
+#else
 import net.minecraft.world.InteractionResultHolder;
+#endif
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BottleItem;
 import net.minecraft.world.item.ItemStack;
@@ -45,12 +49,16 @@ public class MixinBottleItem {
                     shift = At.Shift.BEFORE),
             locals = LocalCapture.CAPTURE_FAILHARD,
             cancellable = true)
-    private void ff$drainWater(final Level level, final Player player, final InteractionHand usedHand, final CallbackInfoReturnable<InteractionResultHolder<ItemStack>> cir, final List<?> list, final ItemStack itemStack, final BlockHitResult blockHitResult, final BlockPos blockPos) {
+    private void ff$drainWater(final Level level, final Player player, final InteractionHand usedHand,
+                               final #if MC > MC_21 CallbackInfoReturnable<InteractionResult> #else CallbackInfoReturnable<InteractionResultHolder<ItemStack>> #endif cir,
+                               final List<?> list, final ItemStack itemStack, final BlockHitResult blockHitResult, final BlockPos blockPos) {
         if (FlowingFluids.config.enableMod
                 && FlowingFluids.config.isWaterAllowed()){
             int foundAmount = FFFluidUtils.collectConnectedFluidAmountAndRemove(level, blockPos, 2, 3, Fluids.WATER);
             if (foundAmount == 0) {
-                cir.setReturnValue(InteractionResultHolder.pass(itemStack));
+                cir.setReturnValue(
+                        #if MC > MC_21 InteractionResult.PASS #else InteractionResultHolder.pass(itemStack) #endif
+                        );
             }
         }
     }

@@ -194,9 +194,9 @@ The mod allows hiding the flowing texture that normally appears on fluids when t
 
 ![still](https://i.imgur.com/tj5ovML.png)
 
-The mod also allows changing the heights at which 'full' fluids render.
+The mod also allows changing the heights at which 'full' fluids render and affect entities.
 
-`/flowing_fluids settings appearance fluid_height`
+`/flowing_fluids settings behaviour fluid_height`
 
 ![regular](https://i.imgur.com/7vhITCK.png)
 

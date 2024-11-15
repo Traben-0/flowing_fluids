@@ -15,7 +15,11 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stats;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.InteractionHand;
+#if MC > MC_21
+import net.minecraft.world.InteractionResult;
+#else
 import net.minecraft.world.InteractionResultHolder;
+#endif
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.ClipContext;
@@ -78,7 +82,8 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
 
     //always place if partial
     @Inject(method = "use", at = @At(value = "HEAD"), cancellable = true)
-    private void flowing_fluids$alterBehaviourIfPartial(final Level level, final Player player, final InteractionHand interactionHand, final CallbackInfoReturnable<InteractionResultHolder<ItemStack>> cir) {
+    private void flowing_fluids$alterBehaviourIfPartial(final Level level, final Player player, final InteractionHand interactionHand,
+                                                        final #if MC > MC_21 CallbackInfoReturnable<InteractionResult> #else CallbackInfoReturnable<InteractionResultHolder<ItemStack>> #endif cir) {
         if (FlowingFluids.config.enableMod
                 && content instanceof FlowingFluid
                 && FlowingFluids.config.isFluidAllowed(content)
@@ -89,7 +94,9 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
 
             BlockHitResult blockHitResult = getPlayerPOVHitResult(level, player, ClipContext.Fluid.ANY);
             if (blockHitResult.getType() == HitResult.Type.MISS || blockHitResult.getType() != HitResult.Type.BLOCK) {
-                cir.setReturnValue(InteractionResultHolder.pass(heldBucket));
+                cir.setReturnValue(
+                        #if MC > MC_21 InteractionResult.PASS #else InteractionResultHolder.pass(heldBucket) #endif
+                );
             } else {
                 BlockPos blockPos = blockHitResult.getBlockPos();
                 Direction direction = blockHitResult.getDirection();
@@ -118,12 +125,18 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
                         }
 
                         ItemStack itemStack2 = ItemUtils.createFilledResult(heldBucket, player, resultBucket);
-                        cir.setReturnValue(InteractionResultHolder.sidedSuccess(itemStack2, level.isClientSide()));
+                        cir.setReturnValue(
+                                #if MC > MC_21 InteractionResult.SUCCESS.heldItemTransformedTo(itemStack2) #else InteractionResultHolder.sidedSuccess(itemStack2, level.isClientSide()) #endif
+                        );
                     } else {
-                        cir.setReturnValue(InteractionResultHolder.fail(heldBucket));
+                        cir.setReturnValue(
+                                #if MC > MC_21 InteractionResult.FAIL #else InteractionResultHolder.fail(heldBucket) #endif
+                        );
                     }
                 } else {
-                    cir.setReturnValue(InteractionResultHolder.fail(heldBucket));
+                    cir.setReturnValue(
+                                #if MC > MC_21 InteractionResult.FAIL #else InteractionResultHolder.fail(heldBucket) #endif
+                    );
                 }
             }
         }

@@ -1,7 +1,8 @@
 package traben.flowing_fluids.mixin.sodium;
 
 
-import me.jellysquid.mods.sodium.client.model.color.ColorProvider;
+
+import net.caffeinemc.mods.sodium.client.model.color.ColorProvider;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.pipeline.DefaultFluidRenderer;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.Vec3;
@@ -28,6 +29,7 @@ public abstract class MixinFluidRenderer2 {
                     target = "Lnet/minecraft/world/level/material/FluidState;getFlow(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/phys/Vec3;",
                     shift = At.Shift.AFTER)
             , ordinal = 0
+            , require = 0
     )
     private Vec3 ff$alterFlowDir(final Vec3 value) {
         if (FlowingFluids.config.enableMod
@@ -38,11 +40,13 @@ public abstract class MixinFluidRenderer2 {
     }
 
     @Unique
-    private static final ColorProvider<FluidState> ff$waterLevelColours = (worldSlice, blockPos, fluidState, modelQuadView, ints)
+    private static final ColorProvider<FluidState> ff$waterLevelColours = (worldSlice, blockPos, mutablePos, fluidState, modelQuadView, ints)
             -> Arrays.fill(ints, FFConfig.waterLevelColours[fluidState.getAmount() - 1]);
 
 
-    @ModifyVariable(method = "render", at = @At("HEAD"), ordinal = 2)
+    @ModifyVariable(method = "render", at = @At("HEAD"),
+            ordinal = 2,
+            require = 0)
     private ColorProvider<FluidState> ff$alterColor(final ColorProvider<FluidState> value) {
         if (FlowingFluids.config.enableMod && FlowingFluids.config.debugWaterLevelColours) {
             return ff$waterLevelColours;
