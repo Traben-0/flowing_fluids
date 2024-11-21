@@ -1,4 +1,7 @@
 
+0.3.1 
+- neoforge and forge crash fix
+
 0.3
 - updated to 1.21.3
 - fixed ice displacing the water it is meant to replace

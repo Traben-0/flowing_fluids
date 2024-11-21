@@ -19,7 +19,9 @@ public abstract class MixinLevel {
 
     @Inject(method = "setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;II)Z",
             at = @At(value = "INVOKE",
-                    target = "Lnet/minecraft/world/level/Level;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;",ordinal = 1),
+                    target = "Lnet/minecraft/world/level/Level;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;"
+                    #if MC < MC_21_2 ,ordinal = 1 #endif
+            ),
             locals = LocalCapture.CAPTURE_FAILHARD)
     private void flowing_fluids$displaceFluids(final BlockPos pos, final BlockState state, final int flags, final int recursionLeft,
                                                final CallbackInfoReturnable<Boolean> cir, final LevelChunk levelchunk,
