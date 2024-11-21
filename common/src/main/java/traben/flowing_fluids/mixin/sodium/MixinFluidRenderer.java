@@ -3,7 +3,7 @@ package traben.flowing_fluids.mixin.sodium;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 
-#if MC > MC_21
+#if MC > MC_20_1
 
 import traben.flowing_fluids.FFFluidUtils;
 @Pseudo

@@ -30,9 +30,7 @@ dependencies {
     modImplementation("maven.modrinth:sodium:${project.sodium_version}") {
         exclude(group: "net.fabricmc.fabric-api")
     }
-    if (project.mc_build as int < 8) {
-        modImplementation files("build/sodium-fabric-0.6.0-beta.2+mc1.21.1.jar")
-    }
+
 }
 loom {
     accessWidenerPath = file("src/main/resources/flowing_fluids_${project.mc_build}.accesswidener")
