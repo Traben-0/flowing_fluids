@@ -22,10 +22,13 @@ public class MixinFarmBlock {
     )
     private static void ff$drainWater(final LevelReader level, final BlockPos pos, final CallbackInfoReturnable<Boolean> cir, @Local(ordinal = 1) final BlockPos blockPos) {
         if (FlowingFluids.config.enableMod
-                && FlowingFluids.config.farmlandDrainsWater
+                && FlowingFluids.config.farmlandDrainWaterChance > 0
                 && FlowingFluids.config.isWaterAllowed()
-                && level instanceof ServerLevel serverLevel) {//always true
-            FFFluidUtils.removeAmountFromFluidAtPosWithRemainder(serverLevel, blockPos, Fluids.WATER,1);
+                && level instanceof ServerLevel serverLevel) { // always true
+
+            if (serverLevel.random.nextFloat() <= FlowingFluids.config.farmlandDrainWaterChance) {
+                FFFluidUtils.removeAmountFromFluidAtPosWithRemainder(serverLevel, blockPos, Fluids.WATER,1);
+            }
         }
     }
 }

@@ -23,7 +23,7 @@ public class FlowingFluidsPlatformImpl {
         #else
         ForgePacketHandler.INSTANCE.send(PacketDistributor.PLAYER.with(()-> player),new ForgePacketHandler.FFConfigPacket());
         #endif
-        FlowingFluids.LOG.info("[Flowing Fluids] - Sending server config to [" + player.getName().getString() + "]");
+        FlowingFluids.info("- Sending server config to [" + player.getName().getString() + "]");
     }
 
     public static boolean isThisModLoaded(final String modId) {

@@ -19,7 +19,7 @@ public final class FlowingFluidsForge {
 
     @SubscribeEvent
     public static void onRegisterCommandEvent(RegisterCommandsEvent event) {
-        FlowingFluids.LOG.info("[Flowing Fluids] commands registered");
+        FlowingFluids.info("commands registered");
         FFCommands.registerCommands(event.getDispatcher(), event.getBuildContext(), event.getCommandSelection());
     }
 }

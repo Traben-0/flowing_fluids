@@ -10,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 
 public interface FFBucketItem {
 
-    int ff$emptyContents_AndGetRemainder(@Nullable Player player, Level level, BlockPos blockPos, @Nullable BlockHitResult blockHitResult, int amount);
+    int ff$emptyContents_AndGetRemainder(@Nullable Player player, Level level, BlockPos blockPos, @Nullable BlockHitResult blockHitResult, int amount, boolean onlyModifyThatBlock);
 
     ItemStack ff$bucketOfAmount(ItemStack originalItemData ,int amount);
 

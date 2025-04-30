@@ -1,6 +1,6 @@
-package traben.flowing_fluids.mixin.create;
+package traben.flowing_fluids.fabric.mixin.create;
 
-#if CREATE == 0
+#if MC!=MC_20_1
 
 import org.spongepowered.asm.mixin.Mixin;
 import traben.flowing_fluids.config.FFCommands;

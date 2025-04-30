@@ -33,6 +33,12 @@ repositories {
         name = 'NeoForged'
         url = 'https://maven.neoforged.net/releases'
     }
+
+    if (rootProject.mc_build as int == 7) {
+        maven { url = "https://maven.createmod.net" } // Create, Ponder, Flywheel
+        maven { url = "https://mvn.devos.one/snapshots" } // Registrate
+        maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // ForgeConfigAPIPort
+    }
 }
 
 dependencies {
@@ -42,6 +48,14 @@ dependencies {
 
     common(project(path: ':common', configuration: 'namedElements')) { transitive false }
     shadowBundle project(path: ':common', configuration: 'transformProductionNeoForge')
+
+    if (rootProject.mc_build as int == 7) {
+        // Create and its dependencies
+        modImplementation("com.simibubi.create:create-${minecraft_version}:${create_forge_version}:slim") { transitive = false }
+        implementation("net.createmod.ponder:Ponder-NeoForge-${minecraft_version}:${forge_ponder_version}")
+        modImplementation("com.tterrag.registrate:Registrate:${registrate_forge_version}")
+        modImplementation("dev.engine-room.flywheel:flywheel-neoforge-${flywheel_forge_minecraft_version}:${flywheel_forge_version}")
+    }
 }
 
 processResources {

@@ -1,5 +1,5 @@
 plugins {
-    id 'dev.architectury.loom' version '1.7-SNAPSHOT' apply false
+    id 'dev.architectury.loom' version '1.10-SNAPSHOT' apply false
     id 'architectury-plugin' version '3.4-SNAPSHOT'
     id 'com.github.johnrengelman.shadow' version '8.1.1' apply false
     id "systems.manifold.manifold-gradle-plugin" version "0.0.2-alpha"
@@ -34,8 +34,8 @@ private void setupPreProcess(def index){
     MC_20_6 = 6
     MC_21   = 7
     MC_21_2 = 8
+    MC_21_4 = 9
     MC      = ${index}
-    CREATE  = ${project.create_enabled as int}
     """
 
 }
@@ -98,15 +98,15 @@ subprojects {
         maven { url "https://maven.parchmentmc.org" }
         maven { url "https://mvnrepository.com/artifact/com.demonwav.mcdev/annotations" }
 
-        if (project.create_enabled as int == 1) {
-            maven { // Flywheel
-                url = "https://maven.tterrag.com/"
-                content {
-                    // need to be specific here due to version overlaps
-                    includeGroup("com.jozufozu.flywheel")
-                }
-            }
-        }
+//        if (rootProject.mc_build as int == 3 || rootProject.mc_build as int == 7) {
+//            maven { // Flywheel
+//                url = "https://maven.tterrag.com/"
+//                content {
+//                    // need to be specific here due to version overlaps
+//                    includeGroup("com.jozufozu.flywheel")
+//                }
+//            }
+//        }
     }
 
     dependencies {
@@ -126,7 +126,7 @@ subprojects {
         implementation 'com.demonwav.mcdev:annotations:2.1.0'
 
         //annotationProcessor 'systems.manifold:manifold-preprocessor:2023.1.17'
-        annotationProcessor 'systems.manifold:manifold-preprocessor:2024.1.37'
+        annotationProcessor 'systems.manifold:manifold-preprocessor:2025.1.10'
     }
 
     processResources {

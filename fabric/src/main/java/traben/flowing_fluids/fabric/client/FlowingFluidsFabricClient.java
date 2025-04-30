@@ -18,14 +18,14 @@ public final class FlowingFluidsFabricClient implements ClientModInitializer {
                     context.client().execute(() -> {
                                 //create server config
                                 if (!data.isValid()) {
-                                    FlowingFluids.LOG.error("[Flowing Fluids] - Server Config data received and failed to sync, invalid data");
+                                    FlowingFluids.error("- Server Config data received and failed to sync, invalid data");
                                     throw new RuntimeException("[Flowing Fluids] - Invalid Server Config data received");
                                 }
                                 try {
                                     FlowingFluids.config = data.delegate;
-                                    FlowingFluids.LOG.info("[Flowing Fluids] - Server Config data received and synced");
+                                    FlowingFluids.info("- Server Config data received and synced");
                                 } catch (Exception e) {
-                                    FlowingFluids.LOG.error("[Flowing Fluids] - Server Config data received and failed to sync");
+                                    FlowingFluids.error("- Server Config data received and failed to sync");
                                     throw new RuntimeException("[Flowing Fluids] - Server Config data received and failed to sync", e);
                                 }
                             }
@@ -37,9 +37,9 @@ public final class FlowingFluidsFabricClient implements ClientModInitializer {
 
                                 try {
                                     FlowingFluids.config = new FFConfig(buf);
-                                    FlowingFluids.LOG.info("[Flowing Fluids] - Server Config data received and synced");
+                                    FlowingFluids.info("- Server Config data received and synced");
                                 } catch (Exception e) {
-                                    FlowingFluids.LOG.error("[Flowing Fluids] - Server Config data received and failed to sync");
+                                    FlowingFluids.error("- Server Config data received and failed to sync");
                                     throw new RuntimeException("[Flowing Fluids] - Server Config data received and failed to sync", e);
                                 }
 

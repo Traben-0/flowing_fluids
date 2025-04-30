@@ -17,9 +17,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
@@ -27,9 +29,10 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import traben.flowing_fluids.FlowingFluids;
 import traben.flowing_fluids.FlowingFluidsPlatform;
+import traben.flowing_fluids.PlugWaterFeature;
 
-import java.math.BigDecimal;
 import java.util.HashSet;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -47,6 +50,25 @@ public class FFCommands {
         String inputCommand = context.getInput();
         context.getSource().sendSystemMessage(Component.literal("\n§7§o/" + inputCommand + "§r\n" + text + "\n§7_____________________________"));
         return 1;
+    }
+
+    private static  LiteralArgumentBuilder<CommandSourceStack> floatChanceCommand(String name, String description, Consumer<Float> setter, Supplier<Float> getter) {
+        return floatCommand(name, description, "chance", 0, 1, setter, getter);
+    }
+
+    private static  LiteralArgumentBuilder<CommandSourceStack> floatCommand(String name, String description, String argName, float min, float max, Consumer<Float> setter, Supplier<Float> getter) {
+        return Commands.literal(name)
+                .executes(cont -> message(cont, description + "\nCurrent value of " + name + " = " + getter.get()))
+                .then(Commands.argument(argName, FloatArgumentType.floatArg(min, max))
+                        .executes(cont -> {
+                            setter.accept(cont.getArgument(argName, Float.class));
+                            return messageAndSaveConfig(cont, name + " set to " + getter.get());
+                        })
+                );
+    }
+
+    private static LiteralArgumentBuilder<CommandSourceStack> booleanCommand(String name, String description, BooleanConsumer setter, BooleanSupplier getter) {
+        return booleanCommand(name, description, name + " setting is now: On.", name + " setting is now: Off.", setter, getter);
     }
 
     private static LiteralArgumentBuilder<CommandSourceStack> booleanCommand(String name, String description, String messageOn, String messageOff, BooleanConsumer setter, BooleanSupplier getter) {
@@ -92,7 +114,12 @@ public class FFCommands {
                         .executes(c -> message(c, "Use any of the commands without adding any of it's arguments, E.G '/flowing_fluids settings', to get a description of what the command does and it's current value."))
                 ).then(Commands.literal("settings")
                         .executes(commandContext -> message(commandContext, "Settings for Flowing Fluids, use these to change how fluids behave."))
-                        .then(Commands.literal("ignored_fluids")
+                        .then(booleanCommand("plug_fluids_during_world_gen",
+                                        "Enables or disables plugging all fluids that are generated with air beside or below them.\nThis is an IMMENSE reduction in lag during world generation.",
+                                        "World gen fluid plugging is now enabled.",
+                                        "World gen fluid plugging is now disabled.",
+                                        a -> FlowingFluids.config.encloseAllFluidOnWorldGen = a, () -> FlowingFluids.config.encloseAllFluidOnWorldGen)
+                        ).then(Commands.literal("ignored_fluids")
                                 .executes(cont -> message(cont, "Control which fluids do or do not get affected by this mod."))
                                 .then(Commands.literal("list")
                                         .executes(cont -> message(cont, "The following fluids are currently ignored by Flowing Fluids: " + FlowingFluids.config.fluidBlacklist))
@@ -154,7 +181,7 @@ public class FFCommands {
                                 )
                         ).then(booleanCommand("enable_mod",
                                 "Enables or disables the mod, if disabled the mod will not affect any fluids.",
-                                "FlowingFluids is now enabled, liquids will now have physics using : " + (FlowingFluids.config.fastmode ? "Fast mode." : "Normal mode."),
+                                "FlowingFluids is now enabled, liquids will now have physics.",
                                 "FlowingFluids is now disabled, vanilla liquid behaviour will be restored, Buckets will retain their partial fill amount until used.",
                                 a -> FlowingFluids.config.enableMod = a,
                                 () -> FlowingFluids.config.enableMod)
@@ -169,8 +196,22 @@ public class FFCommands {
                                                     return messageAndSaveConfig(cont, "Random tick level check distance set to " + FlowingFluids.config.randomTickLevelingDistance);
                                                 })
                                         )
-                                )
-                                .then(enumCommand("fluid_height",
+                                ).then(Commands.literal("how_liquids_affect_entities")
+                                        .then(booleanCommand("flow_pushes_boats",
+                                                "Controls if boats are pushed by the flow angle that water visually has at the surface.\nTHIS MUST BE OFF FOR BOATS TO WORK PROPERLY IN PARTIAL HEIGHT FLUIDS!!!",
+                                                "Boats will now be affected by water flow, THIS WILL BREAK BOATS!! they will not function correctly in partial height water",
+                                                "Boats will no longer be affected by water flow. This will fix boats not working in partial height water.",
+                                                (a) -> FlowingFluids.config.waterFlowAffectsBoats = a,() -> FlowingFluids.config.waterFlowAffectsBoats))
+                                        .then(booleanCommand("flow_pushes_players",
+                                                "Controls if players are pushed by the flow angle that water visually has at the surface.",
+                                                (a) -> FlowingFluids.config.waterFlowAffectsPlayers = a,() -> FlowingFluids.config.waterFlowAffectsPlayers))
+                                        .then(booleanCommand("flow_pushes_entities",
+                                                "Controls if entities are pushed by the flow angle that water visually has at the surface.\nEXCEPT players, boats, and item entities, they have their own settings.",
+                                                (a) -> FlowingFluids.config.waterFlowAffectsEntities = a,() -> FlowingFluids.config.waterFlowAffectsEntities))
+                                        .then(booleanCommand("flow_pushes_items",
+                                                "Controls if item entities are pushed by the flow angle that water visually has at the surface.",
+                                                (a) -> FlowingFluids.config.waterFlowAffectsItems = a,() -> FlowingFluids.config.waterFlowAffectsItems))
+                                ).then(enumCommand("fluid_height",
                                         "Changes the heights fluids render/affect entities at, currently set to " + FlowingFluids.config.fullLiquidHeight + ".",
                                         a -> FlowingFluids.config.fullLiquidHeight = a, () -> FlowingFluids.config.fullLiquidHeight,
                                         Pair.of(FFConfig.LiquidHeight.REGULAR, "Fluids now render/affect entities up to regular height."),
@@ -234,16 +275,14 @@ public class FFCommands {
                                                         })
                                                 )
                                         )
-                                ).then(booleanCommand("fast_mode",
-                                        "Enables or disables fast mode, fast mode changes how liquids behave, and can be toggled on or off.\nFast mode will reduce the amount of checks liquids do to spread, changing from looking for edges 4 blocks away, to only 1, and may cause liquids to pool more frequently in places.\nIn a worst case scenario Fast mode improves water spread lag by 40 times, in actual practise this tends to vary around the 2-20 times faster.",
-                                        "Fast mode is now enabled.\nLiquids will no longer check if they can move further than 1 block away from itself and may pool more frequently in places.\nThis reduces sideways spread positional checking from 4 - 160 times per update, down to only 4 times.",
-                                        "Fast mode is now disabled.\nLiquids will now check if they can move up to 4 blocks away from itself and will pool less frequently.\nThis increases sideways spread positional checking from 4 times per update, to up to 160 times.",
-                                        a -> FlowingFluids.config.fastmode = a, () -> FlowingFluids.config.fastmode)
                                 ).then(booleanCommand("pistons_push_fluids",
                                         "Enables or disables piston pushing, if disabled pistons will no longer push fluids.",
                                         "Piston pushing is now enabled.\nLiquids will now be pushed by pistons.",
                                         "Piston pushing is now disabled.\nLiquids will no longer be pushed by pistons.",
                                         a -> FlowingFluids.config.enablePistonPushing = a, () -> FlowingFluids.config.enablePistonPushing)
+                                ).then(booleanCommand("easy_piston_pumps",
+                                        "Makes fluids above pistons delay their falling to make pumping upwards much easier.",
+                                        a -> FlowingFluids.config.easyPistonPump = a, () -> FlowingFluids.config.easyPistonPump)
                                 ).then(booleanCommand("placed_blocks_displace_fluids",
                                         "Enables or disables placed blocks displacing fluids, if disabled placed blocks will no longer displace fluids.",
                                         "Placed blocks displacing fluids is now enabled.\nLiquids will now be displaced by blocks placed inside them.",
@@ -280,63 +319,51 @@ public class FFCommands {
                                 )
                         ).then(Commands.literal("drainers_and_fillers")
                                 .executes(commandContext -> message(commandContext, "Set the chances of certain random tick interactions with fluids."))
-                                .then(Commands.literal("water_puddle_evaporation_chance")
-                                        .executes(cont -> message(cont, "Sets the chance of small minimum level water tiles evaporating during random ticks, currently set to " + FlowingFluids.config.evaporationChance))
-                                        .then(Commands.argument("chance", FloatArgumentType.floatArg(0, 1))
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.evaporationChance = cont.getArgument("chance", Float.class);
-                                                    return messageAndSaveConfig(cont, "Water puddle evaporation chance set to " + FlowingFluids.config.evaporationChance);
-                                                })
-                                        )
-                                ).then(Commands.literal("water_nether_evaporation_chance")
-                                        .executes(cont -> message(cont, "Sets the chance of any water losing a level during random ticks in the nether, currently set to " + FlowingFluids.config.evaporationNetherChance))
-                                        .then(Commands.argument("chance", FloatArgumentType.floatArg(0, 1))
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.evaporationNetherChance = cont.getArgument("chance", Float.class);
-                                                    return messageAndSaveConfig(cont, "Nether water evaporation chance set to " + FlowingFluids.config.evaporationNetherChance);
-                                                })
-                                        )
-                                ).then(Commands.literal("water_rain_refill_chance")
-                                        .executes(cont -> message(cont, "Sets the chance of non-full water tiles increasing their level while its rains and they are open to the sky, during random ticks. This provides access to renewable water given enough time. Currently set to " + FlowingFluids.config.rainRefillChance))
-                                        .then(Commands.argument("chance", FloatArgumentType.floatArg(0, 1))
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.rainRefillChance = cont.getArgument("chance", Float.class);
-                                                    return messageAndSaveConfig(cont, "Water rain refill chance set to " + FlowingFluids.config.rainRefillChance);
-                                                })
-                                        )
-                                ).then(Commands.literal("water_wet_biome_refill_chance")
-                                        .executes(cont -> message(cont, "Sets the chance of of non-full water tiles increasing their level within: Oceans, Rivers, and Swamps, during random ticks. Additionally they must have a sky light level higher than 0, and be between y=0 and sea level. This provides time limited access to infinite water within these biomes, granted they are big enough and not drained too quickly. Currently set to " + FlowingFluids.config.oceanRiverSwampRefillChance))
-                                        .then(Commands.argument("chance", FloatArgumentType.floatArg(0, 1))
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.oceanRiverSwampRefillChance = cont.getArgument("chance", Float.class);
-                                                    return messageAndSaveConfig(cont, "Water biome refill chance set to " + FlowingFluids.config.oceanRiverSwampRefillChance);
-                                                })
-                                        )
-                                ).then(booleanCommand("farm_land_drains_water",
-                                        "Enables or disables farmland blocks draining water during hydration checks.",
-                                        "Farmland blocks will now drain 1 level of water whenever it performs its hydration check during random ticks.",
-                                        "Farmland blocks will no longer drain 1 level of water whenever it performs its hydration check during random ticks.",
-                                        a -> FlowingFluids.config.farmlandDrainsWater = a, () -> FlowingFluids.config.farmlandDrainsWater)
+                                .then(floatChanceCommand("water_puddle_evaporation_chance",
+                                                        "Sets the chance of small minimum level water tiles evaporating during random ticks",
+                                                        a -> FlowingFluids.config.evaporationChance = a,
+                                                        () -> FlowingFluids.config.evaporationChance)
+                                ).then(floatChanceCommand("water_nether_evaporation_chance",
+                                                        "Sets the chance of any water losing a level during random ticks in the nether",
+                                                        a -> FlowingFluids.config.evaporationNetherChance = a,
+                                                        () -> FlowingFluids.config.evaporationNetherChance)
+                                ).then(floatChanceCommand("water_rain_refill_chance",
+                                                        "Sets the chance of non-full water tiles increasing their level while its rains and they are open to the sky, during random ticks. This provides access to renewable water given enough time",
+                                                        a -> FlowingFluids.config.rainRefillChance = a,
+                                                        () -> FlowingFluids.config.rainRefillChance)
+                                ).then(floatChanceCommand("water_wet_biome_refill_chance",
+                                                        "Sets the chance of of non-full water tiles increasing their level within: Oceans, Rivers, and Swamps, during random ticks. Additionally they must have a sky light level higher than 0, and be between y=0 and sea level. This provides time limited access to infinite water within these biomes, granted they are big enough and not drained too quickly",
+                                                        a -> FlowingFluids.config.oceanRiverSwampRefillChance = a,
+                                                        () -> FlowingFluids.config.oceanRiverSwampRefillChance)
+                                ).then(floatChanceCommand("farm_land_drains_water_chance",
+                                                        "Sets the chance at which a farmland block will consume 1 level of water each time it hydrates. 0 == OFF, 1 == ALWAYS",
+                                                        a -> FlowingFluids.config.farmlandDrainWaterChance = a,
+                                                        () -> FlowingFluids.config.farmlandDrainWaterChance)
+                                ).then(floatChanceCommand("animal_breeding_drains_water_chance",
+                                        "Sets the chance at which an animal will consume 1 level of nearby water each time it tries to breed, range 8 blocks, water can be at same level or 1 lower. 0 == OFF, 1 == ALWAYS",
+                                        a -> FlowingFluids.config.drinkWaterToBreedAnimalChance = a,
+                                        () -> FlowingFluids.config.drinkWaterToBreedAnimalChance)
                                 )
                         )
                 ).then(Commands.literal("debug").executes(cont -> message(cont, "Debug commands you probably don't need these."))
-                        .then(Commands.literal("spread")
-                                .then(Commands.literal("print")
-                                        .executes(cont -> {
-                                            FlowingFluids.config.debugSpreadPrint = !FlowingFluids.config.debugSpreadPrint;
-                                            return messageAndSaveConfig(cont, "debugSpread is " + (FlowingFluids.config.debugSpreadPrint ? "printing." : "not printing."));
-                                        })
-                                ).then(Commands.literal("toggle")
-                                        .executes(cont -> {
-                                            FlowingFluids.config.debugSpread = !FlowingFluids.config.debugSpread;
-                                            FlowingFluids.totalDebugMilliseconds = BigDecimal.valueOf(0);
-                                            FlowingFluids.totalDebugTicks = 0;
-                                            return messageAndSaveConfig(cont, "debugSpread is " + (FlowingFluids.config.debugSpread ? "enabled." : "disabled."));
-                                        })
-                                ).then(Commands.literal("average_tick_length")
-                                        .executes(cont -> message(cont, "average water spread tick length is : " + FlowingFluids.getAverageDebugMilliseconds() + "ms"))
-                                )
-                        ).then(booleanCommand("random_ticks_printing",
+//                        .then(Commands.literal("spread")
+//                                .then(Commands.literal("print")
+//                                        .executes(cont -> {
+//                                            FlowingFluids.config.debugSpreadPrint = !FlowingFluids.config.debugSpreadPrint;
+//                                            return messageAndSaveConfig(cont, "debugSpread is " + (FlowingFluids.config.debugSpreadPrint ? "printing." : "not printing."));
+//                                        })
+//                                ).then(Commands.literal("toggle")
+//                                        .executes(cont -> {
+//                                            FlowingFluids.config.debugSpread = !FlowingFluids.config.debugSpread;
+//                                            FlowingFluids.totalDebugMilliseconds = BigDecimal.valueOf(0);
+//                                            FlowingFluids.totalDebugTicks = 0;
+//                                            return messageAndSaveConfig(cont, "debugSpread is " + (FlowingFluids.config.debugSpread ? "enabled." : "disabled."));
+//                                        })
+//                                ).then(Commands.literal("average_tick_length")
+//                                        .executes(cont -> message(cont, "average water spread tick length is : " + FlowingFluids.getAverageDebugMilliseconds() + "ms"))
+//                                )
+//                        )
+                        .then(booleanCommand("random_ticks_printing",
                                 "Enables or disables printing of random tick events, this will spam your log with every random tick event that happens.",
                                 "Random ticks printing is now enabled.",
                                 "Random ticks printing is now disabled.",
@@ -350,8 +377,11 @@ public class FFCommands {
                         ).then(Commands.literal("kill_all_current_fluid_updates")
                                 .executes(cont -> {
                                     FlowingFluids.debug_killFluidUpdatesUntilTime = System.currentTimeMillis() + 3000;
-                                    return message(cont, "All fluid flowing ticks will be ignored and allowed to freeze in place over the next 3 seconds.\nAll fluids that are loaded and ticking during this time will completely stop updating and freeze in place until the next time they get updated.");
+                                    return message(cont, "All fluid flowing ticks will be ignored and allowed to freeze in place over the next 3 seconds.\nAll fluids that are loaded and ticking during this time will completely stop updating and freeze in place until the next time they get updated.\n You may use the debug command \"plug_fluids_in_nearby_chunks\" to surround all these frozen fluids with appropriate blocks to prevent further flow.");
                                 })
+                        ).then(Commands.literal("how_many_fluids_plugged_in_world_gen_this_session")
+                                .executes(cont ->
+                                        message(cont, FlowingFluids.waterPluggedThisSession + " fluids have been plugged during world gen this session."))
                         ).then(Commands.literal("super_sponge_at_me")
                                 .executes(cont -> {
                                     int drained = superSponge(cont.getSource().getLevel(), BlockPos.containing(cont.getSource().getPosition()), Fluids.WATER);
@@ -368,7 +398,54 @@ public class FFCommands {
                                             }
                                     )
                                 )
-                        )
+                        ).then(booleanCommand("announce_world_gen_actions",
+                                "Enables or disables world gen action announcements, this will spam your log with every world gen action that happens because of this mod, including the location of this action (E.G. the plug fluids during world gen feature).",
+                                "World gen action announcements are now enabled.",
+                                "World gen action announcements are now disabled.",
+                                a -> FlowingFluids.config.announceWorldGenActions = a, () -> FlowingFluids.config.announceWorldGenActions)
+                        ).then(Commands.literal("surround_all_fluids_in_nearby_chunks_with_blocks")
+                                .executes(cont ->{
+                                    var level = cont.getSource().getLevel();
+                                    var pos = cont.getSource().getPosition();
+                                    var posChunk = new ChunkPos(new BlockPos((int) pos.x, (int) pos.y, (int) pos.z));
+
+                                    var dist = level.getServer().getPlayerList().getSimulationDistance();
+
+                                    int count = FlowingFluids.waterPluggedThisSession;
+                                    for (int x = posChunk.x-dist; x <= posChunk.x+dist; x++) {
+                                        for (int z = posChunk.z-dist; z <= posChunk.z+dist; z++) {
+                                            if (level.hasChunk(x, z)) {
+                                                PlugWaterFeature.processChunk(level, new ChunkPos(x, z), level.getChunk(x, z));
+                                            }
+                                        }
+                                    }
+                                    return message(cont, "All fluids, within "+dist+" chunks of you, have had any fluids that are exposed to air plugged up with appropriate blocks.\n" +
+                                            "This will not affect any fluids that are not exposed to air, or are already plugged.\n" +
+                                            "This has plugged " + (FlowingFluids.waterPluggedThisSession - count) + " fluids in total.");
+                                })
+                        ).then(Commands.literal("force_tick_all_fluids_in_nearby_chunks")
+                                        .executes(cont ->{
+                                            var level = cont.getSource().getLevel();
+                                            var pos = cont.getSource().getPosition();
+                                            var posChunk = new ChunkPos(new BlockPos((int) pos.x, (int) pos.y, (int) pos.z));
+
+                                            var dist = level.getServer().getPlayerList().getSimulationDistance();
+                                            var rand = level.getRandom();
+                                            final AtomicInteger count = new AtomicInteger();
+                                            for (int x = posChunk.x-dist; x <= posChunk.x+dist; x++) {
+                                                for (int z = posChunk.z-dist; z <= posChunk.z+dist; z++) {
+                                                    if (level.hasChunk(x, z)) {
+                                                        level.getChunk(x, z).findBlocks(BlockBehaviour.BlockStateBase::liquid,
+                                                                (blockPos, blockState) -> {
+                                                            level.scheduleTick(blockPos, blockState.getFluidState().getType(), 1 + rand.nextInt(200));
+                                                            count.incrementAndGet();
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                            return message(cont, "All fluids, within "+dist+" chunks of you, have been forcibly added to the tick queue with random intervals over the next 0-10 seconds, EXPECT SOME LAG! Amount force ticked = " + count.get());
+                                        })
+                                )
                 );
 
         if (FlowingFluidsPlatform.isThisModLoaded("create")) {

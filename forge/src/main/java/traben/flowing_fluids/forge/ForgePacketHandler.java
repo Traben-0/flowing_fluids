@@ -73,11 +73,11 @@ public class ForgePacketHandler {
             FFConfigPacket packet;
             if (FMLEnvironment.dist == Dist.CLIENT) {
                 try {
-                    FlowingFluids.LOG.info("[Flowing Fluids] - Server Config packet received");
+                    FlowingFluids.info("- Server Config packet received");
                     packet = new FFConfigPacket(buffer);
                     packet.is_valid = true;
                 } catch (Exception e) {
-                    FlowingFluids.LOG.error("[Flowing Fluids] - Server Config packet decoding failed because:\n" + e);
+                    FlowingFluids.error("- Server Config packet decoding failed because:\n" + e);
                     e.printStackTrace();
                     packet = new FFConfigPacket();
                     packet.is_valid = false;
@@ -93,9 +93,9 @@ public class ForgePacketHandler {
         // Handle message
             if (packet.is_valid) {
                 FlowingFluids.config = packet;
-                FlowingFluids.LOG.info("[Flowing Fluids] - Server Config data received and synced");
+                FlowingFluids.info("- Server Config data received and synced");
             } else {
-                FlowingFluids.LOG.error("[Flowing Fluids] - Server Config data received and failed to sync");
+                FlowingFluids.error("- Server Config data received and failed to sync");
                 throw new RuntimeException("[Flowing Fluids] - Server Config data received and failed to sync");
             }
             ctx.setPacketHandled(true);
@@ -105,9 +105,9 @@ public class ForgePacketHandler {
             // Handle message
             if (is_valid) {
                 FlowingFluids.config = this;
-                FlowingFluids.LOG.info("[Flowing Fluids] - Server Config data received and synced");
+                FlowingFluids.info("- Server Config data received and synced");
             } else {
-                FlowingFluids.LOG.error("[Flowing Fluids] - Server Config data received and failed to sync");
+                FlowingFluids.error("- Server Config data received and failed to sync");
                 throw new RuntimeException("[Flowing Fluids] - Server Config data received and failed to sync");
             }
             ctx.get().setPacketHandled(true);

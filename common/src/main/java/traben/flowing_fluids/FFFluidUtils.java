@@ -1,13 +1,19 @@
 package traben.flowing_fluids;
 
+import it.unimi.dsi.fastutil.Pair;
+import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BucketPickup;
 import net.minecraft.world.level.block.LiquidBlockContainer;
@@ -20,8 +26,11 @@ import net.minecraft.world.level.material.Fluids;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.StringJoiner;
+import java.util.function.Consumer;
 
 public class FFFluidUtils {
 
@@ -136,20 +145,39 @@ public class FFFluidUtils {
         return removeAmount;
     }
 
+    public static int addAmountToFluidAtPosWithRemainderAndTrySpreadIfFull(LevelAccessor levelAccessor, BlockPos pos, FlowingFluid fluid, int addAmount) {
+        var data = placeConnectedFluidAmountAndPlaceAction(levelAccessor, pos, addAmount, fluid);
+        if (data.first() != addAmount) {
+            data.second().run();
+            return data.first();
+        }
+        return addAmount;
+    }
+
+    public static int addAmountToFluidAtPosWithRemainderAndTrySpreadIfFull(LevelAccessor levelAccessor, BlockPos pos, FlowingFluid fluid, int addAmount, boolean canSpreadUp, boolean canSpreadDown) {
+        var data = placeConnectedFluidAmountAndPlaceAction(levelAccessor, pos, addAmount, fluid, 80, canSpreadUp, canSpreadDown);
+        if (data.first() != addAmount) {
+            data.second().run();
+            return data.first();
+        }
+        return addAmount;
+    }
 
     public static int addAmountToFluidAtPosWithRemainder(LevelAccessor levelAccessor, BlockPos pos, Fluid fluid, int addAmount) {
         FluidState state = levelAccessor.getFluidState(pos);
-        if (state.getType().isSame(fluid)) {
+        if (state.isEmpty() || state.getType().isSame(fluid)) {
             int currentAmount = state.getAmount();
             if (currentAmount == 8) {
                 return addAmount;
             }
             if (currentAmount + addAmount <= 8) {
-                setFluidStateAtPosToNewAmount(levelAccessor, pos, fluid, currentAmount + addAmount);
-                return 0;
+                if (setFluidStateAtPosToNewAmount(levelAccessor, pos, fluid, currentAmount + addAmount)) {
+                    return 0;
+                }
             } else {
-                setFluidStateAtPosToNewAmount(levelAccessor, pos, fluid, 8);
-                return currentAmount + addAmount - 8;
+                if (setFluidStateAtPosToNewAmount(levelAccessor, pos, fluid, 8)) {
+                    return currentAmount + addAmount - 8;
+                }
             }
         }
         return addAmount;
@@ -162,8 +190,6 @@ public class FFFluidUtils {
         var fluidState2 = blockState2.getFluidState();
         return canFluidFlowFromPosToDirection(fluid, amount, levelAccessor, fromPos, levelAccessor.getBlockState(fromPos), direction, blockPos2, blockState2, fluidState2);
     }
-
-
     public static boolean canFluidFlowFromPosToDirection(FlowingFluid sourceFluid, int sourceAmount, BlockGetter blockGetter,
                                                          BlockPos blockPos, BlockState blockState, Direction direction,
                                                          BlockPos blockPos2, BlockState blockState2, FluidState fluidState2) {
@@ -171,6 +197,13 @@ public class FFFluidUtils {
         return (fluidState2.canBeReplacedWith(blockGetter, blockPos2, sourceFluid, direction) || canFitIntoFluid(sourceFluid, fluidState2, direction, sourceAmount, blockState2))
                 && sourceFluid.canPassThroughWall(direction, blockGetter, blockPos, blockState, blockPos2, blockState2)
                 && sourceFluid.canHoldFluid(blockGetter, blockPos2, blockState2, sourceFluid);
+    }
+
+    public static boolean canFluidFlowFromPosToDirectionFitOverride(FlowingFluid sourceFluid, BlockGetter blockGetter,
+                                                         BlockPos blockPos, BlockState blockState, Direction direction,
+                                                         BlockPos blockPos2, BlockState blockState2) {
+        //add extra fluid check for replacing into self
+        return sourceFluid.canPassThroughWall(direction, blockGetter, blockPos, blockState, blockPos2, blockState2) && sourceFluid.canHoldFluid(blockGetter, blockPos2, blockState2, sourceFluid);
     }
 
 
@@ -190,16 +223,101 @@ public class FFFluidUtils {
         return false;
     }
 
+    public static Pair<Integer, Runnable> placeConnectedFluidAmountAndPlaceAction(final LevelAccessor levelAccessor, final BlockPos blockPos, final int amountToPlace, final FlowingFluid fluid) {
+        return placeConnectedFluidAmountAndPlaceAction(levelAccessor, blockPos, amountToPlace, fluid, 80, true, true);
+    }
+
+    public static Pair<Integer, Runnable> placeConnectedFluidAmountAndPlaceAction(final LevelAccessor levelAccessor, final BlockPos blockPos, final int amountToPlace, final FlowingFluid fluid, int depth, boolean doUp, boolean doDown) {
+        var originalState = levelAccessor.getFluidState(blockPos);
+        int originalAmount = originalState.getAmount();
+        if (originalState.getType().isSame(fluid) && originalAmount > 0) {
+
+            //check for quick exit
+            if (originalAmount + amountToPlace <= 8) {
+                return Pair.of(0,()->FFFluidUtils.setFluidStateAtPosToNewAmount(levelAccessor, blockPos, fluid, originalAmount + amountToPlace));
+            }
+
+            List<BlockPos> toCheck = new ArrayList<>();
+            toCheck.add(blockPos);
+
+            final Consumer<BlockPos> addSurroundingPositions = blockPos1 -> {
+                for (Direction direction : getCardinalsShuffle(levelAccessor.getRandom())) {
+                    BlockPos offset = blockPos1.relative(direction);
+                    if (!toCheck.contains(offset)) toCheck.add(offset);
+                }
+                if (doUp) {
+                    // do these last just as preference
+                    BlockPos up = blockPos1.above();
+                    if (!toCheck.contains(up)) toCheck.add(up);
+                }
+                if (doDown) {
+                    BlockPos down = blockPos1.below();
+                    if (!toCheck.contains(down)) toCheck.add(down);
+                }
+
+            };
+            addSurroundingPositions.accept(blockPos);
+
+            List<Runnable> onSuccessPlacers = new ArrayList<>();
+            int amountLeftToPlace = amountToPlace;
+
+            for (int i = 0; i < toCheck.size(); i++) {
+                var pos = toCheck.get(i);
+
+                if (toCheck.size() > depth) break;
+
+                var state = levelAccessor.getFluidState(pos);
+                if (fluid.isSame(state.getType())
+                        || (state.isEmpty() && levelAccessor.getBlockState(pos).isAir())) { // only concerned with air blocks, we aren't going to f around with waterloggables here
+                    int space = 8-state.getAmount();
+                    if (space > 0) {
+
+                        if (space >= amountLeftToPlace) {
+                            int newAmount = state.getAmount() + amountLeftToPlace;
+                            onSuccessPlacers.add(() -> FFFluidUtils.setFluidStateAtPosToNewAmount(levelAccessor, pos, fluid, newAmount));
+                            amountLeftToPlace = 0;
+                            break;
+                        } else {
+                            onSuccessPlacers.add(() -> FFFluidUtils.setFluidStateAtPosToNewAmount(levelAccessor, pos, fluid, 8));
+                            amountLeftToPlace -= space;
+                        }
+                    }
+                    // keep searching
+                    addSurroundingPositions.accept(pos);
+                }
+            }
+            if (amountLeftToPlace == amountToPlace) {
+                //failed to find enough fluid so cancel
+                return Pair.of(amountToPlace, null);
+            }
+
+            return Pair.of(amountLeftToPlace, () -> onSuccessPlacers.forEach(Runnable::run));
+        }
+        return Pair.of(amountToPlace, null);
+    }
+
 
     public static int collectConnectedFluidAmountAndRemove(final LevelAccessor levelAccessor, final BlockPos blockPos, final int minAmountRequired, final int maxAmountToFind, final FlowingFluid fluid) {
+        var data = collectConnectedFluidAmountAndRemoveAction(levelAccessor,blockPos, minAmountRequired, maxAmountToFind, fluid);
+        if (data.first() != 0) {
+            data.second().run();
+            return data.first();
+        }
+        return 0;
+    }
+
+    public static Pair<Integer, Runnable> collectConnectedFluidAmountAndRemoveAction(final LevelAccessor levelAccessor, final BlockPos blockPos, final int minAmountRequired, final int maxAmountToFind, final FlowingFluid fluid) {
+        return collectConnectedFluidAmountAndRemoveAction(levelAccessor, blockPos, minAmountRequired, maxAmountToFind, fluid, 40);
+    }
+
+    public static Pair<Integer, Runnable> collectConnectedFluidAmountAndRemoveAction(final LevelAccessor levelAccessor, final BlockPos blockPos, final int minAmountRequired, final int maxAmountToFind, final FlowingFluid fluid, int depth) {
         var originalState = levelAccessor.getFluidState(blockPos);
         int originalAmount = originalState.getAmount();
         if (originalState.getType().isSame(fluid) && originalAmount > 0) {
 
             //check for quick exit
             if (originalAmount >= maxAmountToFind) {
-                FFFluidUtils.setFluidStateAtPosToNewAmount(levelAccessor, blockPos, fluid, originalAmount - maxAmountToFind);
-                return maxAmountToFind;
+                return Pair.of(maxAmountToFind,()->{FFFluidUtils.setFluidStateAtPosToNewAmount(levelAccessor, blockPos, fluid, originalAmount - maxAmountToFind);});
             }
 
             List<BlockPos> toCheck = new ArrayList<>();
@@ -215,7 +333,7 @@ public class FFFluidUtils {
             for (int i = 0; i < toCheck.size(); i++) {
                 var pos = toCheck.get(i);
 
-                if (toCheck.size() > 40) break;
+                if (toCheck.size() > depth) break;
 
                 var state = levelAccessor.getFluidState(pos);
                 if (fluid.isSame(state.getType())) {
@@ -240,13 +358,12 @@ public class FFFluidUtils {
             }
             if (foundAmount < minAmountRequired) {
                 //failed to find enough fluid so cancel
-                return 0;
+                return Pair.of(0, null);
             }
-            //levelAccessor.setBlock(blockPos, Blocks.AIR.defaultBlockState(), 11);
-            onSuccessAirSetters.forEach(Runnable::run);
-            return foundAmount;
+
+            return Pair.of(foundAmount, ()->{onSuccessAirSetters.forEach(Runnable::run);});
         }
-        return 0;
+        return Pair.of(0, null);
     }
 
     public static List<Direction> getCardinalsShuffle(RandomSource random) {
@@ -254,10 +371,15 @@ public class FFFluidUtils {
         return CARDINALS;
     }
 
+    private static boolean checkBlockIsNonDisplacer(BlockState state) {
+        return FlowingFluids.nonDisplacerTags.stream().anyMatch(state::is)
+                || FlowingFluids.nonDisplacers.stream().anyMatch(state::is);
+    }
+
     public static void displaceFluids(final Level level, final BlockPos pos, final BlockState state, final int flags, final LevelChunk levelChunk, final BlockState originalState) {
-        //oof, this is a big one
-        //try and order in most likely to least likely to avoid unnecessary checks
-        //configs first
+        // oof, this is a big one
+        // try and order in most likely to least likely to avoid unnecessary checks
+        // configs first
         if (!level.isClientSide()
                 && FlowingFluids.config.enableMod
                 && FlowingFluids.config.enableDisplacement
@@ -267,16 +389,15 @@ public class FFFluidUtils {
                 && !state.isAir() // covers most block breaking updates
                 && state.getFluidState().isEmpty()// not placing a waterlogged or fluid block
                 && !((flags & 64) == 64) //Piston moved flag
-                && !state.is(BlockTags.ICE)
                 && !(state.getBlock() instanceof LiquidBlockContainer && originalState.getBlock() instanceof BucketPickup)
-                && !state.is(Blocks.SPONGE)
+                && !checkBlockIsNonDisplacer(state) // check if the block is a displacer
                ) {
-            //fluid block was replaced, lets try and displace the fluid
+            // fluid block was replaced, lets try and displace the fluid
             FlowingFluids.isManeuveringFluids = true;
 
 
             try {
-                //try spread to the side as much as possible
+                // try spread to the side as much as possible
                 int amountRemaining = originalState.getFluidState().getAmount();
                 for (Direction direction : getCardinalsShuffle(level.getRandom())) {
                     BlockPos offset = pos.relative(direction);
@@ -292,7 +413,7 @@ public class FFFluidUtils {
                     }
                 }
                 if (amountRemaining > 0) {
-                    //if we still have fluid left, try to displace upwards recursively
+                    // if we still have fluid left, try to displace upwards recursively
                     BlockPos.MutableBlockPos posTraversing = new BlockPos.MutableBlockPos(pos.getX(), pos.getY(), pos.getZ());
                     int height = levelChunk
                             #if MC > MC_21
@@ -313,13 +434,7 @@ public class FFFluidUtils {
                             break;
                         }
                     }
-
-                    if (amountRemaining > 0 && FlowingFluids.config.debugSpreadPrint) {
-                        //lost fluid will just have to happen
-                        FlowingFluids.LOG.info("Failed to displace all fluid at {} remaining: {}, originalAmount {}", pos.toShortString(), amountRemaining, originalState.getFluidState().getAmount());
-                    }
                 }
-
             } finally {
                 FlowingFluids.isManeuveringFluids = false;
             }

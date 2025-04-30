@@ -8,10 +8,13 @@
     "MixinLiquidBlockRenderer"
   ],
   "mixins": [
+    "MixinAfterChunkGen",
     "MixinBlockState",
+    "MixinBoatFloating",
     "MixinBottleItem",
     "MixinBucketItem",
     "MixinDispenserBlock",
+    "MixinEntityBreeding",
     "MixinFarmBlock",
     "MixinFlowingFluid",
     "MixinKelpPlantBlock",
@@ -21,9 +24,7 @@
     "MixinSeaGrassBlock",
     "MixinTallSeaGrassBlock",
     "MixinWaterFluid",
-    "create.MixinPipe",
-    "create.MixinWaterWheel",
-    "sodium.MixinFluidRenderer",
+    "MixinWaterPushing",
     "sodium.MixinFluidRenderer2"
   ],
   "injectors": {

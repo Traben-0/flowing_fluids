@@ -108,11 +108,13 @@ Fluids can be moved by pistons to pump them upwards automatically.
 
 ## **Gameplay Elements**:
 
-There are a few new gameplay elements that will drain or use water, to encourage water management.
+There are a few new gameplay elements that will drain or use water, to encourage water management, most are configurable.
 
-Such as farmlands draining a water level whenever it hydrates.
+Such as farmlands havign a chance to drain a water level whenever it hydrates.
 
 ![farmland](https://i.imgur.com/NoTbe63.gif)
+
+Animals having a chance to require and consume 1 level of nearby water *(within 8 blocks)* when breeding.
 
 Bottles will consume 2-3 water levels when filled.
 
@@ -140,7 +142,7 @@ There are also various ways in which water specifically naturally evaporates or 
 
 Any mod added fluids should work with the mod, though if the modded fluid has special properties, they may not be fully supported.
 
-I plan to add support for blacklisting modded fluids in the future, and prefill the list with known breaking fluids.
+You can also blacklist modded fluids that you don't want to have physics. Via the `/flowing_fluids settings ignored_fluids add <fluid_name>` command.
 
 This mod can also be disabled (`/flowing_fluids settings enable_mod on|off`) or removed at any time without breaking the world, as any fluid that is 'full' *(8 levels)* will be saved as a vanilla source block. 
 And all 'non-full' fluids *(1-7 levels)* will be saved as a vanilla flowing blocks which will just disappear once updated in vanilla.
@@ -149,9 +151,11 @@ And all 'non-full' fluids *(1-7 levels)* will be saved as a vanilla flowing bloc
 
 Flowing Fluids has special compatibility settings for use with the Create mod, to modify the behaviour of water wheels and pipes.
 
+Please note some of these interactions only work properly with "full" liquid blocks *(source blocks)*, so factor that in to your design planning.
+
 ![create](https://i.imgur.com/fR4fpji.gif)
 
-Create Mod pipes can move fluids around finitely, and can optionally be set to treat all fluids as infinite sources via the `/flowing_fluids create_compat pipes infinite_pipe_fluid_source on|off` command.
+Create Mod pipes can move fluids around finitely, as can Hose Pulleys, and can optionally be set to treat all fluids as infinite sources via the `/flowing_fluids create_compat pipes infinite_pipe_fluid_source on|off` command.
 
 ![pipes](https://i.imgur.com/hM95cFe.gif)
 

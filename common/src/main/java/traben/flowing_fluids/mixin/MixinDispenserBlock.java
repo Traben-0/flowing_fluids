@@ -85,7 +85,7 @@ public class MixinDispenserBlock {
                             if (fState.getAmount() > 0 || item.getDamageValue() > 0){
                                 //we intervene if the block can only accept partial water or if the bucket is not full
                                 int amountInBucket = 8 - item.getDamageValue();
-                                int remainder = bucket.ff$emptyContents_AndGetRemainder(null, level, blockPos, null, amountInBucket);
+                                int remainder = bucket.ff$emptyContents_AndGetRemainder(null, level, blockPos, null, amountInBucket, false);
                                 if (remainder != amountInBucket){
                                     ((DispensibleContainerItem)bucket).checkExtraContent(null, level, item, blockPos);
                                     #if MC == MC_20_1

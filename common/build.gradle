@@ -3,11 +3,6 @@ architectury {
 }
 
 repositories{
-    if (project.create_enabled as int == 1) {
-        maven { url = "https://mvn.devos.one/snapshots/" } // Create Fabric
-        maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
-        maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" }
-    }
 
     maven { url = "https://api.modrinth.com/maven" }
 }
@@ -18,14 +13,14 @@ dependencies {
     // Do NOT use other classes from Fabric Loader.
     modImplementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
 
-    if (project.create_enabled as int == 1) {
-        // Compile against Create Fabric in common
-        // beware of differences across platforms!
-        // dependencies must also be pulled in to minimize problems, from remapping issues to compile errors.
-        // All dependencies except Flywheel and Registrate are NOT safe to use!
-        // Flywheel and Registrate must also be used carefully due to differences.
-        modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
-    }
+//    if (project.create_enabled as int == 1) {
+//        // Compile against Create Fabric in common
+//        // beware of differences across platforms!
+//        // dependencies must also be pulled in to minimize problems, from remapping issues to compile errors.
+//        // All dependencies except Flywheel and Registrate are NOT safe to use!
+//        // Flywheel and Registrate must also be used carefully due to differences.
+//        modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
+//    }
 
     modImplementation("maven.modrinth:sodium:${project.sodium_version}") {
         exclude(group: "net.fabricmc.fabric-api")

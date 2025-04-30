@@ -20,7 +20,7 @@ public class FlowingFluidsPlatformImpl {
         FriendlyByteBuf buf = PacketByteBufs.create();
 
         FlowingFluids.config.encodeToByteBuffer(buf);
-        FlowingFluids.LOG.info("[Flowing Fluids] - Sending server config to [" + player.getName().getString() + "]");
+        FlowingFluids.info("- Sending server config to [" + player.getName().getString() + "]");
         ServerPlayNetworking.send(player,
                 #if MC > MC_20_1
                     FFConfigDataFabric.read(buf)

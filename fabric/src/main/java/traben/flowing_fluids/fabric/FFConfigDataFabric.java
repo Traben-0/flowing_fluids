@@ -38,10 +38,10 @@ public class FFConfigDataFabric extends FFConfigData {
         FFConfigDataFabric packet;
         if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
             try {
-                FlowingFluids.LOG.info("[Flowing Fluids] - Server Config packet received");
+                FlowingFluids.info("- Server Config packet received");
                 packet = new FFConfigDataFabric(new FFConfig(buffer));
             } catch (Exception e) {
-                FlowingFluids.LOG.error("[Flowing Fluids] - Server Config packet decoding failed because:\n" + e);
+                FlowingFluids.error("- Server Config packet decoding failed because:\n" + e);
                 throw e;//crash
             }
         } else {

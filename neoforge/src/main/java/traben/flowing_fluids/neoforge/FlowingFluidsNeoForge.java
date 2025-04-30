@@ -22,7 +22,7 @@ public final class FlowingFluidsNeoForge {
 
     @SubscribeEvent
     public static void onRegisterCommandEvent(RegisterCommandsEvent event) {
-        FlowingFluids.LOG.info("[Flowing Fluids] commands registered");
+        FlowingFluids.info("commands registered");
         FFCommands.registerCommands(event.getDispatcher(), event.getBuildContext(), event.getCommandSelection());
     }
 }
@@ -37,13 +37,13 @@ class ModRegister {
                 if (data.isValid()) {
                     FlowingFluids.config = data.delegate;
 
-                    FlowingFluids.LOG.info("[Flowing Fluids] - Server Config data received and synced");
+                    FlowingFluids.info("- Server Config data received and synced");
                 } else {
-                    FlowingFluids.LOG.error("[Flowing Fluids] - Server Config data received and failed to sync, invalid data");
+                    FlowingFluids.error("- Server Config data received and failed to sync, invalid data");
                     throw new RuntimeException("[Flowing Fluids] - Server Config data received and failed to sync, invalid data");
                 }
             } catch (Exception e) {
-                FlowingFluids.LOG.error("[Flowing Fluids] - Server Config data received and failed to sync, exception");
+                FlowingFluids.error("- Server Config data received and failed to sync, exception");
                 throw new RuntimeException("[Flowing Fluids] - Server Config data received and failed to sync, exception", e);
             }
         });

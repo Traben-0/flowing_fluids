@@ -21,7 +21,7 @@ public class FlowingFluidsPlatformImpl {
     public static void sendConfigToClient(ServerPlayer player) {
         PacketDistributor.sendToPlayer(player, new FFConfigDataNeoForge());
 //       PacketDistributor.PLAYER.with(player).send(new SMData()
-        FlowingFluids.LOG.info("[Flowing Fluids] - Sending server config to [" + player.getName().getString() + "]");
+        FlowingFluids.info("- Sending server config to [" + player.getName().getString() + "]");
     }
 
     public static boolean isThisModLoaded(final String modId) {

@@ -18,12 +18,10 @@ import traben.flowing_fluids.FlowingFluids;
 import java.util.Set;
 
 public class FFConfig {
-    public boolean fastmode = false;
     public boolean flowToEdges = true;
-//    public LevelingBehaviour levelingBehaviour = LevelingBehaviour.LAZY_LEVEL;
     public boolean enableMod = true;
-    public boolean debugSpread = false;
-    public boolean debugSpreadPrint = false;
+//    public boolean debugSpread = false;
+//    public boolean debugSpreadPrint = false;
     public boolean enableDisplacement = true;
     public boolean enablePistonPushing = true;
     public float rainRefillChance = 0.33f;
@@ -33,7 +31,7 @@ public class FFConfig {
     public boolean printRandomTicks = false;
     public boolean hideFlowingTexture = true;
     public LiquidHeight fullLiquidHeight = LiquidHeight.REGULAR;
-    public boolean farmlandDrainsWater = true;
+    public float farmlandDrainWaterChance = 0.2f;
     public boolean debugWaterLevelColours = false;
     public WaterLogFlowMode waterLogFlowMode = WaterLogFlowMode.IN_FROM_TOP_ELSE_OUT;
     public int waterFlowDistance = 4;
@@ -43,17 +41,26 @@ public class FFConfig {
     public int lavaTickDelay= 15;
     public int lavaNetherTickDelay = 5;
     public int randomTickLevelingDistance = 32;
+    public float drinkWaterToBreedAnimalChance = 0.1f;
+    public boolean encloseAllFluidOnWorldGen = true;
+    public boolean announceWorldGenActions = false;
+    public boolean easyPistonPump = true;
+    public boolean waterFlowAffectsBoats = false;
+    public boolean waterFlowAffectsEntities = true;
+    public boolean waterFlowAffectsPlayers = false;
+    public boolean waterFlowAffectsItems = true;
 
 
-    //create mod options
+    // create mod options
     public CreateWaterWheelMode create_waterWheelMode = CreateWaterWheelMode.REQUIRE_FLOW_OR_RIVER;
     public boolean create_infinitePipes = false;
 
-    //fluid blacklist
+    // fluid blacklist
     public Set<String> fluidBlacklist = new ObjectOpenHashSet<>();
 
     public boolean isFluidAllowed(Fluid fluid){
-        //quick most likely exits to avoid searching the blacklist
+        if (fluid == null) return false;
+        // quick most likely exits to avoid searching the blacklist
         if (fluidBlacklist.isEmpty() || fluid == Fluids.EMPTY) return true;
         return !fluidBlacklist.contains(BuiltInRegistries.FLUID.getKey(fluid).toString());
     }
@@ -94,15 +101,14 @@ public class FFConfig {
 
     public FFConfig(FriendlyByteBuf buffer) {
 
-        FlowingFluids.LOG.info("[Flowing Fluids] - Decoding server config packet from server.");
+        FlowingFluids.info("- Decoding server config packet from server.");
         //PRESERVE WRITE ORDER IN READ
         /////////////////////////////////////////
-        fastmode = buffer.readBoolean();
         flowToEdges = buffer.readBoolean();
 //        levelingBehaviour = buffer.readEnum(LevelingBehaviour.class);
         enableMod = buffer.readBoolean();
-        debugSpread = buffer.readBoolean();
-        debugSpreadPrint = buffer.readBoolean();
+//        debugSpread = buffer.readBoolean();
+//        debugSpreadPrint = buffer.readBoolean();
         enableDisplacement = buffer.readBoolean();
         enablePistonPushing = buffer.readBoolean();
         rainRefillChance = buffer.readFloat();
@@ -112,7 +118,7 @@ public class FFConfig {
         printRandomTicks = buffer.readBoolean();
         hideFlowingTexture = buffer.readBoolean();
         fullLiquidHeight = buffer.readEnum(LiquidHeight.class);
-        farmlandDrainsWater = buffer.readBoolean();
+        farmlandDrainWaterChance = buffer.readFloat();
         debugWaterLevelColours = buffer.readBoolean();
         waterLogFlowMode = buffer.readEnum(WaterLogFlowMode.class);
         waterFlowDistance = buffer.readVarInt();
@@ -122,7 +128,14 @@ public class FFConfig {
         lavaTickDelay = buffer.readVarInt();
         lavaNetherTickDelay = buffer.readVarInt();
         randomTickLevelingDistance = buffer.readVarInt();
-//        fluidLevelingStrength = buffer.readEnum(LevelingStrength.class);
+        drinkWaterToBreedAnimalChance = buffer.readFloat();
+        encloseAllFluidOnWorldGen = buffer.readBoolean();
+        announceWorldGenActions = buffer.readBoolean();
+        easyPistonPump = buffer.readBoolean();
+        waterFlowAffectsBoats = buffer.readBoolean();
+        waterFlowAffectsEntities = buffer.readBoolean();
+        waterFlowAffectsPlayers = buffer.readBoolean();
+        waterFlowAffectsItems = buffer.readBoolean();
 
         //create mod options
         create_waterWheelMode = buffer.readEnum(CreateWaterWheelMode.class);
@@ -135,16 +148,15 @@ public class FFConfig {
 
     public void encodeToByteBuffer(FriendlyByteBuf buffer) {
 
-        FlowingFluids.LOG.info("[Flowing Fluids] - Encoding server config packet for client.");
+        FlowingFluids.info("- Encoding server config packet for client.");
 
         //PRESERVE WRITE ORDER IN READ
         /////////////////////////////////////////
-        buffer.writeBoolean(fastmode);
         buffer.writeBoolean(flowToEdges);
 //        buffer.writeEnum(levelingBehaviour);
         buffer.writeBoolean(enableMod);
-        buffer.writeBoolean(debugSpread);
-        buffer.writeBoolean(debugSpreadPrint);
+//        buffer.writeBoolean(debugSpread);
+//        buffer.writeBoolean(debugSpreadPrint);
         buffer.writeBoolean(enableDisplacement);
         buffer.writeBoolean(enablePistonPushing);
         buffer.writeFloat(rainRefillChance);
@@ -154,7 +166,7 @@ public class FFConfig {
         buffer.writeBoolean(printRandomTicks);
         buffer.writeBoolean(hideFlowingTexture);
         buffer.writeEnum(fullLiquidHeight);
-        buffer.writeBoolean(farmlandDrainsWater);
+        buffer.writeFloat(farmlandDrainWaterChance);
         buffer.writeBoolean(debugWaterLevelColours);
         buffer.writeEnum(waterLogFlowMode);
         buffer.writeVarInt(waterFlowDistance);
@@ -164,7 +176,14 @@ public class FFConfig {
         buffer.writeVarInt(lavaTickDelay);
         buffer.writeVarInt(lavaNetherTickDelay);
         buffer.writeVarInt(randomTickLevelingDistance);
-//        buffer.writeEnum(fluidLevelingStrength);
+        buffer.writeFloat(drinkWaterToBreedAnimalChance);
+        buffer.writeBoolean(encloseAllFluidOnWorldGen);
+        buffer.writeBoolean(announceWorldGenActions);
+        buffer.writeBoolean(easyPistonPump);
+        buffer.writeBoolean(waterFlowAffectsBoats);
+        buffer.writeBoolean(waterFlowAffectsEntities);
+        buffer.writeBoolean(waterFlowAffectsPlayers);
+        buffer.writeBoolean(waterFlowAffectsItems);
 
         //create mod options
         buffer.writeEnum(create_waterWheelMode);

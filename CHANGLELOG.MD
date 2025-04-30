@@ -1,4 +1,25 @@
 
+0.4
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+TODO PROPAGATE TO README 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+- added create 0.6 support for both Forge 1.20.1 and NeoForge 1.21.1
+- added support for create Hose Pulley blocks
+- added the `FlowingFluidsApi` interface to allow other mods to interact with the mod safely, use `FlowingFluidsApi.getInstance(modid)` to get an implementation of the API to use
+- changed the farmland drains water setting from on|off to a chance setting `farm_land_drains_water_chance` with values between 0 and 1.0, 0 is off, 1.0 is always
+- added the `animal_breeding_drains_water_chance` setting to control the chance animals may require, and consume, nearby water when breeding. this range is within 8 blocks horizontally and 1 block above or below the animals feet
+- added the `plug_fluids_during_world_gen` setting to control if fluids should be plugged during world generation, this is an IMMENSE performance boost as previously these exposed water reservoirs would cause thousands of fluid updates on chunk generation, this won't affect lone fluid blocks unless they are on chunk boundaries
+- added the `easy_piston_pumps` setting to delay fluids above a piston from falling back down, to improve upwards piston pumps
+- added further debug commands and removed some
+- buckets will now try to place all of their water, and will spread it to nearby water if required, only leaving a partially filled bucket if there was no space.
+- all level 1 water now evaporates regardless of exposure to the sky, but still only during the day when it isn't raining
+- added a simple fluid pressure system, fluids with fluid above them will spread faster and further per tick, consuming the block above them for extra flow, this pressure only propagates downwards and sideways
+- added settings to control whether fluid height differences cause vanilla water pushing behaviours, this can be set separately for boats, players, items, and other entities. Only items entities are enabled by default
+- boats will now always float when in, or under, water, this requires the above setting to be off for boats (which is default)
+- fixed flowing water texture hiding with sodium
+- fixed water level tinting with sodium
+- removed the `fast_mode` setting as it was just jank and easily broken
+
 0.3.1 
 - neoforge and forge crash fix
 

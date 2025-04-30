@@ -31,14 +31,10 @@ if(rootProject.mc_build as int > 5){
 }
 
 repositories {
-    if (project.create_enabled as int == 1) {
-        maven { // Create Forge and Registrate Forge
-            url = "https://maven.tterrag.com/"
-            content {
-                includeGroup("com.tterrag.registrate")
-                includeGroup("com.simibubi.create")
-            }
-        }
+    if (rootProject.mc_build as int == 3) {
+        maven { url = "https://maven.createmod.net" } // Create, Ponder, Flywheel
+        maven { url = "https://maven.tterrag.com" } // Registrate
+        maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // ForgeConfigAPIPort
     }
 }
 
@@ -65,11 +61,12 @@ dependencies {
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
     implementation(include("io.github.llamalad7:mixinextras-forge:0.4.1"))
 
-    if (project.create_enabled as int == 1) {
+    if (rootProject.mc_build as int == 3) {
         // Create and its dependencies
         modImplementation("com.simibubi.create:create-${minecraft_version}:${create_forge_version}:slim") { transitive = false }
+        modImplementation("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${forge_ponder_version}")
         modImplementation("com.tterrag.registrate:Registrate:${registrate_forge_version}")
-        modImplementation("com.jozufozu.flywheel:flywheel-forge-${flywheel_forge_minecraft_version}:${flywheel_forge_version}")
+        modImplementation("dev.engine-room.flywheel:flywheel-forge-${flywheel_forge_minecraft_version}:${flywheel_forge_version}")
     }
 }
 

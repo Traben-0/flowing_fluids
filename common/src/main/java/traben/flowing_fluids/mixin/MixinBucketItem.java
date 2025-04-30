@@ -109,7 +109,7 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
                             || (this.content.isSame(fluidState.getType()) && fluidState.getAmount() < 8)
                             ? blockPos : blockPos2;
                     int amount = 8 - heldBucket.getDamageValue();
-                    int remainder = this.ff$emptyContents_AndGetRemainder(player, level, blockPos3, blockHitResult, amount);
+                    int remainder = this.ff$emptyContents_AndGetRemainder(player, level, blockPos3, blockHitResult, amount, false);
                     if (remainder != amount) {
                         this.checkExtraContent(player, level, heldBucket, blockPos3);
                         if (player instanceof ServerPlayer) {
@@ -144,7 +144,7 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
     }
 
     @Override
-    public int ff$emptyContents_AndGetRemainder(@Nullable Player player, Level level, BlockPos blockPos, @Nullable BlockHitResult blockHitResult, int amount) {
+    public int ff$emptyContents_AndGetRemainder(@Nullable Player player, Level level, BlockPos blockPos, @Nullable BlockHitResult blockHitResult, int amount, boolean onlyModifyThatBlock) {
         if (!(this.content instanceof FlowingFluid flowingFluid)
                 || !FlowingFluids.config.isFluidAllowed(content)) {
             return amount;
@@ -152,20 +152,23 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
 
             var state = level.getBlockState(blockPos);
             var fluidState = level.getFluidState(blockPos);
-            boolean canPlaceLiquidInPos = state.canBeReplaced(this.content)
-                    || state.isAir()
-                    || (this.content.isSame(fluidState.getType()) && fluidState.getAmount() < 8);
+
+            boolean fluidIsSameAsContent = this.content.isSame(fluidState.getType());
+            boolean canPlaceLiquidInPos = state.canBeReplaced(this.content) || state.isAir() || fluidIsSameAsContent;
 
             if (!canPlaceLiquidInPos && state.getBlock() instanceof LiquidBlockContainer container) {
-//                System.out.println("is liquid block container");
-                canPlaceLiquidInPos = amount == 8 && container.canPlaceLiquid(#if MC > MC_20_1 player,#endif level, blockPos, state, this.content);
+                if (container.canPlaceLiquid(#if MC > MC_20_1 player,#endif level, blockPos, state, this.content)) {
+                    if (amount != 8) return amount;
+                    container.placeLiquid(level, blockPos, level.getBlockState(blockPos), flowingFluid.getSource(false));
+                    this.playEmptySound(player, level, blockPos);
+                    return 0;
+                }
             }
 
             if (!canPlaceLiquidInPos) {
-//                System.out.println("cannot place liquid");
                 if (blockHitResult == null) return amount;
-                return this.ff$emptyContents_AndGetRemainder(player, level, blockHitResult.getBlockPos().relative(blockHitResult.getDirection()), null, amount);
-            } else if (level.dimensionType().ultraWarm() && this.content.is(FluidTags.WATER)) {
+                return this.ff$emptyContents_AndGetRemainder(player, level, blockHitResult.getBlockPos().relative(blockHitResult.getDirection()), null, amount, onlyModifyThatBlock);
+            }else if (level.dimensionType().ultraWarm() && this.content.is(FluidTags.WATER)) {
                 int i = blockPos.getX();
                 int j = blockPos.getY();
                 int k = blockPos.getZ();
@@ -177,33 +180,24 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
 
                 return 0;
             } else {
-                if (level.getBlockState(blockPos).getBlock() instanceof final LiquidBlockContainer liquidBlockContainer) {
-                    if (this.content == Fluids.WATER) {
-                        if (amount != 8) {
-                            return amount;
-                        }
-                        liquidBlockContainer.placeLiquid(level, blockPos, level.getBlockState(blockPos), flowingFluid.getSource(false));
-                        this.playEmptySound(player, level, blockPos);
-                        return 0;
-                    }
-                }
 
                 if (!level.isClientSide && level.getBlockState(blockPos).canBeReplaced(this.content) && !level.getBlockState(blockPos).liquid()) {
                     level.destroyBlock(blockPos, true);
                 }
 
-                //if (!level.setBlock(blockPos, this.content.defaultFluidState().createLegacyBlock(), 11) && !blockState.getFluidState().isSource()) {
-                if (!(content instanceof FlowingFluid)) return amount;
-
                 boolean success;
                 int remainder;
-                boolean matches = level.getBlockState(blockPos).getFluidState().getType().isSame(this.content);
-                if (matches) {
-                    int levelAtBlock = level.getBlockState(blockPos).getFluidState().getAmount();
+                if (fluidIsSameAsContent) {
+                    int levelAtBlock = fluidState.getAmount();
                     int total = levelAtBlock + amount;
-                    if (total > 8) {
-                        success = level.setBlock(blockPos, FFFluidUtils.getBlockForFluidByAmount(content, 8), 11);
-                        remainder = total - 8;
+                    if (total > 8){
+                        if (onlyModifyThatBlock) {
+                            success = level.setBlock(blockPos, FFFluidUtils.getBlockForFluidByAmount(content, 8), 11);
+                            remainder = total - 8;
+                        } else {
+                            remainder = FFFluidUtils.addAmountToFluidAtPosWithRemainderAndTrySpreadIfFull(level, blockPos, flowingFluid, amount);
+                            success = remainder != amount;
+                        }
                     } else {
                         success = level.setBlock(blockPos, FFFluidUtils.getBlockForFluidByAmount(content, total), 11);
                         remainder = 0;
@@ -218,6 +212,7 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
             }
         }
     }
+
 
     @Override
     public ItemStack ff$bucketOfAmount(ItemStack originalItemData ,final int amount) {

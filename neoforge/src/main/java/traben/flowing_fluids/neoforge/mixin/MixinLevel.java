@@ -35,7 +35,7 @@ public abstract class MixinLevel {
             final CallbackInfoReturnable<Boolean> cir, final LevelChunk levelchunk, final Block block,
             final BlockSnapshot blockSnapshot, final BlockState old
     #endif) {
-        FFFluidUtils.displaceFluids((Level) (Object) this,pos, state, flags, levelchunk, old);
+        FFFluidUtils.displaceFluids((Level) (Object) this, pos, state, flags, levelchunk, old);
     }
 
 }

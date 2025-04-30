@@ -6,7 +6,10 @@
   "client": [
   ],
   "mixins": [
-    "MixinLevel"
+    "MixinLevel",
+    "create.FluidDrainingBehaviourAccessor",
+    "create.FluidManipulationBehaviourAccessor",
+    "create.MixinHosePulley"
   ],
   "injectors": {
     "defaultRequire": 1
