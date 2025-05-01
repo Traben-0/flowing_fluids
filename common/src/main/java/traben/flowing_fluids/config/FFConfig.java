@@ -51,6 +51,7 @@ public class FFConfig {
     public boolean waterFlowAffectsItems = true;
     public float infiniteWaterBiomeNonConsumeChance = 0.01f;
     public float infiniteWaterBiomeDrainSurfaceChance = 0.1f;
+    public int minWaterLevelForIce = 4;
 
 
     // create mod options
@@ -140,6 +141,7 @@ public class FFConfig {
         waterFlowAffectsItems = buffer.readBoolean();
         infiniteWaterBiomeNonConsumeChance = buffer.readFloat();
         infiniteWaterBiomeDrainSurfaceChance = buffer.readFloat();
+        minWaterLevelForIce = buffer.readVarInt();
 
         //create mod options
         create_waterWheelMode = buffer.readEnum(CreateWaterWheelMode.class);
@@ -190,6 +192,7 @@ public class FFConfig {
         buffer.writeBoolean(waterFlowAffectsItems);
         buffer.writeFloat(infiniteWaterBiomeNonConsumeChance);
         buffer.writeFloat(infiniteWaterBiomeDrainSurfaceChance);
+        buffer.writeVarInt(minWaterLevelForIce);
 
         //create mod options
         buffer.writeEnum(create_waterWheelMode);

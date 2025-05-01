@@ -17,6 +17,7 @@
     "MixinEntityBreeding",
     "MixinFarmBlock",
     "MixinFlowingFluid",
+    "MixinIceCreationCondition",
     "MixinKelpPlantBlock",
     "MixinLavaFluid",
     "MixinLiquidBlock",
@@ -24,7 +25,6 @@
     "MixinSeaGrassBlock",
     "MixinTallSeaGrassBlock",
     "MixinWaterFluid",
-    "MixinWaterPushing",
     "sodium.MixinFluidRenderer2"
   ],
   "injectors": {

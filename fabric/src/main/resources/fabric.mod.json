@@ -32,5 +32,10 @@
     "fabricloader": "*",
     "fabric-api": "*",
     "minecraft": "${compatible_mc_fabric}"
+  },
+  "custom": {
+    "lithium:options": {
+      "mixin.world.chunk_ticking.spread_ice": false
+    }
   }
 }

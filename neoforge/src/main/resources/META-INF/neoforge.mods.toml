@@ -34,3 +34,7 @@ config = "flowing_fluids.mixins.json"
 
 [[mixins]]
 config = "flowing_fluids_neoforge.mixins.json"
+
+#https://github.com/CaffeineMC/lithium/wiki/Disabling-Lithium's-Mixins-using-your-mod's-fabric.mod.json-or-neoforge.mods.toml
+["lithium:options"]
+"mixin.world.chunk_ticking.spread_ice" = false

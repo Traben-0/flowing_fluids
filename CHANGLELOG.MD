@@ -10,6 +10,7 @@
 - added the `animal_breeding_drains_water_chance` setting to control the chance animals may require, and consume, nearby water when breeding. this range is within 8 blocks horizontally and 1 block above or below the animals feet
 - added the `plug_fluids_during_world_gen` setting to control if fluids should be plugged during world generation, this is an IMMENSE performance boost as previously these exposed water reservoirs would cause thousands of fluid updates on chunk generation, this won't affect lone fluid blocks unless they are on chunk boundaries
 - added the `easy_piston_pumps` setting to delay fluids above a piston from falling back down, to improve upwards piston pumps
+- added the `min_level_for_ice` setting to control the minimum level of water required for ice to form, this is useful for making ice  more consistently.
 - added further debug commands and removed some
 - buckets will now try to place all of their water, and will spread it to nearby water if required, only leaving a partially filled bucket if there was no space.
 - all level 1 water now evaporates regardless of exposure to the sky, but still only during the day when it isn't raining

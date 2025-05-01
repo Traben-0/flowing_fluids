@@ -68,6 +68,17 @@ public class FFCommands {
                 );
     }
 
+    private static  LiteralArgumentBuilder<CommandSourceStack> intCommand(String name, String description, String argName, int min, int max, Consumer<Integer> setter, Supplier<Integer> getter) {
+        return Commands.literal(name)
+                .executes(cont -> message(cont, description + "\nCurrent value of " + name + " = " + getter.get()))
+                .then(Commands.argument(argName, IntegerArgumentType.integer(min, max))
+                        .executes(cont -> {
+                            setter.accept(cont.getArgument(argName, Integer.class));
+                            return messageAndSaveConfig(cont, name + " set to " + getter.get());
+                        })
+                );
+    }
+
     private static LiteralArgumentBuilder<CommandSourceStack> booleanCommand(String name, String description, BooleanConsumer setter, BooleanSupplier getter) {
         return booleanCommand(name, description, name + " setting is now: On.", name + " setting is now: Off.", setter, getter);
     }
@@ -189,7 +200,11 @@ public class FFCommands {
 
                         ).then(Commands.literal("behaviour")
                                 .executes(commandContext -> message(commandContext, "Behaviour settings for Flowing Fluids, use these to change how fluids behave."))
-                                .then(Commands.literal("random_tick_level_check_distance")
+                                .then(intCommand("min_level_for_ice",
+                                        "Controls the minimum level of water that will freeze, this is useful for making ice form in partial height water.\nThe default value is 4, and the maximum value is 8.",
+                                        "level", 0, 8,
+                                        a -> FlowingFluids.config.minWaterLevelForIce = a, () -> FlowingFluids.config.minWaterLevelForIce)
+                                ).then(Commands.literal("random_tick_level_check_distance")
                                         .executes(cont -> message(cont, "Sets the distance fluids will check for other fluids to level with during random ticks, 0 means disabled, currently set to " + FlowingFluids.config.randomTickLevelingDistance))
                                         .then(Commands.argument("distance", IntegerArgumentType.integer(0, 64))
                                                 .executes(cont -> {
