@@ -6,11 +6,13 @@ import net.minecraft.network.FriendlyByteBuf;
 #if MC > MC_21
 import net.minecraft.util.ARGB;
 #else
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FastColor;
 #endif
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
+import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
 
 import java.util.Set;
@@ -285,7 +287,7 @@ public class FFConfig {
     }
 
     #if MC <= MC_20_1
-    public static final ResourceLocation SERVER_CONFIG_PACKET_ID = FFFluidUtils.res("floiwing_fluids:server_config_packet");
+    public static final ResourceLocation SERVER_CONFIG_PACKET_ID = FFFluidUtils.res("flowing_fluids:server_config_packet");
 
 
     #endif

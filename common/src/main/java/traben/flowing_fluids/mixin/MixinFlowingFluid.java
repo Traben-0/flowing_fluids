@@ -241,12 +241,11 @@ public abstract class MixinFlowingFluid extends Fluid {
             boolean dontConsumeWater = isWaterAndInfiniteBiome
                     && level.getRandom().nextFloat() < FlowingFluids.config.infiniteWaterBiomeNonConsumeChance;
 
+            #if MC <= MC_21
+            BlockState thisState = level.getBlockState(blockPos);
+            #endif
+
             try {
-
-                #if MC <= MC_21
-                BlockState thisState = level.getBlockState(blockPos);
-                #endif
-
 
                 BlockPos posDown = blockPos.below();
                 // check if we can flow down and if so how much fluid remains out of the 8 total possible

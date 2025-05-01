@@ -54,7 +54,13 @@ public class MixinBottleItem {
                     ordinal = 1,
                     shift = At.Shift.BEFORE),
             cancellable = true)
-    private void ff$drainWater(final #if MC > MC_21 CallbackInfoReturnable<InteractionResult> #else CallbackInfoReturnable<InteractionResultHolder<ItemStack>> #endif cir,
+    private void ff$drainWater(
+                                    #if MC > MC_21
+                                    CallbackInfoReturnable<InteractionResult> cir,
+                                    #else
+                                    CallbackInfoReturnable<InteractionResultHolder<ItemStack>> cir,
+                                    @Local final ItemStack itemStack,
+                                    #endif
                                @Local(argsOnly = true) final Level level, @Local final BlockPos blockPos) {
         if (FlowingFluids.config.enableMod
                 && FlowingFluids.config.isWaterAllowed()){

@@ -35,8 +35,8 @@ public class PlugWaterFeature {
         BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
 
         var set = new HashSet<BlockPos>();
-        for (int i = #if MC>=MC_21_5 chunkAccess.getMinSectionY() #else chunkAccess.getMinSection() #endif ;
-             i < #if MC>=MC_21_5 chunkAccess.getMaxSectionY() #else chunkAccess.getMaxSection() #endif ;
+        for (int i = #if MC>MC_21 chunkAccess.getMinSectionY() #else chunkAccess.getMinSection() #endif ;
+             i < #if MC>MC_21 chunkAccess.getMaxSectionY() #else chunkAccess.getMaxSection() #endif ;
              ++i) {
             LevelChunkSection levelChunkSection = chunkAccess.getSection(chunkAccess.getSectionIndexFromSectionY(i));
             if (levelChunkSection.maybeHas(PlugWaterFeature::isFluidSource)) {
