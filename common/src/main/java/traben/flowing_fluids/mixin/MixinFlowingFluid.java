@@ -9,19 +9,18 @@ import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.block.BlockTypes;
+import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BucketPickup;
 import net.minecraft.world.level.block.DirectionalBlock;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.LiquidBlockContainer;
-import net.minecraft.world.level.block.piston.PistonBaseBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
@@ -38,13 +37,11 @@ import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
 import traben.flowing_fluids.config.FFConfig;
 
-import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Random;
+import java.util.Vector;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
-import java.util.function.ToIntFunction;
 
 import static traben.flowing_fluids.FFFluidUtils.getStateForFluidByAmount;
 
@@ -53,10 +50,7 @@ import static traben.flowing_fluids.FFFluidUtils.getStateForFluidByAmount;
 public abstract class MixinFlowingFluid extends Fluid {
 
 
-    @Unique
-    private static int flowing_fluids$debugCheckCountSpreads = 0;
-    @Unique
-    private static int flowing_fluids$debugCheckCountDowns = 0;
+
 
     @Unique
     private static short ffCacheKey(final BlockPos sourcePos, final BlockPos spreadPos) {
@@ -64,8 +58,6 @@ public abstract class MixinFlowingFluid extends Fluid {
         int j = spreadPos.getZ() - sourcePos.getZ();
         return (short)((i + 128 & 255) << 8 | j + 128 & 255);
     }
-
-
 
     @Unique
     private static boolean ff$handleWaterLoggedFlowAndReturnIfHandled(final Level level, final BlockPos posFrom, final FluidState fluidState, final int amount,
@@ -207,7 +199,6 @@ public abstract class MixinFlowingFluid extends Fluid {
     @Shadow
     public abstract int getAmount(final FluidState state);
 
-    @Shadow protected abstract boolean affectsFlow(final FluidState arg);
 
     @Inject(method = "getOwnHeight", at = @At(value = "HEAD"), cancellable = true)
     private void ff$differentRenderHeight(final FluidState state, final CallbackInfoReturnable<Float> cir) {
@@ -228,20 +219,34 @@ public abstract class MixinFlowingFluid extends Fluid {
     }
 
     @Inject(method = "tick", at = @At(value = "HEAD"), cancellable = true)
-    private void ff$tickMixin(final #if MC > MC_21 ServerLevel #else Level #endif level, final BlockPos blockPos,#if MC > MC_21 BlockState b, #endif final FluidState fluidState, final CallbackInfo ci) {
+    private void ff$tickMixin(final #if MC > MC_21 ServerLevel #else Level #endif level, final BlockPos blockPos,#if MC > MC_21 BlockState thisState, #endif final FluidState fluidState, final CallbackInfo ci) {
         if (FlowingFluids.config.enableMod
                 && FlowingFluids.config.isFluidAllowed(fluidState)) {
             // cancel the original tick
             ci.cancel();
+
 
             if (System.currentTimeMillis() < FlowingFluids.debug_killFluidUpdatesUntilTime) {
                 return; // kill this update
             }
 
             FlowingFluids.isManeuveringFluids = true;
+
+            boolean isWaterAndInfiniteBiome = fluidState.is(FluidTags.WATER)
+                    && level.getSeaLevel() >= blockPos.getY()
+                    && blockPos.getY() > 0
+                    && FFFluidUtils.matchInfiniteBiomes(level.getBiome(blockPos))
+                    && level.getBrightness(LightLayer.SKY, blockPos) > 0;
+
+            boolean dontConsumeWater = isWaterAndInfiniteBiome
+                    && level.getRandom().nextFloat() < FlowingFluids.config.infiniteWaterBiomeNonConsumeChance;
+
             try {
 
+                #if MC <= MC_21
                 BlockState thisState = level.getBlockState(blockPos);
+                #endif
+
 
                 BlockPos posDown = blockPos.below();
                 // check if we can flow down and if so how much fluid remains out of the 8 total possible
@@ -252,7 +257,6 @@ public abstract class MixinFlowingFluid extends Fluid {
                 if (remainingAmount <= 0) {
                     return;
                 }
-
 
                 // simple pressure algorithm that might skip some hassle
                 if (fluidState.getAmount() == 8 && thisState.liquid()) { // not messing with waterloggables here
@@ -268,7 +272,7 @@ public abstract class MixinFlowingFluid extends Fluid {
                                         flow, 40, false, !FlowingFluids.pistonTick);
                                 if (remainder.first() < aboveAmount) {
                                     remainder.second().run();
-                                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, abovePos, flow, remainder.first());
+                                    if (!dontConsumeWater) FFFluidUtils.setFluidStateAtPosToNewAmount(level, abovePos, flow, remainder.first());
                                     return;
                                 }
                             }
@@ -295,7 +299,30 @@ public abstract class MixinFlowingFluid extends Fluid {
                         flowing_fluids$spreadTo2(level, pos, level.getBlockState(pos), dir, remainingAmount);
                     }
                 }
+
+
+
             } finally {
+
+                if (isWaterAndInfiniteBiome) {
+                    if (level.getSeaLevel() == blockPos.getY()) {
+                        if (level.getRandom().nextFloat() < FlowingFluids.config.infiniteWaterBiomeDrainSurfaceChance) {
+                            // drain into water if there is some below
+                            var amount = level.getFluidState(blockPos).getAmount();
+                            if (amount > 0) {
+                                var below = level.getFluidState(blockPos.below());
+                                if (below.getAmount() == 8 && below.is(FluidTags.WATER)) {
+                                    level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this, amount - 1));
+                                }
+                            }
+                        }
+                    } else if (dontConsumeWater) {
+                        // if we are in a truly infinite biome, we need to set this back to the original state
+                        // as we don't want to lose water in these biomes
+                        level.setBlock(blockPos, thisState, 0);
+                    }
+                }
+
                 FlowingFluids.isManeuveringFluids = false;
                 FlowingFluids.pistonTick = false;
             }

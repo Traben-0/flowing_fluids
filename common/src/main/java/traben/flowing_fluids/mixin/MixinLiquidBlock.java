@@ -1,18 +1,19 @@
 package traben.flowing_fluids.mixin;
 
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.core.BlockPos;
 #if MC > MC_20_1
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.world.entity.player.Player;
 #endif
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.BucketPickup;
 import net.minecraft.world.level.block.LiquidBlock;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FlowingFluid;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -31,35 +32,30 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
     @Final
     protected FlowingFluid fluid;
 
-
-    public MixinLiquidBlock(final Properties properties) {
-        super(properties);
+    public MixinLiquidBlock() {
+        //noinspection DataFlowIssue
+        super(null);
     }
 
 
-//    @ModifyArg(
-//            method = "<init>",
-//            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/Block;<init>(Lnet/minecraft/world/level/block/state/BlockBehaviour$Properties;)V"),
-//            index = 0
-//    )
-//    private static BlockBehaviour.Properties flowing_fluids$modifyBlockProperties(final Properties properties) {
-//
-//        return properties.randomTicks();
-//
-//        //handled by blockstate mixin for config support
-//        //        return FlowingFluids.enable ?
-////                properties.pushReaction(PushReaction.PUSH_ONLY).randomTicks()
-////                : properties;
-//    }
+
+
+    @ModifyExpressionValue(method = "shouldSpreadLiquid", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/world/level/material/FluidState;is(Lnet/minecraft/tags/TagKey;)Z"))
+    // this is a real dodgey mixin target but any other way failed to grab the locals
+    private boolean ff$consumeLevelObsidianOrCobbleCreation(final boolean original,
+                                                            @Local(argsOnly = true) Level level,
+                                                            @Local(ordinal = 1) BlockPos blockPos) {
+        if (original && FlowingFluids.config.enableMod && FlowingFluids.config.isFluidAllowed(this.fluid)) {
+            var state = level.getFluidState(blockPos);
+            FFFluidUtils.setFluidStateAtPosToNewAmount(level, blockPos, state.getType(), state.getAmount() - 1);
+        }
+        return original;
+    }
 
 
     @Inject(method = "pickupBlock", at = @At(value = "RETURN"), cancellable = true)
-#if MC > MC_20_1
-    private void ff$modifyBucket(final Player player, final LevelAccessor levelAccessor, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<ItemStack> cir) {
-#else
-    private void ff$modifyBucket(final LevelAccessor levelAccessor, final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<ItemStack> cir) {
-#endif
-
+    private void ff$modifyBucket(final CallbackInfoReturnable<ItemStack> cir, @Local(argsOnly = true, ordinal = 0) LevelAccessor levelAccessor, @Local(argsOnly = true, ordinal = 0) BlockPos blockPos) {
         if (cir.getReturnValue().isEmpty()
                 && FlowingFluids.config.enableMod
                 && FlowingFluids.config.isFluidAllowed(this.fluid)) {

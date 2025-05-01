@@ -3,7 +3,6 @@ package traben.flowing_fluids.config;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
 #if MC > MC_21
 import net.minecraft.util.ARGB;
 #else
@@ -12,7 +11,6 @@ import net.minecraft.util.FastColor;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
-import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
 
 import java.util.Set;
@@ -24,14 +22,14 @@ public class FFConfig {
 //    public boolean debugSpreadPrint = false;
     public boolean enableDisplacement = true;
     public boolean enablePistonPushing = true;
-    public float rainRefillChance = 0.33f;
+    public float rainRefillChance = 0.5f;
     public float oceanRiverSwampRefillChance = 1f;
-    public float evaporationChance = 0.01f;
-    public float evaporationNetherChance = 0.1f;
+    public float evaporationChance = 0.02f;
+    public float evaporationNetherChance = 1f;
     public boolean printRandomTicks = false;
     public boolean hideFlowingTexture = true;
     public LiquidHeight fullLiquidHeight = LiquidHeight.REGULAR;
-    public float farmlandDrainWaterChance = 0.2f;
+    public float farmlandDrainWaterChance = 0.1f;
     public boolean debugWaterLevelColours = false;
     public WaterLogFlowMode waterLogFlowMode = WaterLogFlowMode.IN_FROM_TOP_ELSE_OUT;
     public int waterFlowDistance = 4;
@@ -49,6 +47,8 @@ public class FFConfig {
     public boolean waterFlowAffectsEntities = true;
     public boolean waterFlowAffectsPlayers = false;
     public boolean waterFlowAffectsItems = true;
+    public float infiniteWaterBiomeNonConsumeChance = 0.01f;
+    public float infiniteWaterBiomeDrainSurfaceChance = 0.1f;
 
 
     // create mod options
@@ -136,6 +136,8 @@ public class FFConfig {
         waterFlowAffectsEntities = buffer.readBoolean();
         waterFlowAffectsPlayers = buffer.readBoolean();
         waterFlowAffectsItems = buffer.readBoolean();
+        infiniteWaterBiomeNonConsumeChance = buffer.readFloat();
+        infiniteWaterBiomeDrainSurfaceChance = buffer.readFloat();
 
         //create mod options
         create_waterWheelMode = buffer.readEnum(CreateWaterWheelMode.class);
@@ -184,6 +186,8 @@ public class FFConfig {
         buffer.writeBoolean(waterFlowAffectsEntities);
         buffer.writeBoolean(waterFlowAffectsPlayers);
         buffer.writeBoolean(waterFlowAffectsItems);
+        buffer.writeFloat(infiniteWaterBiomeNonConsumeChance);
+        buffer.writeFloat(infiniteWaterBiomeDrainSurfaceChance);
 
         //create mod options
         buffer.writeEnum(create_waterWheelMode);

@@ -20,6 +20,7 @@ import net.minecraft.world.InteractionResult;
 #else
 import net.minecraft.world.InteractionResultHolder;
 #endif
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.ClipContext;
@@ -62,11 +63,13 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
         return null;
     }
 
-    @Shadow
-    public abstract void checkExtraContent(@Nullable final Player player, final Level level, final ItemStack itemStack, final BlockPos blockPos);
-
-    @Shadow
-    protected abstract void playEmptySound(@Nullable final Player player, final LevelAccessor levelAccessor, final BlockPos blockPos);
+    #if MC >= MC_21_5
+    @Shadow public abstract void checkExtraContent(@Nullable final LivingEntity player, final Level level, final ItemStack itemStack, final BlockPos blockPos);
+    @Shadow protected abstract void playEmptySound(@Nullable final LivingEntity player, final LevelAccessor levelAccessor, final BlockPos blockPos);
+    #else
+    @Shadow public abstract void checkExtraContent(@Nullable final Player player, final Level level, final ItemStack itemStack, final BlockPos blockPos);
+    @Shadow protected abstract void playEmptySound(@Nullable final Player player, final LevelAccessor levelAccessor, final BlockPos blockPos);
+    #endif
 
     @ModifyArg(
             method = "use",
@@ -168,7 +171,7 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
             if (!canPlaceLiquidInPos) {
                 if (blockHitResult == null) return amount;
                 return this.ff$emptyContents_AndGetRemainder(player, level, blockHitResult.getBlockPos().relative(blockHitResult.getDirection()), null, amount, onlyModifyThatBlock);
-            }else if (level.dimensionType().ultraWarm() && this.content.is(FluidTags.WATER)) {
+            }else if (level.dimensionType().ultraWarm() && this.content.isSame(Fluids.WATER)) {
                 int i = blockPos.getX();
                 int j = blockPos.getY();
                 int k = blockPos.getZ();
@@ -242,6 +245,14 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
     }
 
 #endif
+
+    @Override
+    public int getBarColor(final ItemStack itemStack) {
+        if (FlowingFluids.config.enableMod && FlowingFluids.config.isFluidAllowed(content)) {
+            return content.defaultFluidState().createLegacyBlock().getMapColor(null,null).col;
+        }
+        return super.getBarColor(itemStack);
+    }
 
     @Override
     public Fluid ff$getFluid() {

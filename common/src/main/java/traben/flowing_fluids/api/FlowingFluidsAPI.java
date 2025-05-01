@@ -2,6 +2,7 @@ package traben.flowing_fluids.api;
 
 import it.unimi.dsi.fastutil.Pair;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tags.TagKey;
@@ -159,6 +160,11 @@ public interface FlowingFluidsAPI {
      * @param biome The biome to register
      */
     void registerBiomeThatHasInfiniteWaterRefilling(@NotNull ResourceKey<Biome> biome);
+
+    /**
+     * Tests if a biome is an infinite water refill one, this will check the biome against the infinite water biomes tags and biomes
+     */
+    boolean doesBiomeInfiniteWaterRefill(@NotNull Holder<Biome> biome);
 
     /**
      * A Simple interaction to directly modify the fluid amount at a position without doing something Flowing Fluids doesn't expect.

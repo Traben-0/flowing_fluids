@@ -2,18 +2,14 @@ package traben.flowing_fluids.mixin;
 
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BiomeTags;
-import net.minecraft.tags.TagKey;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.LightLayer;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
@@ -53,14 +49,14 @@ public abstract class MixinWaterFluid extends FlowingFluid {
 
         int amount = fluidState.getAmount();
         if (amount < 8) {
-            if (ff$tryRainFill(level, blockPos, amount, level.random.nextFloat())) {
-                if (FlowingFluids.config.printRandomTicks)
-                    FlowingFluids.info("--- Water was filled by rain at "+blockPos+". Chance: "+ FlowingFluids.config.rainRefillChance);
-                return;
-            }
             if (ff$tryBiomeFillOrDrain(level, blockPos, amount, level.random.nextFloat())) {
                 if (FlowingFluids.config.printRandomTicks)
                     FlowingFluids.info("--- Water was filled by biome at "+blockPos+". Chance: "+ FlowingFluids.config.oceanRiverSwampRefillChance);
+                return;
+            }
+            if (ff$tryRainFill(level, blockPos, amount, level.random.nextFloat())) {
+                if (FlowingFluids.config.printRandomTicks)
+                    FlowingFluids.info("--- Water was filled by rain at "+blockPos+". Chance: "+ FlowingFluids.config.rainRefillChance);
                 return;
             }
             if (ff$tryEvaporateNether(level, blockPos, amount, level.random.nextFloat())) {
@@ -81,35 +77,43 @@ public abstract class MixinWaterFluid extends FlowingFluid {
     @Unique
     private boolean ff$tryRainFill(final Level level, final BlockPos blockPos, int amount, float chance) {
         if (chance < FlowingFluids.config.rainRefillChance && level.isRaining() && level.canSeeSky(blockPos.above())) { // can see sky and raining
-            level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this, amount + 1));
+            level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this, amount + 2));
             return true;
         }
         return false;
     }
 
     @Unique
-    private boolean matchInfiniteBiomes(Holder<Biome> biome){
-        return FlowingFluids.infiniteBiomeTags.stream().anyMatch(biome::is)
-                || FlowingFluids.infiniteBiomes.stream().anyMatch(biome::is);
-    }
-
-    @Unique
     private boolean ff$tryBiomeFillOrDrain(final Level level, final BlockPos blockPos, int amount, float chance) {
 
-        if (chance < FlowingFluids.config.oceanRiverSwampRefillChance) {
-            // if in ocean or river and below, at, or just above, sea level
-            int seaLevelTop = level.getSeaLevel();
-            if (seaLevelTop >= blockPos.getY()
-                    && level.getBrightness(LightLayer.SKY, blockPos) > 0 // is close enough to sky/atmosphere access
-                    && matchInfiniteBiomes(level.getBiome(blockPos))) {
+        if (level.getSeaLevel() > blockPos.getY() && blockPos.getY() > 0) {
+            if (amount < 8 && chance < FlowingFluids.config.oceanRiverSwampRefillChance) {
+                // if in ocean or river and below sea level
+                if (level.getBrightness(LightLayer.SKY, blockPos) > 0 // is close enough to sky/atmosphere access
+                        && FFFluidUtils.matchInfiniteBiomes(level.getBiome(blockPos))) {
+                    // fill
+                    level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this, amount + 2));
+                    return true;
+                }
+            }
 
-                // increase if below sea level, and drain if just above sea level
-                int modifiedAmount = amount + (seaLevelTop == blockPos.getY() ? -1 : 1);
+        } else if (level.getSeaLevel() == blockPos.getY()) {
+            // use either infinite biome setting to trigger this draining
+            if (chance < FlowingFluids.config.infiniteWaterBiomeNonConsumeChance
+                    || chance < FlowingFluids.config.oceanRiverSwampRefillChance) {
+                // if in ocean or river and just above sea level
+                var below = level.getFluidState(blockPos.below());
+                if (below.getAmount() == 8
+                        && below.is(FluidTags.WATER)
+                        && level.getBrightness(LightLayer.SKY, blockPos) > 0 // is close enough to sky/atmosphere access
+                        && FFFluidUtils.matchInfiniteBiomes(level.getBiome(blockPos))) {
 
-                level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this, modifiedAmount));
-                return true;
+                    level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this, amount - 2));
+                    return true;
+                }
             }
         }
+
         return false;
     }
 
@@ -118,7 +122,7 @@ public abstract class MixinWaterFluid extends FlowingFluid {
         if (chance < FlowingFluids.config.evaporationChance) {
             // evaporate over time if not raining
             if (amount <= getDropOff(level)
-                    && level.isDay()
+                    && #if MC>=MC_21_5 !level.isMoonVisible() #else level.isDay() #endif
                     && !level.isRaining()
                     && level.getFluidState(blockPos.below()).isEmpty()) {
                 level.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());
@@ -138,7 +142,7 @@ public abstract class MixinWaterFluid extends FlowingFluid {
                 if (amount == 1) {
                     level.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());
                 } else {
-                    level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this, amount - 1));
+                    level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this, amount - 3));
                 }
                 return true;
             }

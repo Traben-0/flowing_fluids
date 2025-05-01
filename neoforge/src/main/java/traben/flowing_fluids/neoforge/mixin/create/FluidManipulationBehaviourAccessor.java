@@ -1,5 +1,15 @@
 package traben.flowing_fluids.neoforge.mixin.create;
 
+#if MC!=MC_21
+
+import org.spongepowered.asm.mixin.Mixin;
+import traben.flowing_fluids.config.FFCommands;
+
+@Mixin(FFCommands.class)
+public abstract class FluidManipulationBehaviourAccessor{
+}
+#else
+
 import com.simibubi.create.content.fluids.transfer.FluidManipulationBehaviour;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -16,5 +26,5 @@ public interface FluidManipulationBehaviourAccessor {
     void ff$PlayEffect(Level world, BlockPos pos, Fluid fluid, boolean fillSound);
 
 }
-
+#endif
 

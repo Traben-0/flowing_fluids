@@ -1,5 +1,6 @@
 package traben.flowing_fluids.mixin;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
 #if MC > MC_21
@@ -44,14 +45,17 @@ public class MixinBottleItem {
 
     @Inject(
             method = "use",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;playSound(Lnet/minecraft/world/entity/player/Player;DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V",
+            at = @At(value = "INVOKE",
+                    #if MC>=MC_21_5
+                    target = "Lnet/minecraft/world/level/Level;playSound(Lnet/minecraft/world/entity/Entity;DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V",
+                    #else
+                    target = "Lnet/minecraft/world/level/Level;playSound(Lnet/minecraft/world/entity/player/Player;DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V",
+                    #endif
                     ordinal = 1,
                     shift = At.Shift.BEFORE),
-            locals = LocalCapture.CAPTURE_FAILHARD,
             cancellable = true)
-    private void ff$drainWater(final Level level, final Player player, final InteractionHand usedHand,
-                               final #if MC > MC_21 CallbackInfoReturnable<InteractionResult> #else CallbackInfoReturnable<InteractionResultHolder<ItemStack>> #endif cir,
-                               final List<?> list, final ItemStack itemStack, final BlockHitResult blockHitResult, final BlockPos blockPos) {
+    private void ff$drainWater(final #if MC > MC_21 CallbackInfoReturnable<InteractionResult> #else CallbackInfoReturnable<InteractionResultHolder<ItemStack>> #endif cir,
+                               @Local(argsOnly = true) final Level level, @Local final BlockPos blockPos) {
         if (FlowingFluids.config.enableMod
                 && FlowingFluids.config.isWaterAllowed()){
             int foundAmount = FFFluidUtils.collectConnectedFluidAmountAndRemove(level, blockPos, 2, 3, Fluids.WATER);

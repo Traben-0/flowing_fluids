@@ -88,9 +88,9 @@ This means you will need to manage your water supply, and can't just place 2 wat
 ![aquaduct_1](https://i.imgur.com/S5R0pPM.gif)
 
 Oceans, Rivers, and Swamps however, will act as infinite water sources, but there is a limit to how fast they will refill,
-and they can still be drained *(refill speed controlled in settings)*. 
+and they can still be drained if fast enough *(controlled in settings)*. 
 
-These biomes will also slowly absorb any non-full water that flows back into it at sea level, at the exact same rate as the refill setting.
+These biomes will also absorb any non-full water that flows back into it at sea level, also adjustable via settings.
 
 ![ocean](https://i.imgur.com/H1GpmCs.gif)
 
@@ -110,7 +110,7 @@ Fluids can be moved by pistons to pump them upwards automatically.
 
 There are a few new gameplay elements that will drain or use water, to encourage water management, most are configurable.
 
-Such as farmlands havign a chance to drain a water level whenever it hydrates.
+Such as farmlands having a chance to drain a water level whenever it hydrates.
 
 ![farmland](https://i.imgur.com/NoTbe63.gif)
 
@@ -147,7 +147,7 @@ You can also blacklist modded fluids that you don't want to have physics. Via th
 This mod can also be disabled (`/flowing_fluids settings enable_mod on|off`) or removed at any time without breaking the world, as any fluid that is 'full' *(8 levels)* will be saved as a vanilla source block. 
 And all 'non-full' fluids *(1-7 levels)* will be saved as a vanilla flowing blocks which will just disappear once updated in vanilla.
 
-## **The Create Mod - (1.20.1 only right now)**
+## **The Create Mod - (v0.5 Fabric and v0.6 Forge and NeoForge)**
 
 Flowing Fluids has special compatibility settings for use with the Create mod, to modify the behaviour of water wheels and pipes.
 
@@ -155,15 +155,15 @@ Please note some of these interactions only work properly with "full" liquid blo
 
 ![create](https://i.imgur.com/fR4fpji.gif)
 
-Create Mod pipes can move fluids around finitely, as can Hose Pulleys, and can optionally be set to treat all fluids as infinite sources via the `/flowing_fluids create_compat pipes infinite_pipe_fluid_source on|off` command.
+Create Mod Pipes can move fluids around finitely, as can Hose Pulleys, and can optionally be set to treat all fluids as infinite sources via the `/flowing_fluids create_compat pipes infinite_pipe_fluid_source on|off` command.
 
 ![pipes](https://i.imgur.com/hM95cFe.gif)
 
-Create Mod water wheels will work normally given a constant flow of fluid.
+Create Mod Water Wheels will work normally given a constant flow of fluid.
 
 ![wheels](https://i.imgur.com/f7G3L2f.gif)
 
-By default, water wheels will also work without flow in river biomes at sea level.
+By default, Water Wheels will also work without flow in river biomes at sea level.
 
 ![wheels](https://i.imgur.com/l2TV14C.gif)
 
@@ -219,21 +219,25 @@ such as quickly draining an ocean, is going to cause some unavoidable server sid
 
 ![lag](https://i.imgur.com/H1GpmCs.gif)
 
-The primary performance setting available to you right now is `/flowing_fluids settings fast_mode`. 
+The mod has various settings to tweak the performance have a look around and see what works for you.
 
-Fast mode uses a much simpler and faster fluid flowing algorithm, limiting fluids to only spread to their direct neighbours, instead of seeking out the nearest ledge within 4 blocks.
+The mod also makes a pass over every chunk after generation and plugs up all exposed fluids so you don't end up with 
+hundreds of fluid ticks happening right after the world loads as entire oceans drain into vast cave systems.
+This used to be a problem with the early mod but is now quite stable, can be disabled, but I wouldn't recommend it.
 
-![commands](https://i.imgur.com/PVouZ07.png)
+# Changelog
+- find the changelog [here](CHANGLELOG.MD)
 
 
-# Planned features
-
-- fluid pressure system to affect flow rate *(if it can be performant)*
-- setting to blacklist specific fluids
-- further settings for as many minute variables that affect performance as makes sense to add
-- further gameplay elements to encourage water management, such as the farmlands draining water
-- translations on command messages once I have finalised all the messages and commands
-
+# FAQ
+- version for 1.19 or earlier? 
+  - *I have no plans to backport this mod earlier than 1.20.1*
+- does "mod_name" work with this? 
+  - *probably, depends on what they do, Flowing Fluids does have an [API](common/src/main/java/traben/flowing_fluids/api/FlowingFluidsAPI.java) for other mods to interact with it if needed*
+- can I use this in my mod-pack? 
+  - *go for it*
+- it breaks with the Create mod! 
+  - *you have to have the specifically supported version of create for things to work, currently these are `v0.5` for `Fabric 1.20.1` and `v0.6` for `Forge 1.20.1` and `NeoForge 1.21.1`*
 
 
 <span align="center">

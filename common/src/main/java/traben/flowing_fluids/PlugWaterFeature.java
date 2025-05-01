@@ -35,7 +35,9 @@ public class PlugWaterFeature {
         BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
 
         var set = new HashSet<BlockPos>();
-        for (int i = chunkAccess.getMinSection(); i < chunkAccess.getMaxSection(); ++i) {
+        for (int i = #if MC>=MC_21_5 chunkAccess.getMinSectionY() #else chunkAccess.getMinSection() #endif ;
+             i < #if MC>=MC_21_5 chunkAccess.getMaxSectionY() #else chunkAccess.getMaxSection() #endif ;
+             ++i) {
             LevelChunkSection levelChunkSection = chunkAccess.getSection(chunkAccess.getSectionIndexFromSectionY(i));
             if (levelChunkSection.maybeHas(PlugWaterFeature::isFluidSource)) {
                 BlockPos blockPos = SectionPos.of(chunkAccess.getPos(), i).origin();
@@ -138,7 +140,9 @@ public class PlugWaterFeature {
         } else if (pos.getY() < seaLevel) {
             blockState = Blocks.STONE.defaultBlockState();
         } else {
-            if (biome.is(BiomeTags.HAS_VILLAGE_DESERT)) {
+            if (biome.is(BiomeTags.HAS_VILLAGE_DESERT)
+                    || biome.is(BiomeTags.IS_BEACH)
+                    || biome.is(BiomeTags.IS_OCEAN)) {
                 blockState = Blocks.SAND.defaultBlockState();
             } else {
                 blockState = Blocks.MUD.defaultBlockState();
@@ -148,6 +152,9 @@ public class PlugWaterFeature {
             FlowingFluids.info("placed block during world gen: " + blockState + " at /tp @s " + pos.getX() + " " + pos.getY() + " " + pos.getZ());
 
         FlowingFluids.waterPluggedThisSession++;
-        chunk.setBlockState(pos, blockState, false);
+        chunk.setBlockState(pos, blockState,
+                #if MC>=MC_21_5 0 // no updates pls
+                #else false #endif
+                );
     }
 }

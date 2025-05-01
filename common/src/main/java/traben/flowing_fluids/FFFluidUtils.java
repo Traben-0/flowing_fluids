@@ -1,19 +1,15 @@
 package traben.flowing_fluids;
 
 import it.unimi.dsi.fastutil.Pair;
-import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.TagKey;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BucketPickup;
 import net.minecraft.world.level.block.LiquidBlockContainer;
@@ -26,10 +22,7 @@ import net.minecraft.world.level.material.Fluids;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-import java.util.StringJoiner;
 import java.util.function.Consumer;
 
 public class FFFluidUtils {
@@ -50,19 +43,9 @@ public class FFFluidUtils {
         #endif
     }
 
-    static final List<Direction> CARDINALS = new ArrayList<>();
-
-    static {
-        CARDINALS.add(Direction.NORTH);
-        CARDINALS.add(Direction.SOUTH);
-        CARDINALS.add(Direction.EAST);
-        CARDINALS.add(Direction.WEST);
-    }
-
     public static boolean canFluidFlowToNeighbourFromPos(LevelAccessor accessor, BlockPos pos, FlowingFluid fluid, int amount) {
         for (Direction direction :Direction.Plane.HORIZONTAL) {
             if (FFFluidUtils.canFluidFlowFromPosToDirection(fluid, amount, accessor, pos, direction)) {
-
                 return true;
             }
         }
@@ -367,8 +350,7 @@ public class FFFluidUtils {
     }
 
     public static List<Direction> getCardinalsShuffle(RandomSource random) {
-        Collections.shuffle(CARDINALS #if MC > MC_20_1 , random::nextInt #endif);
-        return CARDINALS;
+        return Direction.Plane.HORIZONTAL.shuffledCopy(random);
     }
 
     private static boolean checkBlockIsNonDisplacer(BlockState state) {
@@ -441,4 +423,8 @@ public class FFFluidUtils {
         }
     }
 
+    public static boolean matchInfiniteBiomes(Holder<Biome> biome){
+        return FlowingFluids.infiniteBiomeTags.stream().anyMatch(biome::is)
+                || FlowingFluids.infiniteBiomes.stream().anyMatch(biome::is);
+    }
 }

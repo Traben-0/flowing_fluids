@@ -1,7 +1,6 @@
 package traben.flowing_fluids.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
@@ -10,12 +9,17 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.vehicle.Boat;
 import net.minecraft.world.phys.AABB;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import traben.flowing_fluids.FlowingFluids;
 
+#if MC >= MC_21_5
+import net.minecraft.world.entity.vehicle.AbstractBoat;
 
+@Mixin(AbstractBoat.class)
+#else
 @Mixin(Boat.class)
+#endif
+
 public abstract class MixinBoatFloating extends Entity {
 
     public MixinBoatFloating() {
@@ -23,8 +27,15 @@ public abstract class MixinBoatFloating extends Entity {
         super(null, null);
     }
 
-    @WrapOperation(method = "getStatus", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/vehicle/Boat;isUnderwater()Lnet/minecraft/world/entity/vehicle/Boat$Status;"))
-    private Boat.Status ff$float1(final Boat instance, final Operation<Boat.Status> original) {
+    @WrapOperation(method = "getStatus", at = @At(value = "INVOKE",
+    #if MC >= MC_21_5
+            target = "Lnet/minecraft/world/entity/vehicle/AbstractBoat;isUnderwater()Lnet/minecraft/world/entity/vehicle/AbstractBoat$Status;"))
+    private Boat.Status ff$float1(final AbstractBoat instance, final Operation<AbstractBoat.Status> original)
+    #else
+            target = "Lnet/minecraft/world/entity/vehicle/Boat;isUnderwater()Lnet/minecraft/world/entity/vehicle/Boat$Status;"))
+    private Boat.Status ff$float1(final Boat instance, final Operation<Boat.Status> original)
+    #endif
+        {
         if (FlowingFluids.config.enableMod && !FlowingFluids.config.waterFlowAffectsBoats) {
             return null; // force it to be null so we do checkInWater() and have floating boats
         }

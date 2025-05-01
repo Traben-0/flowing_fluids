@@ -17,6 +17,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
 
 @Mixin(LavaFluid.class)
@@ -70,6 +71,15 @@ public abstract class MixinLavaFluid extends FlowingFluid {
         if (FlowingFluids.config.enableMod
                 && FlowingFluids.config.isFluidAllowed(this)) {
             super.randomTick(level, pos, state, random);
+        }
+    }
+
+    @Inject(method = "spreadTo", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/material/LavaFluid;fizz(Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;)V"))
+    private void ff$consumeLevelStoneCreation(final LevelAccessor levelAccessor, final BlockPos blockPos, final BlockState blockState, final Direction direction, final FluidState fluidState, final CallbackInfo ci) {
+        if (FlowingFluids.config.enableMod && FlowingFluids.config.isFluidAllowed(this)) {
+            var above = blockPos.above();
+            FFFluidUtils.setFluidStateAtPosToNewAmount(levelAccessor, above, Fluids.LAVA,
+                    levelAccessor.getFluidState(above).getAmount() - 1);
         }
     }
 }

@@ -1,6 +1,7 @@
 package traben.flowing_fluids.api;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -153,6 +154,11 @@ public class FlowingFluidsApiImpl implements FlowingFluidsAPI {
     @Override
     public void registerBiomeThatHasInfiniteWaterRefilling(final @NotNull ResourceKey<Biome> biome) {
         FlowingFluids.infiniteBiomes.add(biome);
+    }
+
+    @Override
+    public boolean doesBiomeInfiniteWaterRefill(@NotNull final Holder<Biome> biome) {
+        return FFFluidUtils.matchInfiniteBiomes(biome);
     }
 
     @Override

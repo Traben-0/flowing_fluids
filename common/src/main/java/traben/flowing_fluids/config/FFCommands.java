@@ -27,6 +27,7 @@ import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
+import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
 import traben.flowing_fluids.FlowingFluidsPlatform;
 import traben.flowing_fluids.PlugWaterFeature;
@@ -158,7 +159,7 @@ public class FFCommands {
                                                 })
                                         )
                                 )
-                        ).then(Commands.literal("reset_all")
+                        ).then(Commands.literal("reset_all_to_defaults")
                                 .executes(cont -> {
                                     FlowingFluids.config = new FFConfig();
                                     return messageAndSaveConfig(cont, "All Flowing Fluids settings have been reset to defaults.");
@@ -222,13 +223,13 @@ public class FFCommands {
                                         Pair.of(FFConfig.LiquidHeight.CARPET, "All Fluids now render/affect entities with 1 pixel height."))
                                 )
                                 .then(Commands.literal("flow_distances")
-                                        .executes(cont -> message(cont, "Modifies the distance fluids will search for slopes to flow down.\nThe vanilla value is always 4 for water but lava will vary between 2 and 4 depending on if it is in the Nether.\n§4WARNING: this setting is the biggest source of lag for all fluid flowing, this value is limited to 8 (as any higher will freeze your world) and I strongly suggest you never raise it above the default 4, if you set it to 1, just enable the fast mode setting instead as it will be the same effect just more efficient."))
+                                        .executes(cont -> message(cont, "Modifies the distance fluids will search for slopes to flow down.\nThe vanilla value is always 4 for water but lava will vary between 2 and 4 depending on if it is in the Nether.\n§4WARNING: this setting is the biggest source of lag for all fluid flowing, this value is limited to 8 (as any higher will freeze your world) and I strongly suggest you never raise it above the default 4."))
                                         .then(Commands.literal("water")
                                                 .executes(cont -> message(cont, "Modifies the distance water will search for slopes to flow down.\nThe vanilla value is always 4 for water.\nWater flow distance modifier is currently set to " + FlowingFluids.config.waterFlowDistance))
                                                 .then(Commands.argument("distance", IntegerArgumentType.integer(0, 8))
                                                         .executes(cont -> {
                                                             FlowingFluids.config.waterFlowDistance = cont.getArgument("distance", Integer.class);
-                                                            return messageAndSaveConfig(cont, "Water flow distance set to " + FlowingFluids.config.waterFlowDistance + (FlowingFluids.config.waterFlowDistance == 1 ? ", because the value is 1 turning on Fast mode is highly recommended as you get the same effect but with a more efficient algorithm." : "."));
+                                                            return messageAndSaveConfig(cont, "Water flow distance set to " + FlowingFluids.config.waterFlowDistance);
                                                         })
                                                 )
                                         ).then(Commands.literal("lava")
@@ -236,7 +237,7 @@ public class FFCommands {
                                                 .then(Commands.argument("distance", IntegerArgumentType.integer(0, 8))
                                                         .executes(cont -> {
                                                             FlowingFluids.config.lavaFlowDistance = cont.getArgument("distance", Integer.class);
-                                                            return messageAndSaveConfig(cont, "Water flow distance set to " + FlowingFluids.config.lavaFlowDistance + (FlowingFluids.config.lavaFlowDistance == 1 ? ", because the value is 1 turning on Fast mode is highly recommended as you get the same effect but with a more efficient algorithm." : "."));
+                                                            return messageAndSaveConfig(cont, "Water flow distance set to " + FlowingFluids.config.lavaFlowDistance);
                                                         })
                                                 )
                                         ).then(Commands.literal("lava_nether")
@@ -244,7 +245,7 @@ public class FFCommands {
                                                 .then(Commands.argument("distance", IntegerArgumentType.integer(0, 8))
                                                         .executes(cont -> {
                                                             FlowingFluids.config.lavaNetherFlowDistance = cont.getArgument("distance", Integer.class);
-                                                            return messageAndSaveConfig(cont, "Water flow distance set to " + FlowingFluids.config.lavaNetherFlowDistance + (FlowingFluids.config.lavaNetherFlowDistance == 1 ? ", because the value is 1 turning on Fast mode is highly recommended as you get the same effect but with a more efficient algorithm." : "."));
+                                                            return messageAndSaveConfig(cont, "Water flow distance set to " + FlowingFluids.config.lavaNetherFlowDistance);
                                                         })
                                                 )
                                         )
@@ -313,56 +314,47 @@ public class FFCommands {
                                         )
                                 ).then(booleanCommand("flow_over_edges",
                                         "Controls if liquids flow over nearby edges, or will stay at the ledge.",
-                                        "Liquids at their minimum height will now flow to and over nearby edges, up to 4 blocks away if fast mode is disabled, or 1 block away if fast mode is enabled.",
+                                        "Liquids at their minimum height will now flow to and over nearby edges, up to 4 blocks away.",
                                         "Liquids at their minimum height will no longer flow to and over nearby edges.",
                                         a -> FlowingFluids.config.flowToEdges = a, () -> FlowingFluids.config.flowToEdges)
                                 )
-                        ).then(Commands.literal("drainers_and_fillers")
+                        ).then(Commands.literal("draining_and_filling")
                                 .executes(commandContext -> message(commandContext, "Set the chances of certain random tick interactions with fluids."))
                                 .then(floatChanceCommand("water_puddle_evaporation_chance",
-                                                        "Sets the chance of small minimum level water tiles evaporating during random ticks",
-                                                        a -> FlowingFluids.config.evaporationChance = a,
-                                                        () -> FlowingFluids.config.evaporationChance)
+                                        "Sets the chance of small minimum level water tiles evaporating during random ticks",
+                                        a -> FlowingFluids.config.evaporationChance = a,
+                                        () -> FlowingFluids.config.evaporationChance)
                                 ).then(floatChanceCommand("water_nether_evaporation_chance",
-                                                        "Sets the chance of any water losing a level during random ticks in the nether",
-                                                        a -> FlowingFluids.config.evaporationNetherChance = a,
-                                                        () -> FlowingFluids.config.evaporationNetherChance)
+                                        "Sets the chance of any water losing a level during random ticks in the nether",
+                                        a -> FlowingFluids.config.evaporationNetherChance = a,
+                                        () -> FlowingFluids.config.evaporationNetherChance)
                                 ).then(floatChanceCommand("water_rain_refill_chance",
-                                                        "Sets the chance of non-full water tiles increasing their level while its rains and they are open to the sky, during random ticks. This provides access to renewable water given enough time",
-                                                        a -> FlowingFluids.config.rainRefillChance = a,
-                                                        () -> FlowingFluids.config.rainRefillChance)
-                                ).then(floatChanceCommand("water_wet_biome_refill_chance",
-                                                        "Sets the chance of of non-full water tiles increasing their level within: Oceans, Rivers, and Swamps, during random ticks. Additionally they must have a sky light level higher than 0, and be between y=0 and sea level. This provides time limited access to infinite water within these biomes, granted they are big enough and not drained too quickly",
-                                                        a -> FlowingFluids.config.oceanRiverSwampRefillChance = a,
-                                                        () -> FlowingFluids.config.oceanRiverSwampRefillChance)
+                                        "Sets the chance of non-full water tiles increasing their level while its rains and they are open to the sky, during random ticks. This provides access to renewable water given enough time",
+                                        a -> FlowingFluids.config.rainRefillChance = a,
+                                        () -> FlowingFluids.config.rainRefillChance)
+                                ).then(floatChanceCommand("water_infinite_biome_refill_chance",
+                                        "Sets the chance of non-full water tiles increasing their level within: Oceans, Rivers, and Swamps, during random ticks. Additionally they must have a sky light level higher than 0, and be between y=0 and sea level. This provides time limited access to infinite water within these biomes, granted they are big enough and not drained too quickly",
+                                        a -> FlowingFluids.config.oceanRiverSwampRefillChance = a,
+                                        () -> FlowingFluids.config.oceanRiverSwampRefillChance)
+                                ).then(floatChanceCommand("water_infinite_biome_non_consume_chance",
+                                        "Sets the chance of water not being consumed when flowing in: Oceans, Rivers, and Swamps. Additionally they must have a sky light level higher than 0, and be between y=0 and sea level. This allows access to infinite water within these biomes",
+                                        a -> FlowingFluids.config.infiniteWaterBiomeNonConsumeChance = a,
+                                        () -> FlowingFluids.config.infiniteWaterBiomeNonConsumeChance)
+                                ).then(floatChanceCommand("water_infinite_biome_surface_drain_chance",
+                                        "Sets the chance of water being drained into water at sea level when flowing into: Oceans, Rivers, and Swamps. Additionally they must have a sky light level higher than 0. This allows infinte water drainage within these biomes",
+                                        a -> FlowingFluids.config.infiniteWaterBiomeDrainSurfaceChance = a,
+                                        () -> FlowingFluids.config.infiniteWaterBiomeDrainSurfaceChance)
                                 ).then(floatChanceCommand("farm_land_drains_water_chance",
-                                                        "Sets the chance at which a farmland block will consume 1 level of water each time it hydrates. 0 == OFF, 1 == ALWAYS",
-                                                        a -> FlowingFluids.config.farmlandDrainWaterChance = a,
-                                                        () -> FlowingFluids.config.farmlandDrainWaterChance)
+                                        "Sets the chance at which a farmland block will consume 1 level of water each time it hydrates. 0 == OFF, 1 == ALWAYS",
+                                        a -> FlowingFluids.config.farmlandDrainWaterChance = a,
+                                        () -> FlowingFluids.config.farmlandDrainWaterChance)
                                 ).then(floatChanceCommand("animal_breeding_drains_water_chance",
                                         "Sets the chance at which an animal will consume 1 level of nearby water each time it tries to breed, range 8 blocks, water can be at same level or 1 lower. 0 == OFF, 1 == ALWAYS",
                                         a -> FlowingFluids.config.drinkWaterToBreedAnimalChance = a,
                                         () -> FlowingFluids.config.drinkWaterToBreedAnimalChance)
                                 )
                         )
-                ).then(Commands.literal("debug").executes(cont -> message(cont, "Debug commands you probably don't need these."))
-//                        .then(Commands.literal("spread")
-//                                .then(Commands.literal("print")
-//                                        .executes(cont -> {
-//                                            FlowingFluids.config.debugSpreadPrint = !FlowingFluids.config.debugSpreadPrint;
-//                                            return messageAndSaveConfig(cont, "debugSpread is " + (FlowingFluids.config.debugSpreadPrint ? "printing." : "not printing."));
-//                                        })
-//                                ).then(Commands.literal("toggle")
-//                                        .executes(cont -> {
-//                                            FlowingFluids.config.debugSpread = !FlowingFluids.config.debugSpread;
-//                                            FlowingFluids.totalDebugMilliseconds = BigDecimal.valueOf(0);
-//                                            FlowingFluids.totalDebugTicks = 0;
-//                                            return messageAndSaveConfig(cont, "debugSpread is " + (FlowingFluids.config.debugSpread ? "enabled." : "disabled."));
-//                                        })
-//                                ).then(Commands.literal("average_tick_length")
-//                                        .executes(cont -> message(cont, "average water spread tick length is : " + FlowingFluids.getAverageDebugMilliseconds() + "ms"))
-//                                )
-//                        )
+                ).then(Commands.literal("~debug").executes(cont -> message(cont, "Debug commands you probably don't need these."))
                         .then(booleanCommand("random_ticks_printing",
                                 "Enables or disables printing of random tick events, this will spam your log with every random tick event that happens.",
                                 "Random ticks printing is now enabled.",
@@ -445,7 +437,16 @@ public class FFCommands {
                                             }
                                             return message(cont, "All fluids, within "+dist+" chunks of you, have been forcibly added to the tick queue with random intervals over the next 0-10 seconds, EXPECT SOME LAG! Amount force ticked = " + count.get());
                                         })
-                                )
+                        ).then(Commands.literal("is_infinite_water_biome")
+                                        .executes(cont ->{
+                                            var level = cont.getSource().getLevel();
+                                            var pos = cont.getSource().getPosition();
+                                            return message(cont, "You are "+
+                                                    (FFFluidUtils.matchInfiniteBiomes(level.getBiome(new BlockPos((int) pos.x, (int) pos.y, (int) pos.z)))
+                                                            ? "IN" : "NOT IN") + " an Infinite biome. By default these are: Oceans, Rivers, and Swamps.\n" +
+                                                                    "Mods can add their own via the api but most modded oceans and rivers should be accounted for automatically by this mod.");
+                                        })
+                        )
                 );
 
         if (FlowingFluidsPlatform.isThisModLoaded("create")) {
@@ -520,23 +521,27 @@ public class FFCommands {
     }
 
     private static int superSponge(Level level, BlockPos pos, Fluid fluid) {
-        return BlockPos.breadthFirstTraversal(pos, 32, 4000, (blockPos, consumer) -> {
+
+        final var yes = #if MC>=MC_21_5 BlockPos.TraversalNodeStatus.ACCEPT #else true #endif ;
+        final var no = #if MC>=MC_21_5 BlockPos.TraversalNodeStatus.SKIP #else false #endif ;
+
+        return BlockPos.breadthFirstTraversal(pos, 32, 10000, (blockPos, consumer) -> {
             for (Direction direction : Direction.values()) {
                 consumer.accept(blockPos.relative(direction));
             }
         }, (blockPos2) -> {
             if (blockPos2.equals(pos)) {
-                return true;
+                return yes;
             } else {
                 BlockState blockState = level.getBlockState(blockPos2);
                 FluidState fluidState = level.getFluidState(blockPos2);
                 if (!fluidState.getType().isSame(fluid)) {
-                    return false;
+                    return no;
                 } else {
                     Block block = blockState.getBlock();
                     if (block instanceof final BucketPickup bucketPickup) {
                         if (!bucketPickup.pickupBlock(#if MC >= MC_21 null, #endif level, blockPos2, blockState).isEmpty()) {
-                            return true;
+                            return BlockPos.TraversalNodeStatus.ACCEPT;
                         }
                     }
 
@@ -544,7 +549,7 @@ public class FFCommands {
                         level.setBlock(blockPos2, Blocks.AIR.defaultBlockState(), 3);
                     } else {
                         if (!blockState.is(Blocks.KELP) && !blockState.is(Blocks.KELP_PLANT) && !blockState.is(Blocks.SEAGRASS) && !blockState.is(Blocks.TALL_SEAGRASS)) {
-                            return false;
+                            return no;
                         }
 
                         BlockEntity blockEntity = blockState.hasBlockEntity() ? level.getBlockEntity(blockPos2) : null;
@@ -552,7 +557,7 @@ public class FFCommands {
                         level.setBlock(blockPos2, Blocks.AIR.defaultBlockState(), 3);
                     }
 
-                    return true;
+                    return yes;
                 }
             }
         });
