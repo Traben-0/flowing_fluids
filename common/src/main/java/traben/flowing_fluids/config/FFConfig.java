@@ -26,7 +26,7 @@ public class FFConfig {
     public boolean enablePistonPushing = true;
     public float rainRefillChance = 0.5f;
     public float oceanRiverSwampRefillChance = 1f;
-    public float evaporationChance = 0.02f;
+    public float evaporationChance = 0.05f;
     public float evaporationNetherChance = 1f;
     public boolean printRandomTicks = false;
     public boolean hideFlowingTexture = true;
@@ -52,6 +52,8 @@ public class FFConfig {
     public float infiniteWaterBiomeNonConsumeChance = 0.01f;
     public float infiniteWaterBiomeDrainSurfaceChance = 0.1f;
     public int minWaterLevelForIce = 4;
+    public boolean rainFillsWaterHigher = true;
+    public int minLavaLevelForObsidian = 6;
 
 
     // create mod options
@@ -142,6 +144,9 @@ public class FFConfig {
         infiniteWaterBiomeNonConsumeChance = buffer.readFloat();
         infiniteWaterBiomeDrainSurfaceChance = buffer.readFloat();
         minWaterLevelForIce = buffer.readVarInt();
+        rainFillsWaterHigher = buffer.readBoolean();
+        minLavaLevelForObsidian = buffer.readVarInt();
+
 
         //create mod options
         create_waterWheelMode = buffer.readEnum(CreateWaterWheelMode.class);
@@ -193,6 +198,8 @@ public class FFConfig {
         buffer.writeFloat(infiniteWaterBiomeNonConsumeChance);
         buffer.writeFloat(infiniteWaterBiomeDrainSurfaceChance);
         buffer.writeVarInt(minWaterLevelForIce);
+        buffer.writeBoolean(rainFillsWaterHigher);
+        buffer.writeVarInt(minLavaLevelForObsidian);
 
         //create mod options
         buffer.writeEnum(create_waterWheelMode);

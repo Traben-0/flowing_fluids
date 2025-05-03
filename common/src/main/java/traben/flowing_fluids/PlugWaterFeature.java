@@ -20,9 +20,7 @@ import java.util.function.Supplier;
 
 public class PlugWaterFeature {
 
-
     private static final Pair<Boolean, Runnable> defTrue = Pair.of(true, null);
-    private static final List<Runnable> runs = new ArrayList<>();
     private static final Direction[] dirs = {
             Direction.NORTH,
             Direction.SOUTH,
@@ -96,6 +94,7 @@ public class PlugWaterFeature {
             return null;
         };
 
+        List<Runnable> runs = new ArrayList<>();
         for (BlockPos blockPos : set) {
             if (doneSet.contains(blockPos)) continue;
 

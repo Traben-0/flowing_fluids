@@ -2,6 +2,7 @@ package traben.flowing_fluids;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import it.unimi.dsi.fastutil.Pair;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.tags.BlockTags;
@@ -10,6 +11,8 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import traben.flowing_fluids.config.FFConfig;
@@ -31,8 +34,8 @@ public final class FlowingFluids {
     public static long debug_killFluidUpdatesUntilTime = 0;
     public static int waterPluggedThisSession = 0;
 
-    public static Set<TagKey<Block>> nonDisplacerTags = new HashSet<>();
-    public static Set<Block> nonDisplacers = new HashSet<>();
+    public static Set<Pair<Fluid,TagKey<Block>>> nonDisplacerTags = new HashSet<>();
+    public static Set<Pair<Fluid,Block>> nonDisplacers = new HashSet<>();
     public static Set<TagKey<Biome>> infiniteBiomeTags = new HashSet<>();
     public static Set<ResourceKey<Biome>> infiniteBiomes = new HashSet<>();
 
@@ -51,9 +54,9 @@ public final class FlowingFluids {
         infiniteBiomes.add(Biomes.SWAMP);
         infiniteBiomes.add(Biomes.MANGROVE_SWAMP);
 
-        nonDisplacerTags.add(BlockTags.ICE);
-        nonDisplacers.add(Blocks.SPONGE);
-        nonDisplacers.add(Blocks.OBSIDIAN);
+        nonDisplacerTags.add(Pair.of(Fluids.WATER, BlockTags.ICE));
+        nonDisplacers.add(Pair.of(Fluids.WATER,Blocks.SPONGE));
+        nonDisplacers.add(Pair.of(Fluids.LAVA,Blocks.OBSIDIAN));
 
         loadConfig();
     }

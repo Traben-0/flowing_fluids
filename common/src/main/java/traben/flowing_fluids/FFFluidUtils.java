@@ -24,6 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public class FFFluidUtils {
 
@@ -353,9 +354,13 @@ public class FFFluidUtils {
         return Direction.Plane.HORIZONTAL.shuffledCopy(random);
     }
 
-    private static boolean checkBlockIsNonDisplacer(BlockState state) {
-        return FlowingFluids.nonDisplacerTags.stream().anyMatch(state::is)
-                || FlowingFluids.nonDisplacers.stream().anyMatch(state::is);
+
+
+    private static boolean checkBlockIsNonDisplacer(Fluid fluid, BlockState state) {
+        return FlowingFluids.nonDisplacerTags.stream().anyMatch(pair ->
+                        (pair.first() == Fluids.EMPTY || pair.first().isSame(fluid)) && state.is(pair.second()))
+                || FlowingFluids.nonDisplacers.stream().anyMatch(pair ->
+                        (pair.first() == Fluids.EMPTY || pair.first().isSame(fluid)) && state.is(pair.second()));
     }
 
     public static void displaceFluids(final Level level, final BlockPos pos, final BlockState state, final int flags, final LevelChunk levelChunk, final BlockState originalState) {
@@ -372,7 +377,7 @@ public class FFFluidUtils {
                 && state.getFluidState().isEmpty()// not placing a waterlogged or fluid block
                 && !((flags & 64) == 64) //Piston moved flag
                 && !(state.getBlock() instanceof LiquidBlockContainer && originalState.getBlock() instanceof BucketPickup)
-                && !checkBlockIsNonDisplacer(state) // check if the block is a displacer
+                && !checkBlockIsNonDisplacer(flowSource, state) // check if the block is a displacer
                ) {
             // fluid block was replaced, lets try and displace the fluid
             FlowingFluids.isManeuveringFluids = true;

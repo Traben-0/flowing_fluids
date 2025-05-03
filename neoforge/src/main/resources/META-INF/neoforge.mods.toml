@@ -28,6 +28,14 @@ versionRange = "[${compatible_mc_forge})"
 ordering = "NONE"
 side = "BOTH"
 
+[[dependencies.flowing_fluids]]
+modId = "create"
+type = "incompatible"
+# less than 0.6
+versionRange = "(,0.6)"
+ordering = "NONE"
+side = "BOTH"
+
 
 [[mixins]]
 config = "flowing_fluids.mixins.json"

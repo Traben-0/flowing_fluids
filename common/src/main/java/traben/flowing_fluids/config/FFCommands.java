@@ -204,6 +204,10 @@ public class FFCommands {
                                         "Controls the minimum level of water that will freeze, this is useful for making ice form in partial height water.\nThe default value is 4, and the maximum value is 8.",
                                         "level", 0, 8,
                                         a -> FlowingFluids.config.minWaterLevelForIce = a, () -> FlowingFluids.config.minWaterLevelForIce)
+                                ).then(intCommand("min_level_for_obsidian",
+                                        "Controls the minimum level of lava that will convert to obsidian, this is useful for making obsidian form more consistently.\nThe default value is 6, and the maximum value is 8.",
+                                        "level", 0, 8,
+                                        a -> FlowingFluids.config.minLavaLevelForObsidian = a, () -> FlowingFluids.config.minLavaLevelForObsidian)
                                 ).then(Commands.literal("random_tick_level_check_distance")
                                         .executes(cont -> message(cont, "Sets the distance fluids will check for other fluids to level with during random ticks, 0 means disabled, currently set to " + FlowingFluids.config.randomTickLevelingDistance))
                                         .then(Commands.argument("distance", IntegerArgumentType.integer(0, 64))
@@ -367,6 +371,9 @@ public class FFCommands {
                                         "Sets the chance at which an animal will consume 1 level of nearby water each time it tries to breed, range 8 blocks, water can be at same level or 1 lower. 0 == OFF, 1 == ALWAYS",
                                         a -> FlowingFluids.config.drinkWaterToBreedAnimalChance = a,
                                         () -> FlowingFluids.config.drinkWaterToBreedAnimalChance)
+                                ).then(booleanCommand("rain_fills_block_above",
+                                        "Controls if rain will place new layers of water higher than the previous block of water was.",
+                                        a -> FlowingFluids.config.rainFillsWaterHigher = a, () -> FlowingFluids.config.rainFillsWaterHigher)
                                 )
                         )
                 ).then(Commands.literal("~debug").executes(cont -> message(cont, "Debug commands you probably don't need these."))

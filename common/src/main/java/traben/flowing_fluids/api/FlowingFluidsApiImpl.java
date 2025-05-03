@@ -1,5 +1,6 @@
 package traben.flowing_fluids.api;
 
+import it.unimi.dsi.fastutil.Pair;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -137,13 +138,13 @@ public class FlowingFluidsApiImpl implements FlowingFluidsAPI {
     }
 
     @Override
-    public void registerBlockTagThatWontDisplaceFluid(final @NotNull TagKey<Block> tag) {
-        FlowingFluids.nonDisplacerTags.add(tag);
+    public void registerBlockTagThatWontDisplaceFluid(final @NotNull Fluid fluid, final @NotNull TagKey<Block> tag) {
+        FlowingFluids.nonDisplacerTags.add(Pair.of(fluid, tag));
     }
 
     @Override
-    public void registerBlockThatWontDisplaceFluid(final @NotNull Block block) {
-        FlowingFluids.nonDisplacers.add(block);
+    public void registerBlockThatWontDisplaceFluid(final @NotNull Fluid fluid, final @NotNull Block block) {
+        FlowingFluids.nonDisplacers.add(Pair.of(fluid, block));
     }
 
     @Override

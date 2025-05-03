@@ -11,6 +11,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
@@ -54,7 +55,7 @@ public abstract class MixinWaterFluid extends FlowingFluid {
                     FlowingFluids.info("--- Water was filled by biome at "+blockPos+". Chance: "+ FlowingFluids.config.oceanRiverSwampRefillChance);
                 return;
             }
-            if (ff$tryRainFill(level, blockPos, amount, level.random.nextFloat())) {
+            if (ff$tryRainFill(level, blockPos, level.random.nextFloat())) {
                 if (FlowingFluids.config.printRandomTicks)
                     FlowingFluids.info("--- Water was filled by rain at "+blockPos+". Chance: "+ FlowingFluids.config.rainRefillChance);
                 return;
@@ -68,6 +69,12 @@ public abstract class MixinWaterFluid extends FlowingFluid {
                 if (FlowingFluids.config.printRandomTicks)
                     FlowingFluids.info("--- Water was evaporated - non Nether at "+blockPos+". Chance: "+ FlowingFluids.config.evaporationChance);
             }
+        } else {
+            if (ff$tryRainFill(level, blockPos, level.random.nextFloat())) {
+                if (FlowingFluids.config.printRandomTicks)
+                    FlowingFluids.info("--- Water was filled by rain at "+blockPos+". Chance: "+ FlowingFluids.config.rainRefillChance);
+                // return;
+            }
         }
     }
 
@@ -75,10 +82,15 @@ public abstract class MixinWaterFluid extends FlowingFluid {
 
 
     @Unique
-    private boolean ff$tryRainFill(final Level level, final BlockPos blockPos, int amount, float chance) {
-        if (chance < FlowingFluids.config.rainRefillChance && level.isRaining() && level.canSeeSky(blockPos.above())) { // can see sky and raining
-            level.setBlockAndUpdate(blockPos, FFFluidUtils.getBlockForFluidByAmount(this, amount + 2));
-            return true;
+    private boolean ff$tryRainFill(final Level level, final BlockPos blockPos, float chance) {
+        if (chance < FlowingFluids.config.rainRefillChance && level.isRaining() && level.canSeeSky(blockPos.above())) {
+            int amount = level.isThundering() ? 2 : 1;
+            var result = FFFluidUtils.placeConnectedFluidAmountAndPlaceAction(
+                        level, blockPos, amount, this, 40, FlowingFluids.config.rainFillsWaterHigher, false);
+            if (result.first() != amount) {
+                result.second().run();
+                return true;
+            }
         }
         return false;
     }

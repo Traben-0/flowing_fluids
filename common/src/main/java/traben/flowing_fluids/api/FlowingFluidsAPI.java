@@ -22,7 +22,7 @@ public interface FlowingFluidsAPI {
     /**
      * The version of the API, checking this is up to you.
      */
-    int VERSION = 1;
+    int VERSION = 2;
 
     /**
      * Just in case it wasn't obvious.
@@ -132,17 +132,19 @@ public interface FlowingFluidsAPI {
      * Registers a Block or BlockTag that will not displace fluid, this is used to prevent the mod from displacing fluid when it is placed
      * <p>
      * NOTE: all bucket interactable waterlogging blocks are automatically registered as are sponges and everything in the ICE tag
+     * @param fluid The fluid affected by the block, Fluids.EMPTY means all fluids
      * @param tag The tag to register
      */
-    void registerBlockTagThatWontDisplaceFluid(@NotNull TagKey<Block> tag);
+    void registerBlockTagThatWontDisplaceFluid(final @NotNull Fluid fluid, @NotNull TagKey<Block> tag);
 
     /**
      * Registers a Block or BlockTag that will not displace fluid, this is used to prevent the mod from displacing fluid when it is placed
      * <p>
      * NOTE: all bucket interactable waterlogging blocks are automatically registered as are sponges and everything in the ICE tag
+     * @param fluid The fluid affected by the block, Fluids.EMPTY means all fluids
      * @param block The block to register
      */
-    void registerBlockThatWontDisplaceFluid(@NotNull Block block);
+    void registerBlockThatWontDisplaceFluid(final @NotNull Fluid fluid, @NotNull Block block);
 
 
     /**

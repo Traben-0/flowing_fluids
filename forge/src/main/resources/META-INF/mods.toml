@@ -28,3 +28,13 @@ versionRange = "[${compatible_mc_forge})"
 ordering = "NONE"
 side = "BOTH"
 
+
+# this being optional means it will only trigger a warning when
+# the mod is present AND has a wrong version
+# this warning is needed for the crash triggered by the mixin plugin
+[[dependencies.flowing_fluids]]
+modId = "create"
+mandatory = false
+versionRange = "[0.6,)"
+ordering = "NONE"
+side = "BOTH"

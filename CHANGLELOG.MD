@@ -1,4 +1,18 @@
 
+
+0.5
+- fixed a crash with distant horizons
+- fixed Create pipes not consuming fluids in the world
+- allowed Create mod pipes to consume fluids in more situations, such as taking water from 2 half filled blocks (still requires a total of 1 full block present)
+- added checks to warn users when the wrong Create version is present (on forge this is a controlled crash)
+- rain can now fill water in a larger area as long as at least 1 of the blocks has access to the sky
+- rain will now fill water twice as fast during a thunderstorm
+- added `rain_fills_block_above` setting to allow rain to fill water into empty blocks above, defaults to ON, this means your reservoirs can now overflow
+- the evaporation chance setting's default value has been increased from 2% to 5% to help clean up overflows with the above change
+- added `min_level_for_obsidian` setting to allow obsidian to be created at lower lava levels, defaults to 6
+- made it so blocks that displace fluids are now set per fluid type (e.g. obsidian only doesn't displace lava, ice only doesn't displace water)
+- updated API version to 2 due to the above change
+
 0.4
 - many settings default values have changed please reset your settings
 - added create 0.6 support for both Forge 1.20.1 and NeoForge 1.21.1
