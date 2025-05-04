@@ -83,7 +83,7 @@ public class ForgePacketHandler {
                     packet.is_valid = false;
                 }
             } else {
-                packet = new FFConfigPacket();
+                packet = new FFConfigPacket(buffer);
                 packet.is_valid = false;
             }
             return packet;

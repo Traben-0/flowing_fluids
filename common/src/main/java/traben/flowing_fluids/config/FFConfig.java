@@ -61,7 +61,7 @@ public class FFConfig {
     public boolean create_infinitePipes = false;
 
     // fluid blacklist
-    public Set<String> fluidBlacklist = new ObjectOpenHashSet<>();
+    public ObjectOpenHashSet<String> fluidBlacklist = new ObjectOpenHashSet<>();
 
     public boolean isFluidAllowed(Fluid fluid){
         if (fluid == null) return false;
@@ -110,10 +110,7 @@ public class FFConfig {
         //PRESERVE WRITE ORDER IN READ
         /////////////////////////////////////////
         flowToEdges = buffer.readBoolean();
-//        levelingBehaviour = buffer.readEnum(LevelingBehaviour.class);
         enableMod = buffer.readBoolean();
-//        debugSpread = buffer.readBoolean();
-//        debugSpreadPrint = buffer.readBoolean();
         enableDisplacement = buffer.readBoolean();
         enablePistonPushing = buffer.readBoolean();
         rainRefillChance = buffer.readFloat();
@@ -164,10 +161,7 @@ public class FFConfig {
         //PRESERVE WRITE ORDER IN READ
         /////////////////////////////////////////
         buffer.writeBoolean(flowToEdges);
-//        buffer.writeEnum(levelingBehaviour);
         buffer.writeBoolean(enableMod);
-//        buffer.writeBoolean(debugSpread);
-//        buffer.writeBoolean(debugSpreadPrint);
         buffer.writeBoolean(enableDisplacement);
         buffer.writeBoolean(enablePistonPushing);
         buffer.writeFloat(rainRefillChance);
@@ -245,17 +239,23 @@ public class FFConfig {
         REQUIRE_FLOW_OR_RIVER,
         REQUIRE_FLUID,
         REQUIRE_FULL_FLUID,
+        RIVER_ONLY,
         REQUIRE_FLOW_OR_RIVER_OPPOSITE,
         REQUIRE_FLUID_OPPOSITE,
         REQUIRE_FULL_FLUID_OPPOSITE,
-        ALWAYS_OPPOSITE;
+        ALWAYS_OPPOSITE,
+        RIVER_ONLY_OPPOSITE;
 
         public boolean isCounterSpin() {
-            return this.ordinal() > 4;
+            return this.ordinal() > 5;
         }
 
         public boolean isRiver() {
-            return this == REQUIRE_FLOW_OR_RIVER || this == REQUIRE_FLOW_OR_RIVER_OPPOSITE;
+            return this == REQUIRE_FLOW_OR_RIVER || this == REQUIRE_FLOW_OR_RIVER_OPPOSITE || this == RIVER_ONLY || this == RIVER_ONLY_OPPOSITE;
+        }
+
+        public boolean isRiverOnly() {
+            return this == RIVER_ONLY || this == RIVER_ONLY_OPPOSITE;
         }
 
         public boolean needsFullFluid() {

@@ -35,20 +35,17 @@ public class FFConfigDataFabric extends FFConfigData {
     }
 
     public static FFConfigData read(final FriendlyByteBuf buffer) {
-        FFConfigDataFabric packet;
         if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
             try {
                 FlowingFluids.info("- Server Config packet received");
-                packet = new FFConfigDataFabric(new FFConfig(buffer));
+                return new FFConfigDataFabric(new FFConfig(buffer));
             } catch (Exception e) {
                 FlowingFluids.error("- Server Config packet decoding failed because:\n" + e);
                 throw e;//crash
             }
         } else {
-            FlowingFluids.LOG.warn("[Flowing Fluids] - received on server?????");
-            packet = new FFConfigDataFabric(null);
+            return new FFConfigDataFabric(new FFConfig(buffer));
         }
-        return packet;
     }
 }
 #endif

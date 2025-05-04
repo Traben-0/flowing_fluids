@@ -1,4 +1,9 @@
 
+??
+- added river_only and river_only_opposite modes for create water wheels
+
+0.5.1
+- fixed dedicated servers not correctly sending their config to clients (only the server needs to update)
 
 0.5
 - fixed a crash with distant horizons

@@ -57,12 +57,19 @@ public abstract class MixinWaterWheel extends GeneratingKineticBlockEntity {
             if (FlowingFluids.config.create_waterWheelMode.isRiver()
                     && !(level.getBiome(worldPosition).is(BiomeTags.IS_RIVER)
                     && Math.abs(worldPosition.getY() - level.getSeaLevel()) <= 5)
-            ) return;
+            ) {
+                if (FlowingFluids.config.create_waterWheelMode.isRiverOnly()) {
+                    ci.cancel();
+                    this.setFlowScoreAndUpdate(0);
+                }
+                return;
+            }
 
             //from here onwards the only possibilities are
             // - REQUIRE_FULL_FLUID
             // - REQUIRE_FLUID
             // - REQUIRE_FLOW_OR_RIVER and are in a river biome near sea level
+            // - RIVER_ONLY and are in a river biome near sea level
             //all of these only require simple water count checks and don't need complex flow checks
 
 

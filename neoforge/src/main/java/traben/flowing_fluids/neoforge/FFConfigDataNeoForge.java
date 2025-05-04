@@ -46,8 +46,7 @@ public class FFConfigDataNeoForge extends FFConfigData {
                 packet = new FFConfigDataNeoForge(null);
             }
         } else {
-            System.out.println("[Solid mobs] - received on server?????");
-            packet = new FFConfigDataNeoForge(null);
+            packet = new FFConfigDataNeoForge(new FFConfig(buffer));
         }
         return packet;
     }
