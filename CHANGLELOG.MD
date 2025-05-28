@@ -1,6 +1,15 @@
 
-??
-- added river_only and river_only_opposite modes for create water wheels
+0.6
+- fixed errors that caused rain to flood the world
+- added the `fluid_processing_distance` setting that acts like a "render distance" but for fluid flowing, filling, and draining, behaviours, this can have IMMENSE performance improvements if enabled
+- tweaked the conditions for rain and infinite refilling biomes to not cross trigger each other
+- rain refilling chance is now forcibly limited to 1/3 of the evaporation chance setting to prevent excessive rain filling
+- evaporation now happens even during rain and night time
+- rain filling upwards is now disabled by default, this can be enabled with the `rain_fills_block_above` setting
+- added the `only_infinite_biomes_at_sea_level` setting which means the infinite water biomes setting (oceans, rivers, swamps etc) will only refill existing water at sea level exactly, this should make draining them easier after the first layer, defaults to false
+- added `river_only` and `river_only_opposite` modes for create water wheels
+- added the `concrete_powder_drains_water_chance` setting to control the chance that concrete powder will consume water when hardened, defaults to 0.5 (50%)
+- rain no longer fills water in deserts
 
 0.5.1
 - fixed dedicated servers not correctly sending their config to clients (only the server needs to update)

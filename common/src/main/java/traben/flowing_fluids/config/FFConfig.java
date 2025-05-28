@@ -1,6 +1,7 @@
 package traben.flowing_fluids.config;
 
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
 #if MC > MC_21
@@ -9,13 +10,13 @@ import net.minecraft.util.ARGB;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FastColor;
 #endif
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
-
-import java.util.Set;
 
 public class FFConfig {
     public boolean flowToEdges = true;
@@ -24,9 +25,9 @@ public class FFConfig {
 //    public boolean debugSpreadPrint = false;
     public boolean enableDisplacement = true;
     public boolean enablePistonPushing = true;
-    public float rainRefillChance = 0.5f;
+    public float rainRefillChance = 0.3f;
     public float oceanRiverSwampRefillChance = 1f;
-    public float evaporationChance = 0.05f;
+    public float evaporationChanceV2 = 1f;
     public float evaporationNetherChance = 1f;
     public boolean printRandomTicks = false;
     public boolean hideFlowingTexture = true;
@@ -52,8 +53,11 @@ public class FFConfig {
     public float infiniteWaterBiomeNonConsumeChance = 0.01f;
     public float infiniteWaterBiomeDrainSurfaceChance = 0.1f;
     public int minWaterLevelForIce = 4;
-    public boolean rainFillsWaterHigher = true;
+    public boolean rainFillsWaterHigherV2 = false;
     public int minLavaLevelForObsidian = 6;
+    public boolean fastBiomeRefillAtSeaLevelOnly = false;
+    public int playerBlockDistanceForFlowing = 0;
+    public float concreteDrainsWaterChance = 0.5f;
 
 
     // create mod options
@@ -75,6 +79,19 @@ public class FFConfig {
 
     public boolean isWaterAllowed(){
         return isFluidAllowed(Fluids.WATER);
+    }
+
+    public boolean dontTickAtLocation(BlockPos pos, LevelAccessor level) {
+        if (playerBlockDistanceForFlowing == 0) return false;
+
+        int sqrDist = playerBlockDistanceForFlowing * playerBlockDistanceForFlowing;
+
+        // if any player is within distance
+        for(Player player2 : level.players()) {
+            double i = player2.distanceToSqr(pos.getX(), pos.getY(), pos.getZ());
+            if (i < sqrDist) return false;
+        }
+        return true;
     }
 
     public FFConfig() {
@@ -115,7 +132,7 @@ public class FFConfig {
         enablePistonPushing = buffer.readBoolean();
         rainRefillChance = buffer.readFloat();
         oceanRiverSwampRefillChance = buffer.readFloat();
-        evaporationChance = buffer.readFloat();
+        evaporationChanceV2 = buffer.readFloat();
         evaporationNetherChance = buffer.readFloat();
         printRandomTicks = buffer.readBoolean();
         hideFlowingTexture = buffer.readBoolean();
@@ -141,8 +158,11 @@ public class FFConfig {
         infiniteWaterBiomeNonConsumeChance = buffer.readFloat();
         infiniteWaterBiomeDrainSurfaceChance = buffer.readFloat();
         minWaterLevelForIce = buffer.readVarInt();
-        rainFillsWaterHigher = buffer.readBoolean();
+        rainFillsWaterHigherV2 = buffer.readBoolean();
         minLavaLevelForObsidian = buffer.readVarInt();
+        fastBiomeRefillAtSeaLevelOnly = buffer.readBoolean();
+        playerBlockDistanceForFlowing = buffer.readVarInt();
+        concreteDrainsWaterChance = buffer.readFloat();
 
 
         //create mod options
@@ -166,7 +186,7 @@ public class FFConfig {
         buffer.writeBoolean(enablePistonPushing);
         buffer.writeFloat(rainRefillChance);
         buffer.writeFloat(oceanRiverSwampRefillChance);
-        buffer.writeFloat(evaporationChance);
+        buffer.writeFloat(evaporationChanceV2);
         buffer.writeFloat(evaporationNetherChance);
         buffer.writeBoolean(printRandomTicks);
         buffer.writeBoolean(hideFlowingTexture);
@@ -192,8 +212,11 @@ public class FFConfig {
         buffer.writeFloat(infiniteWaterBiomeNonConsumeChance);
         buffer.writeFloat(infiniteWaterBiomeDrainSurfaceChance);
         buffer.writeVarInt(minWaterLevelForIce);
-        buffer.writeBoolean(rainFillsWaterHigher);
+        buffer.writeBoolean(rainFillsWaterHigherV2);
         buffer.writeVarInt(minLavaLevelForObsidian);
+        buffer.writeBoolean(fastBiomeRefillAtSeaLevelOnly);
+        buffer.writeVarInt(playerBlockDistanceForFlowing);
+        buffer.writeFloat(concreteDrainsWaterChance);
 
         //create mod options
         buffer.writeEnum(create_waterWheelMode);

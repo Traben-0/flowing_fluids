@@ -13,6 +13,7 @@
     "MixinBoatFloating",
     "MixinBottleItem",
     "MixinBucketItem",
+    "MixinConcretePowderBlock",
     "MixinDispenserBlock",
     "MixinEntityBreeding",
     "MixinFarmBlock",

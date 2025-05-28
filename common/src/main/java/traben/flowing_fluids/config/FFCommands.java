@@ -204,6 +204,10 @@ public class FFCommands {
                                         "Controls the minimum level of water that will freeze, this is useful for making ice form in partial height water.\nThe default value is 4, and the maximum value is 8.",
                                         "level", 0, 8,
                                         a -> FlowingFluids.config.minWaterLevelForIce = a, () -> FlowingFluids.config.minWaterLevelForIce)
+                                ).then(intCommand("fluid_processing_distance",
+                                        "Allows you to set a block distance for fluid processing, works kinda like render distance but for fluid flowing.\n0 means infinite distance (works with chunk loaders far from players).\nThe default value is 0, and the maximum value is 256 (though it is limited by the servers processing chunk distance).\nPlease note this only affects the flowing calculation and refilling behaviours like rain.",
+                                        "distance_in_blocks", 0, 256,
+                                        a -> FlowingFluids.config.playerBlockDistanceForFlowing = a, () -> FlowingFluids.config.playerBlockDistanceForFlowing)
                                 ).then(intCommand("min_level_for_obsidian",
                                         "Controls the minimum level of lava that will convert to obsidian, this is useful for making obsidian form more consistently.\nThe default value is 6, and the maximum value is 8.",
                                         "level", 0, 8,
@@ -341,14 +345,14 @@ public class FFCommands {
                                 .executes(commandContext -> message(commandContext, "Set the chances of certain random tick interactions with fluids."))
                                 .then(floatChanceCommand("water_puddle_evaporation_chance",
                                         "Sets the chance of small minimum level water tiles evaporating during random ticks",
-                                        a -> FlowingFluids.config.evaporationChance = a,
-                                        () -> FlowingFluids.config.evaporationChance)
+                                        a -> FlowingFluids.config.evaporationChanceV2 = a,
+                                        () -> FlowingFluids.config.evaporationChanceV2)
                                 ).then(floatChanceCommand("water_nether_evaporation_chance",
                                         "Sets the chance of any water losing a level during random ticks in the nether",
                                         a -> FlowingFluids.config.evaporationNetherChance = a,
                                         () -> FlowingFluids.config.evaporationNetherChance)
                                 ).then(floatChanceCommand("water_rain_refill_chance",
-                                        "Sets the chance of non-full water tiles increasing their level while its rains and they are open to the sky, during random ticks. This provides access to renewable water given enough time",
+                                        "Sets the chance of non-full water tiles increasing their level while its rains and they are open to the sky, during random ticks. This provides access to renewable water given enough time.\nNOTE: this will always be forcibly limited to 1/3rd of the current water_puddle_evaporation_chance setting otherwise water will endlessly fill the world during rain, this does effectively cap this value to 0.33",
                                         a -> FlowingFluids.config.rainRefillChance = a,
                                         () -> FlowingFluids.config.rainRefillChance)
                                 ).then(floatChanceCommand("water_infinite_biome_refill_chance",
@@ -371,9 +375,16 @@ public class FFCommands {
                                         "Sets the chance at which an animal will consume 1 level of nearby water each time it tries to breed, range 8 blocks, water can be at same level or 1 lower. 0 == OFF, 1 == ALWAYS",
                                         a -> FlowingFluids.config.drinkWaterToBreedAnimalChance = a,
                                         () -> FlowingFluids.config.drinkWaterToBreedAnimalChance)
+                                ).then(floatChanceCommand("concrete_powder_drains_water_chance",
+                                        "Sets the chance at which concrete powder will consume a water level on hardening. 0 == OFF, 1 == ALWAYS",
+                                        a -> FlowingFluids.config.concreteDrainsWaterChance = a,
+                                        () -> FlowingFluids.config.concreteDrainsWaterChance)
                                 ).then(booleanCommand("rain_fills_block_above",
                                         "Controls if rain will place new layers of water higher than the previous block of water was.",
-                                        a -> FlowingFluids.config.rainFillsWaterHigher = a, () -> FlowingFluids.config.rainFillsWaterHigher)
+                                        a -> FlowingFluids.config.rainFillsWaterHigherV2 = a, () -> FlowingFluids.config.rainFillsWaterHigherV2)
+                                ).then(booleanCommand("only_infinite_biomes_at_sea_level",
+                                        "Controls if the infinite biome refilling only happens to water at exactly sea level.",
+                                        a -> FlowingFluids.config.fastBiomeRefillAtSeaLevelOnly = a, () -> FlowingFluids.config.fastBiomeRefillAtSeaLevelOnly)
                                 )
                         )
                 ).then(Commands.literal("~debug").executes(cont -> message(cont, "Debug commands you probably don't need these."))

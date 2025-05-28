@@ -39,7 +39,6 @@ import traben.flowing_fluids.config.FFConfig;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Vector;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
@@ -225,6 +224,10 @@ public abstract class MixinFlowingFluid extends Fluid {
             // cancel the original tick
             ci.cancel();
 
+            if (FlowingFluids.config.dontTickAtLocation(blockPos, level)) {
+                level.scheduleTick(blockPos, this, 200 + level.random.nextInt(200)); // 10 - 20 seconds delay
+                return; // do not calculate and delay the tick
+            }
 
             if (System.currentTimeMillis() < FlowingFluids.debug_killFluidUpdatesUntilTime) {
                 return; // kill this update
@@ -232,13 +235,17 @@ public abstract class MixinFlowingFluid extends Fluid {
 
             FlowingFluids.isManeuveringFluids = true;
 
+            boolean withinInfBiomeHeights = FlowingFluids.config.fastBiomeRefillAtSeaLevelOnly
+                    ? level.getSeaLevel() == blockPos.getY() || level.getSeaLevel() - 1 == blockPos.getY()
+                    : level.getSeaLevel() == blockPos.getY() && blockPos.getY() > 0;
+
             boolean isWaterAndInfiniteBiome = fluidState.is(FluidTags.WATER)
-                    && level.getSeaLevel() >= blockPos.getY()
-                    && blockPos.getY() > 0
+                    && withinInfBiomeHeights
                     && FFFluidUtils.matchInfiniteBiomes(level.getBiome(blockPos))
                     && level.getBrightness(LightLayer.SKY, blockPos) > 0;
 
             boolean dontConsumeWater = isWaterAndInfiniteBiome
+                    && level.getSeaLevel() != blockPos.getY()
                     && level.getRandom().nextFloat() < FlowingFluids.config.infiniteWaterBiomeNonConsumeChance;
 
             #if MC <= MC_21

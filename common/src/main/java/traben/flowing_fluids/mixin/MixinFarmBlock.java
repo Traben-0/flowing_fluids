@@ -24,7 +24,8 @@ public class MixinFarmBlock {
         if (FlowingFluids.config.enableMod
                 && FlowingFluids.config.farmlandDrainWaterChance > 0
                 && FlowingFluids.config.isWaterAllowed()
-                && level instanceof ServerLevel serverLevel) { // always true
+                && level instanceof ServerLevel serverLevel // always true
+                && !FlowingFluids.config.dontTickAtLocation(blockPos, serverLevel)) {
 
             if (serverLevel.random.nextFloat() <= FlowingFluids.config.farmlandDrainWaterChance) {
                 FFFluidUtils.removeAmountFromFluidAtPosWithRemainder(serverLevel, blockPos, Fluids.WATER,1);
