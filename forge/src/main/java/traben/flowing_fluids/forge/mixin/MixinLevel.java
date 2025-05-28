@@ -1,5 +1,6 @@
 package traben.flowing_fluids.forge.mixin;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -21,14 +22,23 @@ public abstract class MixinLevel {
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/world/level/Level;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;"
                     #if MC < MC_21_2 ,ordinal = 1 #endif
-            ),
-            locals = LocalCapture.CAPTURE_FAILHARD)
+            )
+    #if MC>=MC_21_5
+    )
+    // forge is insane and this would only work with sugar locals
+    private void flowing_fluids$displaceFluids(final BlockPos pos, final BlockState state, final int flags, final int j,
+                                               final CallbackInfoReturnable<Boolean> cir,
+                                               @Local LevelChunk levelchunk, @Local(ordinal = 1) BlockState old
+                                               ) {
+    #else
+        , locals = LocalCapture.CAPTURE_FAILHARD)
     private void flowing_fluids$displaceFluids(final BlockPos pos, final BlockState state, final int flags, final int recursionLeft,
                                                final CallbackInfoReturnable<Boolean> cir, final LevelChunk levelchunk,
                                                final Block block, final BlockSnapshot blockSnapshot,
                                                final BlockState old, final int oldLight,
                                                final int oldOpacity, final BlockState blockstate) {
-        FFFluidUtils.displaceFluids((Level) (Object) this,pos, state, flags, levelchunk, old);
+    #endif
+        FFFluidUtils.displaceFluids((Level) (Object) this, pos, state, flags, levelchunk, old);
     }
 
 }

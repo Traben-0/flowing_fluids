@@ -1,4 +1,8 @@
 
+0.6.1
+- fixed a forge crash
+- fixed the `concrete_powder_drains_water_chance` setting not updating correctly
+
 0.6
 - fixed errors that caused rain to flood the world
 - added the `fluid_processing_distance` setting that acts like a "render distance" but for fluid flowing, filling, and draining, behaviours, this can have IMMENSE performance improvements if enabled
