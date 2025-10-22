@@ -225,6 +225,11 @@ The mod also makes a pass over every chunk after generation and plugs up all exp
 hundreds of fluid ticks happening right after the world loads as entire oceans drain into vast cave systems.
 This used to be a problem with the early mod but is now quite stable, can be disabled, but I wouldn't recommend it.
 
+**Server lagging behind?**
+
+If the server is lagging behind consistently, try increasing the ```waterTickDelay``` (Default = 2), to reduce the amount of water updates. 
+Values between 4-8 still provide a smooth water experience, with more performance focus.
+
 # Changelog
 - find the changelog [here](CHANGLELOG.MD)
 
