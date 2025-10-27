@@ -373,6 +373,7 @@ public class FFFluidUtils {
                 && !FlowingFluids.isManeuveringFluids
                 && !originalState.getFluidState().isEmpty()// assert that the original state is a fluid
                 && originalState.getFluidState().getType() instanceof FlowingFluid flowSource
+                && FlowingFluids.config.isFluidAllowed(flowSource) // check if the fluid is not in the ignored list
                 && !state.isAir() // covers most block breaking updates
                 && state.getFluidState().isEmpty()// not placing a waterlogged or fluid block
                 && !((flags & 64) == 64) //Piston moved flag
