@@ -340,6 +340,15 @@ public class FFCommands {
                                         "Liquids at their minimum height will now flow to and over nearby edges, up to 4 blocks away.",
                                         "Liquids at their minimum height will no longer flow to and over nearby edges.",
                                         a -> FlowingFluids.config.flowToEdges = a, () -> FlowingFluids.config.flowToEdges)
+                                ).then(booleanCommand("infinite_source_equalize_to_full_height",
+                                        "Controls if water from infinite sources (oceans, rivers, swamps) maintains full height (level 8) when flowing horizontally into trenches.\nWhen enabled, water connected to infinite sources will equalize to level 8 instead of gradually decreasing over distance.",
+                                        "Infinite source equalization is now enabled.\nWater from oceans and rivers will maintain full height when flowing into connected areas.",
+                                        "Infinite source equalization is now disabled.\nWater will decrease in height over distance as normal.",
+                                        a -> FlowingFluids.config.infiniteSourceEqualizeToFullHeight = a, () -> FlowingFluids.config.infiniteSourceEqualizeToFullHeight)
+                                ).then(intCommand("large_water_body_threshold",
+                                        "Sets the minimum number of connected water blocks needed for a water body to be considered 'large' and treated as an infinite source.\nLower values make smaller lakes count as infinite sources, higher values require larger lakes.\nThe default value is 10, and the maximum value is 200.",
+                                        "threshold", 1, 200,
+                                        a -> FlowingFluids.config.largeWaterBodyThreshold = a, () -> FlowingFluids.config.largeWaterBodyThreshold)
                                 )
                         ).then(Commands.literal("draining_and_filling")
                                 .executes(commandContext -> message(commandContext, "Set the chances of certain random tick interactions with fluids."))
@@ -478,6 +487,119 @@ public class FFCommands {
                                                     (FFFluidUtils.matchInfiniteBiomes(level.getBiome(new BlockPos((int) pos.x, (int) pos.y, (int) pos.z)))
                                                             ? "IN" : "NOT IN") + " an Infinite biome. By default these are: Oceans, Rivers, and Swamps.\n" +
                                                                     "Mods can add their own via the api but most modded oceans and rivers should be accounted for automatically by this mod.");
+                                        })
+                        ).then(Commands.literal("water_level_info")
+                                        .executes(cont ->{
+                                            var level = cont.getSource().getLevel();
+                                            var pos = BlockPos.containing(cont.getSource().getPosition());
+                                            var fluidState = level.getFluidState(pos);
+                                            
+                                            StringBuilder info = new StringBuilder();
+                                            info.append("Water Level Info at position ").append(pos).append(":\n");
+                                            info.append("  Y Level: ").append(pos.getY()).append(" (Sea Level: ").append(level.getSeaLevel()).append(")\n");
+                                            
+                                            if (fluidState.isEmpty()) {
+                                                info.append("  No fluid at this position.");
+                                            } else {
+                                                info.append("  Fluid Type: ").append(BuiltInRegistries.FLUID.getKey(fluidState.getType())).append("\n");
+                                                if (fluidState.is(net.minecraft.tags.FluidTags.WATER)) {
+                                                    int amount = fluidState.getAmount();
+                                                    info.append("  Water Level: ").append(amount).append("/8");
+                                                    if (amount >= 8) {
+                                                        info.append(" (Full/Source)");
+                                                    } else {
+                                                        info.append(" (Flowing)");
+                                                    }
+                                                    info.append("\n");
+                                                    
+                                                    // Check if connected to infinite source
+                                                    if (FlowingFluids.config.infiniteSourceEqualizeToFullHeight) {
+                                                        boolean atSeaLevel = pos.getY() == level.getSeaLevel();
+                                                        boolean atSeaLevelOrBelow = pos.getY() == level.getSeaLevel() || pos.getY() == level.getSeaLevel() - 1;
+                                                        boolean hasSky = level.getBrightness(net.minecraft.world.level.LightLayer.SKY, pos) > 0;
+                                                        
+                                                        // Check biome at sea level (for trenches 1 block below)
+                                                        BlockPos seaLevelPos = new BlockPos(pos.getX(), level.getSeaLevel(), pos.getZ());
+                                                        boolean isInfBiome = FFFluidUtils.matchInfiniteBiomes(level.getBiome(seaLevelPos));
+                                                        String biomeAtPos = level.getBiome(pos).unwrapKey().map(k -> k.location().toString()).orElse("unknown");
+                                                        String biomeAtSeaLevel = level.getBiome(seaLevelPos).unwrapKey().map(k -> k.location().toString()).orElse("unknown");
+                                                        
+                                                        info.append("  Infinite Source Check:\n");
+                                                        info.append("    Feature Enabled: Yes\n");
+                                                        info.append("    At Sea Level: ").append(atSeaLevel);
+                                                        if (!atSeaLevel && atSeaLevelOrBelow) {
+                                                            info.append(" (1 block below - checking sea level above)");
+                                                        }
+                                                        info.append("\n");
+                                                        info.append("    Biome at this Y: ").append(biomeAtPos).append("\n");
+                                                        if (!atSeaLevel && atSeaLevelOrBelow) {
+                                                            info.append("    Biome at Sea Level: ").append(biomeAtSeaLevel);
+                                                            if (isInfBiome) {
+                                                                info.append(" (INFINITE BIOME)");
+                                                            }
+                                                            info.append("\n");
+                                                        } else {
+                                                            info.append("    In Infinite Biome: ").append(isInfBiome).append("\n");
+                                                        }
+                                                        info.append("    Has Sky Access: ").append(hasSky).append("\n");
+                                                        
+                                                        // Check if part of large water body
+                                                        boolean isLargeBody = false;
+                                                        if (atSeaLevelOrBelow && hasSky && fluidState.getAmount() >= 1) {
+                                                            if (atSeaLevel) {
+                                                                isLargeBody = FFFluidUtils.isPartOfLargeWaterBody(level, pos, new java.util.HashSet<>(), 200);
+                                                            } else {
+                                                                // Check if water above is part of large body
+                                                                BlockPos above = pos.above();
+                                                                if (above.getY() == level.getSeaLevel()) {
+                                                                    var aboveFluid = level.getFluidState(above);
+                                                                    if (aboveFluid.is(net.minecraft.tags.FluidTags.WATER) && aboveFluid.getAmount() >= 1) {
+                                                                        isLargeBody = FFFluidUtils.isPartOfLargeWaterBody(level, above, new java.util.HashSet<>(), 200);
+                                                                    }
+                                                                }
+                                                                // Also check if this Y level itself is a large water body
+                                                                if (!isLargeBody) {
+                                                                    isLargeBody = FFFluidUtils.isLargeWaterBodyAtYLevel(level, pos, pos.getY(), new java.util.HashSet<>(), 200);
+                                                                }
+                                                            }
+                                                            info.append("    Part of Large Water Body: ").append(isLargeBody);
+                                                            if (isLargeBody) {
+                                                                info.append(" (").append(FlowingFluids.config.largeWaterBodyThreshold).append("+ connected blocks found)");
+                                                            }
+                                                            info.append("\n");
+                                                        }
+                                                        
+                                                        // Final connection check (includes recursive tracing)
+                                                        boolean connected = FFFluidUtils.isWaterConnectedToInfiniteSource(level, pos, pos.getY());
+                                                        info.append("  Connected to Infinite Source: ").append(connected ? "YES" : "NO");
+                                                        if (connected) {
+                                                            info.append(" - Water should maintain level 8");
+                                                        } else {
+                                                            info.append(" - Water will decrease over distance");
+                                                        }
+                                                        info.append("\n");
+                                                        
+                                                        // Additional info for debugging
+                                                        if (!connected && fluidState.getAmount() < 8) {
+                                                            info.append("  Debug Note: Water level is ").append(amount).append("/8. ");
+                                                            if (!atSeaLevelOrBelow) {
+                                                                info.append("Not at sea level or 1 below (").append(pos.getY()).append(" vs ").append(level.getSeaLevel()).append("). ");
+                                                            }
+                                                            if (!isInfBiome && !isLargeBody) {
+                                                                info.append("Not in infinite biome and not part of large water body. ");
+                                                            }
+                                                            if (!hasSky) {
+                                                                info.append("No sky access. ");
+                                                            }
+                                                            info.append("\n");
+                                                        }
+                                                    } else {
+                                                        info.append("  Infinite Source Equalization: DISABLED\n");
+                                                    }
+                                                }
+                                            }
+                                            
+                                            return message(cont, info.toString());
                                         })
                         )
                 );

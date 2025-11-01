@@ -433,4 +433,405 @@ public class FFFluidUtils {
         return FlowingFluids.infiniteBiomeTags.stream().anyMatch(biome::is)
                 || FlowingFluids.infiniteBiomes.stream().anyMatch(biome::is);
     }
+
+    /**
+     * Public helper method to check if water at a position is connected to an infinite source.
+     * Used for debugging and display purposes.
+     * This checks both direct connections and recursive connections through water.
+     * 
+     * @param level The level to check in
+     * @param pos The position to check
+     * @param sourceY The Y level to check connections at
+     * @return true if water at this position is connected to an infinite source
+     */
+    public static boolean isWaterConnectedToInfiniteSource(Level level, BlockPos pos, int sourceY) {
+        return isWaterConnectedToInfiniteSource(level, pos, sourceY, false);
+    }
+    
+    /**
+     * Internal version with fast-path option for performance-critical flow operations.
+     * 
+     * @param level The level to check in
+     * @param pos The position to check
+     * @param sourceY The Y level to check connections at
+     * @param fastPath If true, uses reduced recursion depth and check limits for better performance
+     * @return true if water at this position is connected to an infinite source
+     */
+    public static boolean isWaterConnectedToInfiniteSource(Level level, BlockPos pos, int sourceY, boolean fastPath) {
+        if (!FlowingFluids.config.infiniteSourceEqualizeToFullHeight) {
+            return false;
+        }
+        
+        var fluidState = level.getFluidState(pos);
+        if (!fluidState.is(net.minecraft.tags.FluidTags.WATER)) {
+            return false;
+        }
+        
+        // Check if at sea level OR 1 block below sea level (for trenches)
+        boolean atSeaLevelOrJustBelow = pos.getY() == level.getSeaLevel() || pos.getY() == level.getSeaLevel() - 1;
+        
+        if (atSeaLevelOrJustBelow) {
+            boolean withinInfBiomeHeights = FlowingFluids.config.fastBiomeRefillAtSeaLevelOnly
+                    ? level.getSeaLevel() == pos.getY() || level.getSeaLevel() - 1 == pos.getY()
+                    : pos.getY() >= level.getSeaLevel() - 1 && pos.getY() <= level.getSeaLevel() && pos.getY() > 0;
+            
+            if (withinInfBiomeHeights
+                    && level.getBrightness(net.minecraft.world.level.LightLayer.SKY, pos) > 0) {
+                // Check if water is in infinite biome - but also verify it's part of a large enough body
+                // Small isolated pools in infinite biomes shouldn't be infinite if walled off
+                BlockPos seaLevelPos = new BlockPos(pos.getX(), level.getSeaLevel(), pos.getZ());
+                boolean inInfiniteBiome = matchInfiniteBiomes(level.getBiome(seaLevelPos));
+                
+                // Check large water body - only if we're at sea level
+                // Large water bodies are only infinite if they're connected to an infinite biome
+                // This prevents walled-off areas from being considered infinite
+                if (pos.getY() == level.getSeaLevel()) {
+                    // Check if it's part of a large water body
+                    // Use reduced checks for fast path (flow operations) to improve performance
+                    int maxChecks = fastPath ? 100 : 200;
+                    java.util.Set<BlockPos> bodyChecked = new java.util.HashSet<>();
+                    boolean isLargeBody = isPartOfLargeWaterBody(level, pos, bodyChecked, maxChecks);
+                    
+                    if (isLargeBody && inInfiniteBiome) {
+                        // Large body in infinite biome - definitely infinite
+                        return true;
+                    }
+                    
+                    // Even if not large, check if it's connected to a large body that's in infinite biome
+                    if (isPartOfLargeWaterBodyConnectedToInfinite(level, pos, new java.util.HashSet<>(), maxChecks)) {
+                        return true;
+                    }
+                } else {
+                    // We're 1 block below - check multiple things:
+                    // 1. Check if water above us is part of large body
+                    BlockPos above = pos.above();
+                    if (above.getY() == level.getSeaLevel()) {
+                        var aboveFluid = level.getFluidState(above);
+                        if (aboveFluid.is(net.minecraft.tags.FluidTags.WATER) && aboveFluid.getAmount() >= 1) {
+                            int maxChecks = fastPath ? 100 : 200;
+                            if (isPartOfLargeWaterBodyConnectedToInfinite(level, above, new java.util.HashSet<>(), maxChecks)) {
+                                return true;
+                            }
+                        }
+                    }
+                    
+                    // 2. Also check adjacent positions at sea level - trace horizontally to find lake
+                    for (Direction direction : Direction.Plane.HORIZONTAL) {
+                        BlockPos adjacentAtSeaLevel = pos.relative(direction).atY(level.getSeaLevel());
+                        var seaLevelFluid = level.getFluidState(adjacentAtSeaLevel);
+                        if (seaLevelFluid.is(net.minecraft.tags.FluidTags.WATER) && seaLevelFluid.getAmount() >= 1) {
+                            int maxChecks = fastPath ? 100 : 200;
+                            if (isPartOfLargeWaterBodyConnectedToInfinite(level, adjacentAtSeaLevel, new java.util.HashSet<>(), maxChecks)) {
+                                return true;
+                            }
+                        }
+                    }
+                    
+                    // 3. Check if this Y:62 position itself is part of a large water body at this Y level
+                    // This handles cases where the entire lake is at Y:62 (below sea level)
+                    // But only if it's connected to an infinite biome
+                    int maxChecks = fastPath ? 100 : 200;
+                    if (isLargeWaterBodyAtYLevelConnectedToInfinite(level, pos, pos.getY(), new java.util.HashSet<>(), maxChecks)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        // Also check recursive connection - trace back through water to find infinite source
+        // Use reduced depth for fast path (flow operations) to improve performance
+        int maxDepth = fastPath ? 32 : 64;
+        return isWaterConnectedToInfiniteSourceRecursive(level, pos, sourceY, new java.util.HashSet<>(), maxDepth);
+    }
+
+    /**
+     * Recursively checks if water is connected to an infinite source through connected water blocks.
+     */
+    public static boolean isWaterConnectedToInfiniteSourceRecursive(Level level, BlockPos pos, int sourceY,
+                                                                      java.util.Set<BlockPos> checked, int maxDepth) {
+        if (maxDepth <= 0 || checked.contains(pos)) {
+            return false;
+        }
+        checked.add(pos);
+        
+        // Only check at same Y level, sea level, or 1 block below sea level
+        if (pos.getY() != sourceY && pos.getY() != level.getSeaLevel() && pos.getY() != level.getSeaLevel() - 1) {
+            return false;
+        }
+        
+        var fluidState = level.getFluidState(pos);
+        if (!fluidState.is(net.minecraft.tags.FluidTags.WATER) || fluidState.getAmount() < 1) {
+            return false;
+        }
+        
+        // Check if this position is at sea level and an infinite source
+        if (pos.getY() == level.getSeaLevel()) {
+            boolean withinInfBiomeHeights = FlowingFluids.config.fastBiomeRefillAtSeaLevelOnly
+                    ? level.getSeaLevel() == pos.getY() || level.getSeaLevel() - 1 == pos.getY()
+                    : level.getSeaLevel() == pos.getY() && pos.getY() > 0;
+            
+            if (withinInfBiomeHeights
+                    && level.getBrightness(net.minecraft.world.level.LightLayer.SKY, pos) > 0) {
+                boolean inInfiniteBiome = matchInfiniteBiomes(level.getBiome(pos));
+                
+                // Only consider infinite if it's both in infinite biome AND part of large enough body
+                // This prevents small walled-off pools in infinite biomes from being infinite
+                if (inInfiniteBiome) {
+                    java.util.Set<BlockPos> bodyChecked = new java.util.HashSet<>();
+                    if (isPartOfLargeWaterBody(level, pos, bodyChecked, 200)) {
+                        // Large body in infinite biome - definitely infinite
+                        return true;
+                    }
+                }
+                
+                // Also check if connected to large body that's in infinite biome
+                if (isPartOfLargeWaterBodyConnectedToInfinite(level, pos, new java.util.HashSet<>(), 200)) {
+                    return true;
+                }
+            }
+        }
+        
+        // Also check if we're 1 block below sea level and the biome above us is infinite
+        // This allows tracing through water at Y:62 to find river/ocean connections
+        if (pos.getY() == level.getSeaLevel() - 1) {
+            boolean withinInfBiomeHeights = FlowingFluids.config.fastBiomeRefillAtSeaLevelOnly
+                    ? level.getSeaLevel() == pos.getY() || level.getSeaLevel() - 1 == pos.getY()
+                    : pos.getY() >= level.getSeaLevel() - 1 && pos.getY() <= level.getSeaLevel() && pos.getY() > 0;
+            
+            if (withinInfBiomeHeights
+                    && level.getBrightness(net.minecraft.world.level.LightLayer.SKY, pos) > 0) {
+                // Check biome at sea level position above us
+                // But only if it's part of a large enough body (prevents small walled-off pools)
+                BlockPos seaLevelPos = pos.atY(level.getSeaLevel());
+                boolean inInfiniteBiome = matchInfiniteBiomes(level.getBiome(seaLevelPos));
+                
+                if (inInfiniteBiome) {
+                    java.util.Set<BlockPos> bodyChecked = new java.util.HashSet<>();
+                    if (isPartOfLargeWaterBody(level, seaLevelPos, bodyChecked, 200)) {
+                        // Large body in infinite biome - definitely infinite
+                        return true;
+                    }
+                }
+                
+                // Also check if this Y:62 position is part of a large water body at this Y level
+                // This handles cases where the entire lake is at Y:62 (below sea level)
+                // But only if it's connected to an infinite biome
+                if (isLargeWaterBodyAtYLevelConnectedToInfinite(level, pos, pos.getY(), new java.util.HashSet<>(), 200)) {
+                    return true;
+                }
+            }
+        }
+        
+        // If we're 1 block below sea level, also check adjacent positions at sea level
+        // This helps find connections when the trench is below but adjacent to sea level water
+        if (pos.getY() == level.getSeaLevel() - 1) {
+            for (Direction direction : Direction.Plane.HORIZONTAL) {
+                BlockPos adjacentAtSeaLevel = pos.relative(direction).atY(level.getSeaLevel());
+                if (!checked.contains(adjacentAtSeaLevel)) {
+                    var seaLevelFluid = level.getFluidState(adjacentAtSeaLevel);
+                    if (seaLevelFluid.is(net.minecraft.tags.FluidTags.WATER) && seaLevelFluid.getAmount() >= 1) {
+                        // Check if this sea level water is part of infinite source
+                        if (level.getBrightness(net.minecraft.world.level.LightLayer.SKY, adjacentAtSeaLevel) > 0) {
+                            boolean inInfiniteBiome = matchInfiniteBiomes(level.getBiome(adjacentAtSeaLevel));
+                            
+                            // Only consider infinite if it's both in infinite biome AND part of large enough body
+                            if (inInfiniteBiome) {
+                                java.util.Set<BlockPos> bodyChecked = new java.util.HashSet<>();
+                                if (isPartOfLargeWaterBody(level, adjacentAtSeaLevel, bodyChecked, 200)) {
+                                    // Large body in infinite biome - definitely infinite
+                                    return true;
+                                }
+                            }
+                            
+                            if (isPartOfLargeWaterBodyConnectedToInfinite(level, adjacentAtSeaLevel, new java.util.HashSet<>(), 200)) {
+                                return true;
+                            }
+                        }
+                        // Also recursively check this sea level position
+                        if (isWaterConnectedToInfiniteSourceRecursive(level, adjacentAtSeaLevel, sourceY, checked, maxDepth - 1)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Check adjacent water
+        for (Direction direction : Direction.Plane.HORIZONTAL) {
+            BlockPos adjacent = pos.relative(direction);
+            // Allow checking at same Y, sea level, or 1 block below sea level
+            if ((adjacent.getY() == sourceY || adjacent.getY() == level.getSeaLevel() || adjacent.getY() == level.getSeaLevel() - 1)
+                    && isWaterConnectedToInfiniteSourceRecursive(level, adjacent, sourceY, checked, maxDepth - 1)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Checks if a position is part of a large connected water body (like a lake).
+     * This is a public version of the check for debugging purposes.
+     * 
+     * @param level The level to check in
+     * @param pos The position to check
+     * @param checked Set of positions already checked
+     * @param maxChecks Maximum number of blocks to check (increased to 200 for better coverage)
+     * @return true if this position is part of a large water body (10+ connected blocks found)
+     */
+    public static boolean isPartOfLargeWaterBody(Level level, BlockPos pos, java.util.Set<BlockPos> checked, int maxChecks) {
+        int threshold = FlowingFluids.config.largeWaterBodyThreshold;
+        if (checked.contains(pos)) {
+            return checked.size() >= threshold;
+        }
+        
+        if (maxChecks <= 0) {
+            return checked.size() >= threshold;
+        }
+        
+        if (pos.getY() != level.getSeaLevel()) {
+            return checked.size() >= threshold;
+        }
+        
+        var fluidState = level.getFluidState(pos);
+        if (!fluidState.is(net.minecraft.tags.FluidTags.WATER) || fluidState.getAmount() < 1) {
+            return checked.size() >= threshold;
+        }
+        
+        checked.add(pos);
+        
+        if (checked.size() >= threshold) {
+            return true;
+        }
+        
+        for (Direction direction : Direction.Plane.HORIZONTAL) {
+            BlockPos adjacent = pos.relative(direction);
+            if (adjacent.getY() == level.getSeaLevel()) {
+                if (isPartOfLargeWaterBody(level, adjacent, checked, maxChecks - 1)) {
+                    return true;
+                }
+                if (checked.size() >= threshold) {
+                    return true;
+                }
+            }
+        }
+        
+        return checked.size() >= threshold;
+    }
+    
+    /**
+     * Checks if a position is part of a large connected water body at a specific Y level.
+     * Similar to isPartOfLargeWaterBody but works at any Y level (not just sea level).
+     * 
+     * @param level The level to check in
+     * @param pos The position to check
+     * @param targetY The Y level to check at (must match pos.getY())
+     * @param checked Set of positions already checked
+     * @param maxChecks Maximum number of blocks to check
+     * @return true if this position is part of a large water body (10+ connected blocks found)
+     */
+    public static boolean isLargeWaterBodyAtYLevel(Level level, BlockPos pos, int targetY,
+                                                     java.util.Set<BlockPos> checked, int maxChecks) {
+        int threshold = FlowingFluids.config.largeWaterBodyThreshold;
+        if (checked.contains(pos)) {
+            return checked.size() >= threshold;
+        }
+        
+        if (maxChecks <= 0) {
+            return checked.size() >= threshold;
+        }
+        
+        if (pos.getY() != targetY) {
+            return checked.size() >= threshold;
+        }
+        
+        var fluidState = level.getFluidState(pos);
+        if (!fluidState.is(net.minecraft.tags.FluidTags.WATER) || fluidState.getAmount() < 1) {
+            return checked.size() >= threshold;
+        }
+        
+        checked.add(pos);
+        
+        if (checked.size() >= threshold) {
+            return true;
+        }
+        
+        for (Direction direction : Direction.Plane.HORIZONTAL) {
+            BlockPos adjacent = pos.relative(direction);
+            if (adjacent.getY() == targetY) {
+                if (isLargeWaterBodyAtYLevel(level, adjacent, targetY, checked, maxChecks - 1)) {
+                    return true;
+                }
+                if (checked.size() >= threshold) {
+                    return true;
+                }
+            }
+        }
+        
+        return checked.size() >= threshold;
+    }
+    
+    /**
+     * Checks if a position is part of a large water body that's connected to an infinite biome.
+     * A large water body is only considered infinite if it's both large enough AND has at least
+     * one block that's in an infinite biome (ocean/river). This prevents walled-off areas from being infinite.
+     * 
+     * @param level The level to check in
+     * @param pos The position to check
+     * @param checked Set of positions already checked (not used here, kept for signature compatibility)
+     * @param maxChecks Maximum number of blocks to check
+     * @return true if this position is part of a large water body connected to infinite biome
+     */
+    private static boolean isPartOfLargeWaterBodyConnectedToInfinite(Level level, BlockPos pos, 
+                                                                      java.util.Set<BlockPos> checked, int maxChecks) {
+        java.util.Set<BlockPos> bodyChecked = new java.util.HashSet<>();
+        int threshold = FlowingFluids.config.largeWaterBodyThreshold;
+        
+        // First, check if it's large enough (optimized: fail fast if too small)
+        if (!isPartOfLargeWaterBody(level, pos, bodyChecked, maxChecks)) {
+            return false;
+        }
+        
+        // Now verify that at least one block in this large body is in an infinite biome
+        // Check biome as we iterate (early exit once found)
+        for (BlockPos bodyPos : bodyChecked) {
+            if (level.getBrightness(net.minecraft.world.level.LightLayer.SKY, bodyPos) > 0) {
+                if (matchInfiniteBiomes(level.getBiome(bodyPos))) {
+                    return true; // Early exit - found infinite biome
+                }
+            }
+        }
+        
+        // If no block in the body is in an infinite biome, it's not infinite (e.g., walled off)
+        return false;
+    }
+    
+    /**
+     * Checks if a position is part of a large water body at a specific Y level that's connected to infinite biome.
+     * Similar to isPartOfLargeWaterBodyConnectedToInfinite but works at any Y level.
+     * Checks if the sea level position above each body block is in an infinite biome.
+     */
+    private static boolean isLargeWaterBodyAtYLevelConnectedToInfinite(Level level, BlockPos pos, int targetY,
+                                                                          java.util.Set<BlockPos> checked, int maxChecks) {
+        java.util.Set<BlockPos> bodyChecked = new java.util.HashSet<>();
+        
+        // First, check if it's large enough
+        if (!isLargeWaterBodyAtYLevel(level, pos, targetY, bodyChecked, maxChecks)) {
+            return false;
+        }
+        
+        // Now verify that at least one block in this large body (at sea level above) is in an infinite biome
+        // Check the sea level position above each body block
+        for (BlockPos bodyPos : bodyChecked) {
+            BlockPos seaLevelPos = bodyPos.atY(level.getSeaLevel());
+            if (level.getBrightness(net.minecraft.world.level.LightLayer.SKY, seaLevelPos) > 0) {
+                if (matchInfiniteBiomes(level.getBiome(seaLevelPos))) {
+                    return true;
+                }
+            }
+        }
+        
+        // If no sea level position above the body is in an infinite biome, it's not infinite
+        return false;
+    }
 }

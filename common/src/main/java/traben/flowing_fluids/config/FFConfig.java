@@ -58,6 +58,8 @@ public class FFConfig {
     public boolean fastBiomeRefillAtSeaLevelOnly = false;
     public int playerBlockDistanceForFlowing = 0;
     public float concreteDrainsWaterChance = 0.5f;
+    public boolean infiniteSourceEqualizeToFullHeight = true;
+    public int largeWaterBodyThreshold = 10;
 
 
     // create mod options
@@ -163,6 +165,8 @@ public class FFConfig {
         fastBiomeRefillAtSeaLevelOnly = buffer.readBoolean();
         playerBlockDistanceForFlowing = buffer.readVarInt();
         concreteDrainsWaterChance = buffer.readFloat();
+        infiniteSourceEqualizeToFullHeight = buffer.readBoolean();
+        largeWaterBodyThreshold = buffer.readVarInt();
 
 
         //create mod options
@@ -217,6 +221,8 @@ public class FFConfig {
         buffer.writeBoolean(fastBiomeRefillAtSeaLevelOnly);
         buffer.writeVarInt(playerBlockDistanceForFlowing);
         buffer.writeFloat(concreteDrainsWaterChance);
+        buffer.writeBoolean(infiniteSourceEqualizeToFullHeight);
+        buffer.writeVarInt(largeWaterBodyThreshold);
 
         //create mod options
         buffer.writeEnum(create_waterWheelMode);

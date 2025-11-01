@@ -38,7 +38,9 @@ import traben.flowing_fluids.FlowingFluids;
 import traben.flowing_fluids.config.FFConfig;
 
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
@@ -117,6 +119,41 @@ public abstract class MixinFlowingFluid extends Fluid {
     @Override
     protected void randomTick(final #if MC > MC_21 ServerLevel #else Level #endif level, final BlockPos pos, final FluidState state, final RandomSource random) {
         super.randomTick(level, pos, state, random);
+        
+        // Infinite source equalization during random ticks
+        if (FlowingFluids.config.enableMod
+                && FlowingFluids.config.infiniteSourceEqualizeToFullHeight
+                && state.is(net.minecraft.tags.FluidTags.WATER)
+                && state.getAmount() < 8) {
+            // Check if this water is connected to infinite source and should be at level 8
+            boolean connectedToInfinite = FFFluidUtils.isWaterConnectedToInfiniteSource(level, pos, pos.getY());
+            if (connectedToInfinite) {
+                // Gradually increase toward level 8 (increase by 1 level per tick for slower filling)
+                int currentAmount = state.getAmount();
+                int newAmount = Math.min(currentAmount + 1, 8);
+                FFFluidUtils.setFluidStateAtPosToNewAmount(level, pos, this, newAmount);
+                return;
+            }
+            
+            // Also check adjacent blocks at same level - if they're connected and at 8, we should gradually increase too
+            for (Direction dir : Direction.Plane.HORIZONTAL) {
+                BlockPos adjPos = pos.relative(dir);
+                if (adjPos.getY() == pos.getY()) {
+                    var adjFluid = level.getFluidState(adjPos);
+                    if (adjFluid.is(net.minecraft.tags.FluidTags.WATER) && adjFluid.getAmount() >= 7) {
+                        boolean adjConnected = FFFluidUtils.isWaterConnectedToInfiniteSource(level, adjPos, pos.getY());
+                        if (adjConnected && state.getAmount() < 8) {
+                            // Gradually increase toward level 8 (increase by 1 level per tick for slower filling)
+                            int currentAmount = state.getAmount();
+                            int newAmount = Math.min(currentAmount + 1, 8);
+                            FFFluidUtils.setFluidStateAtPosToNewAmount(level, pos, this, newAmount);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        
         //random settle behaviour
         if (FlowingFluids.config.enableMod
                 && FlowingFluids.config.randomTickLevelingDistance > 0
@@ -352,6 +389,58 @@ public abstract class MixinFlowingFluid extends Fluid {
         if (ff$handleWaterLoggedFlowAndReturnIfHandled(level, blockPos, fluidState, amount, thisState, posDir, destFluidAmount, false))
             return;
 
+        // Check if this is water flowing from or connected to an infinite source
+        // Skip expensive checks if both positions are already at level 8 (already equalized)
+        boolean isInfiniteSourceFlow = false;
+        boolean destConnectedToInfinite = false;
+        if (fluidState.is(net.minecraft.tags.FluidTags.WATER) && FlowingFluids.config.infiniteSourceEqualizeToFullHeight) {
+            // Quick check: if both are already at level 8, they're definitely connected to infinite (already equalized)
+            if (amount >= 8 && destFluidAmount >= 8) {
+                isInfiniteSourceFlow = true;
+                destConnectedToInfinite = true;
+            } else {
+                // Only do expensive checks if water isn't already at max level
+                // Use fast path for flow operations (reduced recursion depth) to improve performance
+                isInfiniteSourceFlow = flowing_fluids$isInfiniteSourceAtSeaLevel(level, blockPos, fluidState) 
+                        || FFFluidUtils.isWaterConnectedToInfiniteSource(level, blockPos, blockPos.getY(), true);
+                destConnectedToInfinite = FFFluidUtils.isWaterConnectedToInfiniteSource(level, posDir, blockPos.getY(), true);
+            }
+        }
+
+        // For water connected to infinite sources flowing horizontally at same Y level, maintain level 8
+        // Also allow if flowing at same Y level that's at sea level or 1 block below (for trenches)
+        boolean sameYLevel = blockPos.getY() == posDir.getY();
+        boolean bothNearSeaLevel = (blockPos.getY() == level.getSeaLevel() || blockPos.getY() == level.getSeaLevel() - 1)
+                && (posDir.getY() == level.getSeaLevel() || posDir.getY() == level.getSeaLevel() - 1);
+        
+        if (fluidState.is(net.minecraft.tags.FluidTags.WATER) && (sameYLevel || bothNearSeaLevel)
+                && FlowingFluids.config.infiniteSourceEqualizeToFullHeight) {
+            // Only apply equalization when BOTH sides are connected to infinite source
+            // This prevents water from overflowing when flowing INTO an infinite source
+            boolean bothConnectedToInfinite = isInfiniteSourceFlow && destConnectedToInfinite;
+            
+            if (bothConnectedToInfinite) {
+                // Both positions are part of infinite source network - gradually equalize toward level 8
+                if (destFluidAmount < 8 || amount < 8) {
+                    // Gradually increase both positions toward level 8
+                    int newSourceAmount = Math.min(amount + 1, 8);
+                    int newDestAmount = Math.min(destFluidAmount + 1, 8);
+                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, blockPos, fluidState.getType(), newSourceAmount);
+                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, posDir, fluidState.getType(), newDestAmount);
+                    return;
+                }
+                // Handle case where either side is at 7 and both are connected to infinite source
+                if (amount == 7 || destFluidAmount == 7) {
+                    // Complete the equalization to 8 (already close, so go directly to 8)
+                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, blockPos, fluidState.getType(), 8);
+                    FFFluidUtils.setFluidStateAtPosToNewAmount(level, posDir, fluidState.getType(), 8);
+                    return;
+                }
+            }
+            // If only source is connected to infinite, let it flow normally but maintain its level
+            // Don't force equalization when destination is not connected - this prevents flooding
+        }
+
         int fromAmount;
         int toAmount;
 
@@ -374,6 +463,32 @@ public abstract class MixinFlowingFluid extends Fluid {
         FFFluidUtils.setFluidStateAtPosToNewAmount(level, posDir, fluidState.getType(), toAmount);
     }
 
+    /**
+     * Checks if a position is an infinite water source at sea level.
+     * 
+     * An infinite source is defined as:
+     * - Water at exactly sea level
+     * - In an infinite biome (ocean, river, swamp, etc.)
+     * - Has sky access (not covered)
+     * 
+     * @param level The level to check in
+     * @param pos The position to check
+     * @param fluidState The fluid state at the position
+     * @return true if this position is an infinite water source at sea level
+     */
+    @Unique
+    private boolean flowing_fluids$isInfiniteSourceAtSeaLevel(final Level level, final BlockPos pos, final FluidState fluidState) {
+        if (!fluidState.is(net.minecraft.tags.FluidTags.WATER)) return false;
+        
+        boolean withinInfBiomeHeights = FlowingFluids.config.fastBiomeRefillAtSeaLevelOnly
+                ? level.getSeaLevel() == pos.getY() || level.getSeaLevel() - 1 == pos.getY()
+                : level.getSeaLevel() == pos.getY() && pos.getY() > 0;
+        
+        return withinInfBiomeHeights
+                && FFFluidUtils.matchInfiniteBiomes(level.getBiome(pos))
+                && level.getBrightness(net.minecraft.world.level.LightLayer.SKY, pos) > 0
+                && level.getSeaLevel() == pos.getY(); // Must be exactly at sea level for the source
+    }
 
 
     @Unique
