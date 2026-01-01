@@ -1,13 +1,44 @@
-/common/build/*
-/fabric/build/*
-/.idea/*
-/.gradle/*
-/build/*
-/common/.gradle/*
-/fabric/.gradle/*
-/forge/.gradle/*
-/forge/build/*
-/neoforge/.gradle/*
-/neoforge/build/*
-/fabric-like/build/*
-/fabric-like/.gradle/*
+/old/*
+
+build/
+*.ipr
+run/
+*.iws
+out/
+*.iml
+.gradle/
+output/
+bin/
+libs/
+# gradle
+classes/
+
+# eclipse
+
+*.launch
+
+# idea
+
+.idea/
+
+# vscode
+
+.settings/
+.vscode/
+.classpath
+.project
+
+# macos
+
+*.DS_Store
+
+# fabric
+
+jars/*
+
+.metadata
+.vscode
+.settings
+Merged/
+
+versions/*/api/

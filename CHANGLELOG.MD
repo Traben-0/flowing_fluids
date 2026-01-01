@@ -1,9 +1,16 @@
 
-0.6.1
+[0.7]
+- added the `settings_presets` commands to allow easy switching between ready-made performance and gameplay settings presets, the `performance_ultra` preset for example offers up to 6x the performance for much reduced flow quality
+- added support for 1.21.9 and 1.21.11
+- added various seaLevelOverride commands to set a custom sea level for fluid behaviors in a given dimension or everywhere
+- fixed various sea level related bugs
+- added an info message to guide users to the presets command
+
+[0.6.1]
 - fixed a forge crash
 - fixed the `concrete_powder_drains_water_chance` setting not updating correctly
 
-0.6
+[0.6]
 - fixed errors that caused rain to flood the world
 - added the `fluid_processing_distance` setting that acts like a "render distance" but for fluid flowing, filling, and draining, behaviours, this can have IMMENSE performance improvements if enabled
 - tweaked the conditions for rain and infinite refilling biomes to not cross trigger each other
@@ -15,10 +22,10 @@
 - added the `concrete_powder_drains_water_chance` setting to control the chance that concrete powder will consume water when hardened, defaults to 0.5 (50%)
 - rain no longer fills water in deserts
 
-0.5.1
+[0.5.1]
 - fixed dedicated servers not correctly sending their config to clients (only the server needs to update)
 
-0.5
+[0.5]
 - fixed a crash with distant horizons
 - fixed Create pipes not consuming fluids in the world
 - allowed Create mod pipes to consume fluids in more situations, such as taking water from 2 half filled blocks (still requires a total of 1 full block present)
@@ -31,7 +38,7 @@
 - made it so blocks that displace fluids are now set per fluid type (e.g. obsidian only doesn't displace lava, ice only doesn't displace water)
 - updated API version to 2 due to the above change
 
-0.4
+[0.4]
 - many settings default values have changed please reset your settings
 - added create 0.6 support for both Forge 1.20.1 and NeoForge 1.21.1
 - added support for create Hose Pulley blocks
@@ -55,10 +62,10 @@
 - fixed water level tinting with sodium
 - removed the `fast_mode` setting as it was just jank and easily broken
 
-0.3.1 
+[0.3.1 ]
 - neoforge and forge crash fix
 
-0.3
+[0.3]
 - updated to 1.21.3
 - fixed ice displacing the water it is meant to replace
 - fixed a sodium / embeddium mixin crash
@@ -66,7 +73,7 @@
 - fluid height command changed to behaviour category as it also has non-visual effects
 - bug: the debug water level color setting will not work with sodium / embeddium in 1.21.3 due to some workflow delays
 
-0.2
+[0.2]
 
 - fixed the flowing texture hiding option not working with sodium
 - fixed the sea level being considered 1 level higher than it actually is

@@ -1,0 +1,35 @@
+{
+    "id": "flowing_fluids",
+    "curseforge": "",
+    "modrinth": "",
+    "files": [
+                {
+            "loaders": [
+                "Forge"
+            ],
+            "versions": [
+                "1.21.9",
+                "1.21.10"
+            ]
+        },
+        {
+            "loaders": [
+                "NeoForge"
+            ],
+            "versions": [
+                "1.21.9",
+                "1.21.10"
+            ]
+        },
+        {
+            "loaders": [
+                "Fabric",
+                "Quilt"
+            ],
+            "versions": [
+                "1.21.9",
+                "1.21.10"
+            ]
+        }
+    ]
+}

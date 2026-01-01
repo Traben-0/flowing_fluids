@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "flowing_fluids",
+  "version": "${version}",
+  "name": "Flowing Fluids",
+  "description": "Gives fluids realistic flowing physics, making them mostly finite. With various settings for performance, visuals, and gameplay interaction.",
+  "authors": [
+    "Traben"
+  ],
+  "contact": {
+    "homepage": ""
+  },
+  "license": "LGPL-3.0",
+  "icon": "assets/flowing_fluids/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "traben.flowing_fluids.FlowingFluidsInit"
+    ],
+    "client": [
+      "traben.flowing_fluids.FlowingFluidsClientInit"
+    ]
+  },
+  "mixins": [
+    "flowing_fluids.mixins.json"
+  ],
+  "breaks": {
+    "immersivefluids": "*",
+    "create": "<0.6"
+  },
+  "depends": {
+    "fabricloader": "*",
+    "fabric-api": "*",
+    "minecraft": "*"
+  },
+  "custom": {
+    "lithium:options": {
+      "mixin.world.chunk_ticking.spread_ice": false
+    }
+  }
+}
