@@ -1,6 +1,7 @@
 {
   "required": true,
   "package": "traben.flowing_fluids.mixin.mixins",
+  "plugin": "traben.flowing_fluids.mixin.Plugin",
   "compatibilityLevel": "JAVA_17",
   "minVersion": "0.8",
   "client": [
@@ -30,6 +31,7 @@
     "MixinWaterPushing",
     "create.FluidDrainingBehaviourAccessor",
     "create.FluidManipulationBehaviourAccessor",
+    "create.MixinGenericItemEmptying_HandlesItemDrain",
     "create.MixinHosePulley",
     "create.MixinPipe",
     "create.MixinWaterWheel",

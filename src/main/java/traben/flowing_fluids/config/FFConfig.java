@@ -63,6 +63,7 @@ public class FFConfig {
     // create mod options
     public CreateWaterWheelMode create_waterWheelMode = CreateWaterWheelMode.REQUIRE_FLOW_OR_RIVER;
     public boolean create_infinitePipes = false;
+    public int create_waterWheelFlowMaxTickInterval = 80;
 
     // fluid blacklist
     public ObjectOpenHashSet<String> fluidBlacklist = new ObjectOpenHashSet<>();
@@ -177,6 +178,7 @@ public class FFConfig {
         //create mod options
         create_waterWheelMode = buffer.readEnum(CreateWaterWheelMode.class);
         create_infinitePipes = buffer.readBoolean();
+        create_waterWheelFlowMaxTickInterval = buffer.readVarInt();
 
         //blacklist
         fluidBlacklist = buffer.readCollection(ObjectOpenHashSet::new, FriendlyByteBuf::readUtf);
@@ -235,6 +237,7 @@ public class FFConfig {
         //create mod options
         buffer.writeEnum(create_waterWheelMode);
         buffer.writeBoolean(create_infinitePipes);
+        buffer.writeVarInt(create_waterWheelFlowMaxTickInterval);
 
         //blacklist
         buffer.writeCollection(fluidBlacklist, FriendlyByteBuf::writeUtf);
@@ -299,6 +302,10 @@ public class FFConfig {
 
         public boolean always(){
             return this == ALWAYS || this == ALWAYS_OPPOSITE;
+        }
+
+        public boolean needsFlow() {
+            return this == REQUIRE_FLOW || this == REQUIRE_FLOW_OR_RIVER || this == REQUIRE_FLOW_OR_RIVER_OPPOSITE;
         }
 
     }

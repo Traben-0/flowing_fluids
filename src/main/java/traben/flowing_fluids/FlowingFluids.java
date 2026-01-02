@@ -62,6 +62,8 @@ public class FlowingFluids {
     public static long debug_killFluidUpdatesUntilTime = 0;
     public static int waterPluggedThisSession = 0;
 
+    public static boolean CREATE = false;
+
     public static Set<Pair<Fluid, TagKey<Block>>> nonDisplacerTags = new HashSet<>();
     public static Set<Pair<Fluid,Block>> nonDisplacers = new HashSet<>();
     public static Set<TagKey<Biome>> infiniteBiomeTags = new HashSet<>();
@@ -87,6 +89,8 @@ public class FlowingFluids {
         nonDisplacers.add(Pair.of(Fluids.LAVA,Blocks.OBSIDIAN));
 
         loadConfig();
+
+        CREATE = isThisModLoaded("create");
     }
 
     private static boolean showFirstMessage = true;

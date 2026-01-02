@@ -372,8 +372,11 @@ public class FFCommands {
                 .executes(commandContext -> message(commandContext, "Settings for Create Mod compatibility, use these to change how fluids interact with Create water wheels and pipes."))
                 .then(Commands.literal("info")
                         .executes(c -> message(c, "The Create mod uses water wheels as it's most primitive power source. Flowing Fluids has settings to change how these water wheels get powered due to the additional challenges of the flowing fluids mod interactions with fluids."))
-                )
-                .then(Commands.literal("water_wheel_requirements")
+                ).then(intCommand("water_wheel_max_ticks_between_flows",
+                                "Controls how many ticks a water wheel will keep spinning after the last fluid to flow past it, this helps with intermittent or slow flows.\nThe default value is 80, min is 20, and the maximum value is 9999.",
+                                "ticks", 20, 9999,
+                                a -> FlowingFluids.config.create_waterWheelFlowMaxTickInterval = a, () -> FlowingFluids.config.create_waterWheelFlowMaxTickInterval)
+                ).then(Commands.literal("water_wheel_requirements")
                         .executes(cont -> message(cont, "Changes how the Create Mod's water wheels interact with fluids, select an mode to get further information. Default is flow. Water wheel mode is currently set to " + FlowingFluids.config.create_waterWheelMode))
                         .then(Commands.literal("flow")
                                 .executes(cont -> {

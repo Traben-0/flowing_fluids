@@ -5,7 +5,9 @@
 - added various seaLevelOverride commands to set a custom sea level for fluid behaviors in a given dimension or everywhere
 - fixed various sea level related bugs
 - added an info message to guide users to the presets command
-- added the river_only command options for create water wheel behaviours
+- added the river_only command options for create water wheel behaviors
+- massively improved how create water wheels interact with flowing fluids, they should now work much more reliably and consistently and can no longer be tricked into infinitely spinning without a flow (when flow is configured to be required i.e. default)
+- fixed create item drains treating partially filled buckets and bottles as if they were full
 
 [0.6.1]
 - fixed a forge crash

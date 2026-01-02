@@ -37,6 +37,10 @@ import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
 import traben.flowing_fluids.config.FFConfig;
 
+//#if CREATE
+//$$ import traben.flowing_fluids.IFFFlowListener;
+//#endif
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -206,6 +210,9 @@ public abstract class MixinFlowingFluid extends Fluid {
     public abstract int getAmount(final FluidState state);
 
 
+    @Shadow
+    public abstract Fluid getFlowing();
+
     @Inject(method = "getOwnHeight", at = @At(value = "HEAD"), cancellable = true)
     private void ff$differentRenderHeight(final FluidState state, final CallbackInfoReturnable<Float> cir) {
         if (FlowingFluids.config.enableMod
@@ -269,15 +276,25 @@ public abstract class MixinFlowingFluid extends Fluid {
             //$$ BlockState thisState = level.getBlockState(blockPos);
             //#endif
 
+            // track the final direction we flowed towards for listeners e.g. create water wheels
+            Direction directionFinal = null;
+            boolean wentDown = false;
+            boolean wasPressured = false;
+
             try {
 
                 BlockPos posDown = blockPos.below();
+                int initAmount = fluidState.getAmount();
                 // check if we can flow down and if so how much fluid remains out of the 8 total possible
                 int remainingAmount = flowing_fluids$checkAndFlowDown(level, blockPos, fluidState, thisState, posDown,
-                        level.getBlockState(posDown), fluidState.getAmount());
+                        level.getBlockState(posDown), initAmount);
 
                 // if there is remaining amount still, the block below is full, or we couldn't flow down so also flow to the sides
+                if (remainingAmount != initAmount) {
+                    wentDown = true;
+                }
                 if (remainingAmount <= 0) {
+                    directionFinal = Direction.DOWN;
                     return;
                 }
 
@@ -296,6 +313,9 @@ public abstract class MixinFlowingFluid extends Fluid {
                                 if (remainder.first() < aboveAmount) {
                                     remainder.second().run();
                                     if (!dontConsumeWater) FFFluidUtils.setFluidStateAtPosToNewAmount(level, abovePos, flow, remainder.first());
+
+                                    directionFinal = Direction.DOWN;
+                                    wasPressured = true;
                                     return;
                                 }
                             }
@@ -307,7 +327,7 @@ public abstract class MixinFlowingFluid extends Fluid {
                 // the drop-off amount is the vanilla value determining how much each block of flow reduces the amount
                 // this ties in nicely with a sort of surface tension effect
                 if (remainingAmount > getDropOff(level)) {//drop off is 1 for water, 2 for lava in the overworld
-                    ff$flowToSides(level, blockPos, fluidState, remainingAmount, thisState);//, remainingAmount);
+                    directionFinal = ff$flowToSides(level, blockPos, fluidState, remainingAmount, thisState);//, remainingAmount);
                 } else if (FlowingFluids.config.flowToEdges) {
                     // if the remaining amount is less than the drop-off amount, we can still flow to the sides but only if
                     // we find a nearby ledge to flow towards, as we want this water to settle when on flat ground
@@ -316,14 +336,13 @@ public abstract class MixinFlowingFluid extends Fluid {
 
                     // dir is null if no spreadable block was found
                     if (dir != null) {
+                        directionFinal = dir;
                         // much simpler logic than flowing_fluids$flowToSides() as we are only flowing our total remaining value into an empty space
                         var pos = blockPos.relative(dir);
                         flowing_fluids$setOrRemoveWaterAmountAt(level, blockPos, 0, thisState, dir);
                         flowing_fluids$spreadTo2(level, pos, level.getBlockState(pos), dir, remainingAmount);
                     }
                 }
-
-
 
             } finally {
 
@@ -348,17 +367,47 @@ public abstract class MixinFlowingFluid extends Fluid {
 
                 FlowingFluids.isManeuveringFluids = false;
                 FlowingFluids.pistonTick = false;
+
+                //#if CREATE
+                //$$ if (FlowingFluids.CREATE && directionFinal != null) { // update if this become non create exclusive
+                //$$     var pos = new BlockPos.MutableBlockPos();
+                //$$     for (Direction value : Direction.values()) {
+                //$$         pos.setWithOffset(blockPos, value);
+                //$$         // small water wheel
+                //$$         var entity = level.getBlockEntity(pos);
+                //$$         if (entity instanceof IFFFlowListener listener) {
+                //$$             listener.ff$acceptRecentFlow(blockPos, directionFinal, getFlowing(), wentDown);
+                //$$             if (wasPressured) {
+                //$$                 listener.ff$acceptRecentFlow(blockPos.above(), Direction.DOWN, getFlowing(), wentDown);
+                //$$             }
+                //$$         } else {
+                //$$             // Large water wheel
+                //$$             var state = level.getBlockState(pos);
+                //$$             if (state.getBlock() instanceof com.simibubi.create.content.kinetics.waterwheel.WaterWheelStructuralBlock) {
+                //$$                 var master = com.simibubi.create.content.kinetics.waterwheel.WaterWheelStructuralBlock.getMaster(level, pos, state);
+                //$$                 entity = level.getBlockEntity(master);
+                //$$                 if (entity instanceof IFFFlowListener listener) {
+                //$$                     listener.ff$acceptRecentFlow(blockPos, directionFinal, getFlowing(), wentDown);
+                //$$                     if (wasPressured) {
+                //$$                         listener.ff$acceptRecentFlow(blockPos.above(), Direction.DOWN, getFlowing(), wentDown);
+                //$$                     }
+                //$$                 }
+                //$$             }
+                //$$         }
+                //$$     }
+                //$$ }
+                //#endif
             }
         }
-
     }
 
+
     @Unique
-    private void ff$flowToSides(final Level level, final BlockPos blockPos, final FluidState fluidState, int amount, final BlockState thisState) {
+    private Direction ff$flowToSides(final Level level, final BlockPos blockPos, final FluidState fluidState, int amount, final BlockState thisState) {
 
         // get a valid direction to move into or null if no spreadable block was found
         Direction dir = flowing_fluids$getLowestSpreadableLookingFor4BlockDrops(level, blockPos, fluidState, amount, false);
-        if (dir == null) return;
+        if (dir == null) return null;
 
         var posDir = blockPos.relative(dir);
 
@@ -367,7 +416,7 @@ public abstract class MixinFlowingFluid extends Fluid {
 
         // must force total flow of fluid because of waterloggables
         if (ff$handleWaterLoggedFlowAndReturnIfHandled(level, blockPos, fluidState, amount, thisState, posDir, destFluidAmount, false))
-            return;
+            return dir;
 
         int fromAmount;
         int toAmount;
@@ -389,6 +438,7 @@ public abstract class MixinFlowingFluid extends Fluid {
 
         FFFluidUtils.setFluidStateAtPosToNewAmount(level, blockPos, fluidState.getType(), fromAmount);
         FFFluidUtils.setFluidStateAtPosToNewAmount(level, posDir, fluidState.getType(), toAmount);
+        return dir;
     }
 
 
