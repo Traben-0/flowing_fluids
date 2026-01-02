@@ -141,9 +141,312 @@ public class FFCommands {
         return presets;
     }
 
+    public static LiteralArgumentBuilder<CommandSourceStack> seaLevelOverrides() {
+        return Commands.literal("sea_level_override")
+                .executes(cont -> message(cont, "Allows overriding the current dimensions sea level as seen by the Flowing Fluids mod"))
+                .then(Commands.literal("check_vanilla")
+                        .executes(cont -> {
+                            var level = cont.getSource().getLevel();
+                            return message(cont, "The vanilla sea level as seen by Flowing Fluids for this dimension is " + level.getSeaLevel() + ".");
+                        })
+                ).then(Commands.literal("check_overrides")
+                        .executes(cont -> {
+                            var level = cont.getSource().getLevel();
+                            int override = FlowingFluids.config.dimensionSeaLevelOverrides.getOrDefault(level.dimensionType().hashCode(), Integer.MIN_VALUE);
+                            return message(cont, "The sea level override as seen by Flowing Fluids for this dimension is " + (override == Integer.MIN_VALUE ? "NO OVERRIDE SET" : override) + ". And for the default override it is set to: " + FlowingFluids.config.defaultSeaLevelOverride + ".");
+                        })
+                ).then(Commands.argument("set_dimension_override", IntegerArgumentType.integer(-999999, 999999))
+                        .executes(cont -> {
+                            int override = cont.getArgument("distance", Integer.class);
+                            FlowingFluids.config.dimensionSeaLevelOverrides.put(cont.getSource().getLevel().dimensionType().hashCode(), override);
+                            return messageAndSaveConfig(cont, "The sea level override for this dimension is now set to " + override + ". Warning! mod or datapack changes that alter dimension properties will unset this...");
+                        })
+                ).then(Commands.literal("clear_dimension_override")
+                        .executes(cont -> {
+                            FlowingFluids.config.dimensionSeaLevelOverrides.remove(cont.getSource().getLevel().dimensionType().hashCode());
+                            return messageAndSaveConfig(cont, "The sea level override for this dimension has been removed.");
+                        })
+                ).then(Commands.argument("set_default_override", IntegerArgumentType.integer(-999999, 999999))
+                        .executes(cont -> {
+                            int override = cont.getArgument("distance", Integer.class);
+                            FlowingFluids.config.defaultSeaLevelOverride = override;
+                            return messageAndSaveConfig(cont, "The default sea level override is now set to " + override + ".");
+                        })
+                ).then(Commands.literal("clear_default_override")
+                        .executes(cont -> {
+                            FlowingFluids.config.defaultSeaLevelOverride = Integer.MIN_VALUE;
+                            return messageAndSaveConfig(cont, "The default sea level override has been removed.");
+                        })
+                );
+    }
+
+
+    public static LiteralArgumentBuilder<CommandSourceStack> ignoreList(CommandBuildContext commandBuildContext) {
+        return Commands.literal("ignored_fluids")
+                .executes(cont -> message(cont, "Control which fluids do or do not get affected by this mod."))
+                .then(Commands.literal("list")
+                        .executes(cont -> message(cont, "The following fluids are currently ignored by Flowing Fluids: " + FlowingFluids.config.fluidBlacklist))
+                )
+                .then(Commands.literal("list_all_fluid_names")
+                        .executes(cont -> message(cont, "This is a list of all registered fluids as Flowing Fluids knows them: " +
+                                BuiltInRegistries.FLUID.stream().map(fluid -> BuiltInRegistries.FLUID.getKey(fluid).toString()).collect(Collectors.toCollection(HashSet::new))))
+                )
+                .then(Commands.literal("add")
+                        .then(Commands.argument("fluid", BlockStateArgument.block(commandBuildContext))
+                                .executes(cont -> {
+                                    var fluidState = BlockStateArgument.getBlock(cont, "fluid").getState().getFluidState();
+                                    if (fluidState.isEmpty() || !(fluidState.getType() instanceof FlowingFluid flows)) {
+                                        throw notFluidException.create();
+                                    }
+                                    String source = BuiltInRegistries.FLUID.getKey(flows.getSource()).toString();
+                                    FlowingFluids.config.fluidBlacklist.add(source);
+                                    String flowing = BuiltInRegistries.FLUID.getKey(flows.getFlowing()).toString();
+                                    FlowingFluids.config.fluidBlacklist.add(flowing);
+                                    return messageAndSaveConfig(cont, "Added the fluids " + source + " and " + flowing + " to the ignored fluids list. The list is now: " + FlowingFluids.config.fluidBlacklist);
+                                })
+                        )
+                )
+                .then(Commands.literal("remove")
+                        .then(Commands.argument("fluid", BlockStateArgument.block(commandBuildContext))
+                                .executes(cont -> {
+                                    var fluidState = BlockStateArgument.getBlock(cont, "fluid").getState().getFluidState();
+                                    if (fluidState.isEmpty() || !(fluidState.getType() instanceof FlowingFluid flows)) {
+                                        throw notFluidException.create();
+                                    }
+                                    String source = BuiltInRegistries.FLUID.getKey(flows.getSource()).toString();
+                                    FlowingFluids.config.fluidBlacklist.remove(source);
+                                    String flowing = BuiltInRegistries.FLUID.getKey(flows.getFlowing()).toString();
+                                    FlowingFluids.config.fluidBlacklist.remove(flowing);
+                                    return messageAndSaveConfig(cont, "Removed the fluids " + source + " and " + flowing + " from the ignored fluids list. The list is now: " + FlowingFluids.config.fluidBlacklist);
+                                })
+                        )
+                );
+    }
+
+    public static LiteralArgumentBuilder<CommandSourceStack> debug(CommandBuildContext commandBuildContext) {
+        return Commands.literal("~debug").executes(cont -> message(cont, "Debug commands you probably don't need these."))
+                .then(booleanCommand("random_ticks_printing",
+                        "Enables or disables printing of random tick events, this will spam your log with every random tick event that happens.",
+                        "Random ticks printing is now enabled.",
+                        "Random ticks printing is now disabled.",
+                        a -> FlowingFluids.config.printRandomTicks = a, () -> FlowingFluids.config.printRandomTicks)
+
+                ).then(booleanCommand("water_level_tinting",
+                        "Enables or disables water level tinting, this will make water change colour based on its level.",
+                        "water_level_tinting is now enabled.",
+                        "water_level_tinting is now disabled.",
+                        a -> FlowingFluids.config.debugWaterLevelColours = a, () -> FlowingFluids.config.debugWaterLevelColours)
+                ).then(Commands.literal("kill_all_current_fluid_updates")
+                        .executes(cont -> {
+                            FlowingFluids.debug_killFluidUpdatesUntilTime = System.currentTimeMillis() + 3000;
+                            return message(cont, "All fluid flowing ticks will be ignored and allowed to freeze in place over the next 3 seconds.\nAll fluids that are loaded and ticking during this time will completely stop updating and freeze in place until the next time they get updated.\n You may use the debug command \"plug_fluids_in_nearby_chunks\" to surround all these frozen fluids with appropriate blocks to prevent further flow.");
+                        })
+                ).then(Commands.literal("how_many_fluids_plugged_in_world_gen_this_session")
+                        .executes(cont ->
+                                message(cont, FlowingFluids.waterPluggedThisSession + " fluids have been plugged during world gen this session."))
+                ).then(Commands.literal("super_sponge_at_me")
+                        .executes(cont -> {
+                            int drained = superSponge(cont.getSource().getLevel(), BlockPos.containing(cont.getSource().getPosition()), Fluids.WATER);
+                            return message(cont, drained + " blocks of water have been drained.");
+                        })
+                        .then(Commands.argument("fluid", BlockStateArgument.block(commandBuildContext))
+                                .executes(cont -> {
+                                            var fluidState = BlockStateArgument.getBlock(cont, "fluid").getState().getFluidState();
+                                            if (fluidState.isEmpty() || !(fluidState.getType() instanceof FlowingFluid flows)) {
+                                                throw notFluidException.create();
+                                            }
+                                            int drained = superSponge(cont.getSource().getLevel(), BlockPos.containing(cont.getSource().getPosition()), flows);
+                                            return message(cont, drained + " blocks of " + flows.getSource().defaultFluidState().createLegacyBlock().getBlock().getName().getString() +" have been drained.");
+                                        }
+                                )
+                        )
+                ).then(booleanCommand("announce_world_gen_actions",
+                        "Enables or disables world gen action announcements, this will spam your log with every world gen action that happens because of this mod, including the location of this action (E.G. the plug fluids during world gen feature).",
+                        "World gen action announcements are now enabled.",
+                        "World gen action announcements are now disabled.",
+                        a -> FlowingFluids.config.announceWorldGenActions = a, () -> FlowingFluids.config.announceWorldGenActions)
+                ).then(Commands.literal("surround_all_fluids_in_nearby_chunks_with_blocks")
+                        .executes(cont ->{
+                            var level = cont.getSource().getLevel();
+                            var pos = cont.getSource().getPosition();
+                            var posChunk = new ChunkPos(new BlockPos((int) pos.x, (int) pos.y, (int) pos.z));
+
+                            var dist = level.getServer().getPlayerList().getSimulationDistance();
+
+                            int count = FlowingFluids.waterPluggedThisSession;
+                            for (int x = posChunk.x-dist; x <= posChunk.x+dist; x++) {
+                                for (int z = posChunk.z-dist; z <= posChunk.z+dist; z++) {
+                                    if (level.hasChunk(x, z)) {
+                                        PlugWaterFeature.processChunk(level, new ChunkPos(x, z), level.getChunk(x, z));
+                                    }
+                                }
+                            }
+                            return message(cont, "All fluids, within "+dist+" chunks of you, have had any fluids that are exposed to air plugged up with appropriate blocks.\n" +
+                                    "This will not affect any fluids that are not exposed to air, or are already plugged.\n" +
+                                    "This has plugged " + (FlowingFluids.waterPluggedThisSession - count) + " fluids in total.");
+                        })
+                ).then(Commands.literal("force_tick_all_fluids_in_nearby_chunks")
+                        .executes(cont ->{
+                            var level = cont.getSource().getLevel();
+                            var pos = cont.getSource().getPosition();
+                            var posChunk = new ChunkPos(new BlockPos((int) pos.x, (int) pos.y, (int) pos.z));
+
+                            var dist = level.getServer().getPlayerList().getSimulationDistance();
+                            var rand = level.getRandom();
+                            final AtomicInteger count = new AtomicInteger();
+                            for (int x = posChunk.x-dist; x <= posChunk.x+dist; x++) {
+                                for (int z = posChunk.z-dist; z <= posChunk.z+dist; z++) {
+                                    if (level.hasChunk(x, z)) {
+                                        level.getChunk(x, z).findBlocks(BlockBehaviour.BlockStateBase::liquid,
+                                                (blockPos, blockState) -> {
+                                                    level.scheduleTick(blockPos, blockState.getFluidState().getType(), 1 + rand.nextInt(200));
+                                                    count.incrementAndGet();
+                                                });
+                                    }
+                                }
+                            }
+                            return message(cont, "All fluids, within "+dist+" chunks of you, have been forcibly added to the tick queue with random intervals over the next 0-10 seconds, EXPECT SOME LAG! Amount force ticked = " + count.get());
+                        })
+                ).then(Commands.literal("is_infinite_water_biome")
+                        .executes(cont ->{
+                            var level = cont.getSource().getLevel();
+                            var pos = cont.getSource().getPosition();
+                            return message(cont, "You are "+
+                                    (FFFluidUtils.matchInfiniteBiomes(level.getBiome(new BlockPos((int) pos.x, (int) pos.y, (int) pos.z)))
+                                            ? "IN" : "NOT IN") + " an Infinite biome. By default these are: Oceans, Rivers, and Swamps.\n" +
+                                    "Mods can add their own via the api but most modded oceans and rivers should be accounted for automatically by this mod.");
+                        })
+                );
+    }
+
+    public static LiteralArgumentBuilder<CommandSourceStack> drainAndFill() {
+        return Commands.literal("draining_and_filling")
+                .executes(commandContext -> message(commandContext, "Set the chances of certain random tick interactions with fluids."))
+                .then(floatChanceCommand("water_puddle_evaporation_chance",
+                        "Sets the chance of small minimum level water tiles evaporating during random ticks",
+                        a -> FlowingFluids.config.evaporationChanceV2 = a,
+                        () -> FlowingFluids.config.evaporationChanceV2)
+                ).then(floatChanceCommand("water_nether_evaporation_chance",
+                        "Sets the chance of any water losing a level during random ticks in the nether",
+                        a -> FlowingFluids.config.evaporationNetherChance = a,
+                        () -> FlowingFluids.config.evaporationNetherChance)
+                ).then(floatChanceCommand("water_rain_refill_chance",
+                        "Sets the chance of non-full water tiles increasing their level while its rains and they are open to the sky, during random ticks. This provides access to renewable water given enough time.\nNOTE: this will always be forcibly limited to 1/3rd of the current water_puddle_evaporation_chance setting otherwise water will endlessly fill the world during rain, this does effectively cap this value to 0.33",
+                        a -> FlowingFluids.config.rainRefillChance = a,
+                        () -> FlowingFluids.config.rainRefillChance)
+                ).then(floatChanceCommand("water_infinite_biome_refill_chance",
+                        "Sets the chance of non-full water tiles increasing their level within: Oceans, Rivers, and Swamps, during random ticks. Additionally they must have a sky light level higher than 0, and be between y=0 and sea level. This provides time limited access to infinite water within these biomes, granted they are big enough and not drained too quickly",
+                        a -> FlowingFluids.config.oceanRiverSwampRefillChance = a,
+                        () -> FlowingFluids.config.oceanRiverSwampRefillChance)
+                ).then(floatChanceCommand("water_infinite_biome_non_consume_chance",
+                        "Sets the chance of water not being consumed when flowing in: Oceans, Rivers, and Swamps. Additionally they must have a sky light level higher than 0, and be between y=0 and sea level. This allows access to infinite water within these biomes",
+                        a -> FlowingFluids.config.infiniteWaterBiomeNonConsumeChance = a,
+                        () -> FlowingFluids.config.infiniteWaterBiomeNonConsumeChance)
+                ).then(floatChanceCommand("water_infinite_biome_surface_drain_chance",
+                        "Sets the chance of water being drained into water at sea level when flowing into: Oceans, Rivers, and Swamps. Additionally they must have a sky light level higher than 0. This allows infinte water drainage within these biomes",
+                        a -> FlowingFluids.config.infiniteWaterBiomeDrainSurfaceChance = a,
+                        () -> FlowingFluids.config.infiniteWaterBiomeDrainSurfaceChance)
+                ).then(floatChanceCommand("farm_land_drains_water_chance",
+                        "Sets the chance at which a farmland block will consume 1 level of water each time it hydrates. 0 == OFF, 1 == ALWAYS",
+                        a -> FlowingFluids.config.farmlandDrainWaterChance = a,
+                        () -> FlowingFluids.config.farmlandDrainWaterChance)
+                ).then(floatChanceCommand("animal_breeding_drains_water_chance",
+                        "Sets the chance at which an animal will consume 1 level of nearby water each time it tries to breed, range 8 blocks, water can be at same level or 1 lower. 0 == OFF, 1 == ALWAYS",
+                        a -> FlowingFluids.config.drinkWaterToBreedAnimalChance = a,
+                        () -> FlowingFluids.config.drinkWaterToBreedAnimalChance)
+                ).then(floatChanceCommand("concrete_powder_drains_water_chance",
+                        "Sets the chance at which concrete powder will consume a water level on hardening. 0 == OFF, 1 == ALWAYS",
+                        a -> FlowingFluids.config.concreteDrainsWaterChance = a,
+                        () -> FlowingFluids.config.concreteDrainsWaterChance)
+                ).then(booleanCommand("rain_fills_block_above",
+                        "Controls if rain will place new layers of water higher than the previous block of water was.",
+                        a -> FlowingFluids.config.rainFillsWaterHigherV2 = a, () -> FlowingFluids.config.rainFillsWaterHigherV2)
+                ).then(booleanCommand("only_infinite_biomes_at_sea_level",
+                        "Controls if the infinite biome refilling only happens to water at exactly sea level.",
+                        a -> FlowingFluids.config.fastBiomeRefillAtSeaLevelOnly = a, () -> FlowingFluids.config.fastBiomeRefillAtSeaLevelOnly)
+                );
+    }
+
+    public static LiteralArgumentBuilder<CommandSourceStack> create() {
+        return Commands.literal("create_mod_compat")
+                .executes(commandContext -> message(commandContext, "Settings for Create Mod compatibility, use these to change how fluids interact with Create water wheels and pipes."))
+                .then(Commands.literal("info")
+                        .executes(c -> message(c, "The Create mod uses water wheels as it's most primitive power source. Flowing Fluids has settings to change how these water wheels get powered due to the additional challenges of the flowing fluids mod interactions with fluids."))
+                )
+                .then(Commands.literal("water_wheel_requirements")
+                        .executes(cont -> message(cont, "Changes how the Create Mod's water wheels interact with fluids, select an mode to get further information. Default is flow. Water wheel mode is currently set to " + FlowingFluids.config.create_waterWheelMode))
+                        .then(Commands.literal("flow")
+                                .executes(cont -> {
+                                    FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FLOW;
+                                    return messageAndSaveConfig(cont, "Water wheel mode is now set to require flow.\nWater wheels will only spin if the water has a level gradient, which almost always requires the water to be actively flowing.");
+                                })
+                        ).then(Commands.literal("flow_or_river")
+                                .executes(cont -> {
+                                    FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FLOW_OR_RIVER;
+                                    return messageAndSaveConfig(cont, "Water wheel mode is now set to require flow or river.\nWater wheels will only spin if the water has a level gradient, which almost always requires the water to be actively flowing, or if the water is in a river biome touching any water, and within 5 blocks of sea level. Will always spin in the same direction when using a river as a source.");
+                                })
+                        ).then(Commands.literal("flow_or_river_opposite_spin")
+                                .executes(cont -> {
+                                    FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FLOW_OR_RIVER_OPPOSITE;
+                                    return messageAndSaveConfig(cont, "Water wheel mode is now set to require flow or river with opposite spin.\nWater wheels will only spin if the water has a level gradient, which almost always requires the water to be actively flowing, or if the water is in a river biome touching any water, and within 5 blocks of sea level. Will spin in the opposite direction to the other river mode.");
+                                })
+                        ).then(Commands.literal("fluid")
+                                .executes(cont -> {
+                                    FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FLUID;
+                                    return messageAndSaveConfig(cont, "Water wheel mode is now set to only require fluid to be present in the checked spaces. Will always spin in the same direction.");
+                                })
+                        ).then(Commands.literal("fluid_opposite_spin")
+                                .executes(cont -> {
+                                    FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FLUID_OPPOSITE;
+                                    return messageAndSaveConfig(cont, "Water wheel mode is now set to only require fluid to be present in the checked spaces. Will spin in the opposite direction to the other fluid mode.");
+                                })
+                        ).then(Commands.literal("full_fluid")
+                                .executes(cont -> {
+                                    FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FULL_FLUID;
+                                    return messageAndSaveConfig(cont, "Water wheel mode is now set to only require a full 8 levels of fluid to be present in the checked spaces. Will always spin in the same direction.");
+                                })
+                        ).then(Commands.literal("full_fluid_opposite_spin")
+                                .executes(cont -> {
+                                    FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FULL_FLUID_OPPOSITE;
+                                    return messageAndSaveConfig(cont, "Water wheel mode is now set to only require a full 8 levels of fluid to be present in the checked spaces. Will spin in the opposite direction to the other full fluid mode.");
+                                })
+                        ).then(Commands.literal("always")
+                                .executes(cont -> {
+                                    FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.ALWAYS;
+                                    return messageAndSaveConfig(cont, "water wheel mode is now set to always spin.\nWater wheels will always spin with max strength regardless of present fluids.");
+                                })
+                        ).then(Commands.literal("always_opposite_spin")
+                                .executes(cont -> {
+                                    FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.ALWAYS_OPPOSITE;
+                                    return messageAndSaveConfig(cont, "water wheel mode is now set to always spin with opposite spin.\nWater wheels will always spin with max strength regardless of present fluids, and will spin in the opposite direction to the other always mode.");
+                                })
+                        ).then(Commands.literal("river_only")
+                                .executes(cont -> {
+                                    FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.RIVER_ONLY;
+                                    return messageAndSaveConfig(cont, "water wheel mode is now set to spin in rivers only.\nWater wheels will always spin with max strength when in surface river biome water.");
+                                })
+                        ).then(Commands.literal("river_only_opposite_spin")
+                                .executes(cont -> {
+                                    FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.RIVER_ONLY_OPPOSITE;
+                                    return messageAndSaveConfig(cont, "water wheel mode is now set to spin in rivers only.\nWater wheels will always spin with max strength when in surface river biome water.\nWith an opposite spin direction to the other setting");
+                                })
+                        )
+                ).then(Commands.literal("pipes")
+                        .then(booleanCommand("infinite_pipe_fluid_source",
+                                "Enables or disables infinite pipe fluid source, if disabled pipes will consume the source fluid block.",
+                                "Pipes will now not consume the source fluid block.",
+                                "Pipes will now consume the source fluid block.",
+                                a -> FlowingFluids.config.create_infinitePipes = a, () -> FlowingFluids.config.create_infinitePipes)
+                        ).then(Commands.literal("info")
+                                .executes(c -> message(c, "Create mod pipes will draw fluids only when the entire input block is full (8 levels of fluid). This is required for fluid levels to remain consistent between bucket and other usages, and for Flowing Fluids to be as unobtrusive as possible to the Create mod's inner workings. That being said if you want an easy time of using pipes without worrying about water usage, then enable the infinite pipes setting. You can also disable Create pipes from outputting water blocks in it's own config settings"))
+                        )
+                );
+    }
+
+    private static SimpleCommandExceptionType notFluidException = new SimpleCommandExceptionType(new LiteralMessage("The block you provided is not a fluid block, or is not a fluid block that can flow."));
+
 
     public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext commandBuildContext, @SuppressWarnings("unused") Commands.CommandSelection var3) {
-        var notFluidException = new SimpleCommandExceptionType(new LiteralMessage("The block you provided is not a fluid block, or is not a fluid block that can flow."));
 
         var commands = Commands.literal("flowing_fluids")
                 .requires(source ->
@@ -174,45 +477,7 @@ public class FFCommands {
                                         "World gen fluid plugging is now enabled.",
                                         "World gen fluid plugging is now disabled.",
                                         a -> FlowingFluids.config.encloseAllFluidOnWorldGen = a, () -> FlowingFluids.config.encloseAllFluidOnWorldGen)
-                        ).then(Commands.literal("ignored_fluids")
-                                .executes(cont -> message(cont, "Control which fluids do or do not get affected by this mod."))
-                                .then(Commands.literal("list")
-                                        .executes(cont -> message(cont, "The following fluids are currently ignored by Flowing Fluids: " + FlowingFluids.config.fluidBlacklist))
-                                )
-                                .then(Commands.literal("list_all_fluid_names")
-                                        .executes(cont -> message(cont, "This is a list of all registered fluids as Flowing Fluids knows them: " +
-                                                BuiltInRegistries.FLUID.stream().map(fluid -> BuiltInRegistries.FLUID.getKey(fluid).toString()).collect(Collectors.toCollection(HashSet::new))))
-                                )
-                                .then(Commands.literal("add")
-                                        .then(Commands.argument("fluid", BlockStateArgument.block(commandBuildContext))
-                                                .executes(cont -> {
-                                                    var fluidState = BlockStateArgument.getBlock(cont, "fluid").getState().getFluidState();
-                                                    if (fluidState.isEmpty() || !(fluidState.getType() instanceof FlowingFluid flows)) {
-                                                        throw notFluidException.create();
-                                                    }
-                                                    String source = BuiltInRegistries.FLUID.getKey(flows.getSource()).toString();
-                                                    FlowingFluids.config.fluidBlacklist.add(source);
-                                                    String flowing = BuiltInRegistries.FLUID.getKey(flows.getFlowing()).toString();
-                                                    FlowingFluids.config.fluidBlacklist.add(flowing);
-                                                    return messageAndSaveConfig(cont, "Added the fluids " + source + " and " + flowing + " to the ignored fluids list. The list is now: " + FlowingFluids.config.fluidBlacklist);
-                                                })
-                                        )
-                                )
-                                .then(Commands.literal("remove")
-                                        .then(Commands.argument("fluid", BlockStateArgument.block(commandBuildContext))
-                                                .executes(cont -> {
-                                                    var fluidState = BlockStateArgument.getBlock(cont, "fluid").getState().getFluidState();
-                                                    if (fluidState.isEmpty() || !(fluidState.getType() instanceof FlowingFluid flows)) {
-                                                        throw notFluidException.create();
-                                                    }
-                                                    String source = BuiltInRegistries.FLUID.getKey(flows.getSource()).toString();
-                                                    FlowingFluids.config.fluidBlacklist.remove(source);
-                                                    String flowing = BuiltInRegistries.FLUID.getKey(flows.getFlowing()).toString();
-                                                    FlowingFluids.config.fluidBlacklist.remove(flowing);
-                                                    return messageAndSaveConfig(cont, "Removed the fluids " + source + " and " + flowing + " from the ignored fluids list. The list is now: " + FlowingFluids.config.fluidBlacklist);
-                                                })
-                                        )
-                                )
+                        ).then(ignoreList(commandBuildContext)
                         ).then(Commands.literal("reset_all_to_defaults")
                                 .executes(cont -> {
                                     FlowingFluids.config = new FFConfig();
@@ -255,42 +520,7 @@ public class FFCommands {
                                         "Controls the minimum level of lava that will convert to obsidian, this is useful for making obsidian form more consistently.\nThe default value is 6, and the maximum value is 8.",
                                         "level", 0, 8,
                                         a -> FlowingFluids.config.minLavaLevelForObsidian = a, () -> FlowingFluids.config.minLavaLevelForObsidian)
-                                ).then(Commands.literal("sea_level_override")
-                                        .executes(cont -> message(cont, "Allows overriding the current dimensions sea level as seen by the Flowing Fluids mod"))
-                                        .then(Commands.literal("check_vanilla")
-                                                .executes(cont -> {
-                                                    var level = cont.getSource().getLevel();
-                                                    return message(cont, "The vanilla sea level as seen by Flowing Fluids for this dimension is " + level.getSeaLevel() + ".");
-                                                })
-                                        ).then(Commands.literal("check_overrides")
-                                                .executes(cont -> {
-                                                    var level = cont.getSource().getLevel();
-                                                    int override = FlowingFluids.config.dimensionSeaLevelOverrides.getOrDefault(level.dimensionType().hashCode(), Integer.MIN_VALUE);
-                                                    return message(cont, "The sea level override as seen by Flowing Fluids for this dimension is " + (override == Integer.MIN_VALUE ? "NO OVERRIDE SET" : override) + ". And for the default override it is set to: " + FlowingFluids.config.defaultSeaLevelOverride + ".");
-                                                })
-                                        ).then(Commands.argument("set_dimension_override", IntegerArgumentType.integer(-999999, 999999))
-                                                .executes(cont -> {
-                                                    int override = cont.getArgument("distance", Integer.class);
-                                                    FlowingFluids.config.dimensionSeaLevelOverrides.put(cont.getSource().getLevel().dimensionType().hashCode(), override);
-                                                    return messageAndSaveConfig(cont, "The sea level override for this dimension is now set to " + override + ". Warning! mod or datapack changes that alter dimension properties will unset this...");
-                                                })
-                                        ).then(Commands.literal("clear_dimension_override")
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.dimensionSeaLevelOverrides.remove(cont.getSource().getLevel().dimensionType().hashCode());
-                                                    return messageAndSaveConfig(cont, "The sea level override for this dimension has been removed.");
-                                                })
-                                        ).then(Commands.argument("set_default_override", IntegerArgumentType.integer(-999999, 999999))
-                                                .executes(cont -> {
-                                                    int override = cont.getArgument("distance", Integer.class);
-                                                    FlowingFluids.config.defaultSeaLevelOverride = override;
-                                                    return messageAndSaveConfig(cont, "The default sea level override is now set to " + override + ".");
-                                                })
-                                        ).then(Commands.literal("clear_default_override")
-                                                .executes(cont -> {
-                                                    FlowingFluids.config.defaultSeaLevelOverride = Integer.MIN_VALUE;
-                                                    return messageAndSaveConfig(cont, "The default sea level override has been removed.");
-                                                })
-                                        )
+                                ).then(seaLevelOverrides()
                                 ).then(Commands.literal("random_tick_level_check_distance")
                                         .executes(cont -> message(cont, "Sets the distance fluids will check for other fluids to level with during random ticks, 0 means disabled, currently set to " + FlowingFluids.config.randomTickLevelingDistance))
                                         .then(Commands.argument("distance", IntegerArgumentType.integer(0, 64))
@@ -420,213 +650,13 @@ public class FFCommands {
                                         "Liquids at their minimum height will no longer flow to and over nearby edges.",
                                         a -> FlowingFluids.config.flowToEdges = a, () -> FlowingFluids.config.flowToEdges)
                                 )
-                        ).then(Commands.literal("draining_and_filling")
-                                .executes(commandContext -> message(commandContext, "Set the chances of certain random tick interactions with fluids."))
-                                .then(floatChanceCommand("water_puddle_evaporation_chance",
-                                        "Sets the chance of small minimum level water tiles evaporating during random ticks",
-                                        a -> FlowingFluids.config.evaporationChanceV2 = a,
-                                        () -> FlowingFluids.config.evaporationChanceV2)
-                                ).then(floatChanceCommand("water_nether_evaporation_chance",
-                                        "Sets the chance of any water losing a level during random ticks in the nether",
-                                        a -> FlowingFluids.config.evaporationNetherChance = a,
-                                        () -> FlowingFluids.config.evaporationNetherChance)
-                                ).then(floatChanceCommand("water_rain_refill_chance",
-                                        "Sets the chance of non-full water tiles increasing their level while its rains and they are open to the sky, during random ticks. This provides access to renewable water given enough time.\nNOTE: this will always be forcibly limited to 1/3rd of the current water_puddle_evaporation_chance setting otherwise water will endlessly fill the world during rain, this does effectively cap this value to 0.33",
-                                        a -> FlowingFluids.config.rainRefillChance = a,
-                                        () -> FlowingFluids.config.rainRefillChance)
-                                ).then(floatChanceCommand("water_infinite_biome_refill_chance",
-                                        "Sets the chance of non-full water tiles increasing their level within: Oceans, Rivers, and Swamps, during random ticks. Additionally they must have a sky light level higher than 0, and be between y=0 and sea level. This provides time limited access to infinite water within these biomes, granted they are big enough and not drained too quickly",
-                                        a -> FlowingFluids.config.oceanRiverSwampRefillChance = a,
-                                        () -> FlowingFluids.config.oceanRiverSwampRefillChance)
-                                ).then(floatChanceCommand("water_infinite_biome_non_consume_chance",
-                                        "Sets the chance of water not being consumed when flowing in: Oceans, Rivers, and Swamps. Additionally they must have a sky light level higher than 0, and be between y=0 and sea level. This allows access to infinite water within these biomes",
-                                        a -> FlowingFluids.config.infiniteWaterBiomeNonConsumeChance = a,
-                                        () -> FlowingFluids.config.infiniteWaterBiomeNonConsumeChance)
-                                ).then(floatChanceCommand("water_infinite_biome_surface_drain_chance",
-                                        "Sets the chance of water being drained into water at sea level when flowing into: Oceans, Rivers, and Swamps. Additionally they must have a sky light level higher than 0. This allows infinte water drainage within these biomes",
-                                        a -> FlowingFluids.config.infiniteWaterBiomeDrainSurfaceChance = a,
-                                        () -> FlowingFluids.config.infiniteWaterBiomeDrainSurfaceChance)
-                                ).then(floatChanceCommand("farm_land_drains_water_chance",
-                                        "Sets the chance at which a farmland block will consume 1 level of water each time it hydrates. 0 == OFF, 1 == ALWAYS",
-                                        a -> FlowingFluids.config.farmlandDrainWaterChance = a,
-                                        () -> FlowingFluids.config.farmlandDrainWaterChance)
-                                ).then(floatChanceCommand("animal_breeding_drains_water_chance",
-                                        "Sets the chance at which an animal will consume 1 level of nearby water each time it tries to breed, range 8 blocks, water can be at same level or 1 lower. 0 == OFF, 1 == ALWAYS",
-                                        a -> FlowingFluids.config.drinkWaterToBreedAnimalChance = a,
-                                        () -> FlowingFluids.config.drinkWaterToBreedAnimalChance)
-                                ).then(floatChanceCommand("concrete_powder_drains_water_chance",
-                                        "Sets the chance at which concrete powder will consume a water level on hardening. 0 == OFF, 1 == ALWAYS",
-                                        a -> FlowingFluids.config.concreteDrainsWaterChance = a,
-                                        () -> FlowingFluids.config.concreteDrainsWaterChance)
-                                ).then(booleanCommand("rain_fills_block_above",
-                                        "Controls if rain will place new layers of water higher than the previous block of water was.",
-                                        a -> FlowingFluids.config.rainFillsWaterHigherV2 = a, () -> FlowingFluids.config.rainFillsWaterHigherV2)
-                                ).then(booleanCommand("only_infinite_biomes_at_sea_level",
-                                        "Controls if the infinite biome refilling only happens to water at exactly sea level.",
-                                        a -> FlowingFluids.config.fastBiomeRefillAtSeaLevelOnly = a, () -> FlowingFluids.config.fastBiomeRefillAtSeaLevelOnly)
-                                )
+                        ).then(drainAndFill()
                         )
-                ).then(Commands.literal("~debug").executes(cont -> message(cont, "Debug commands you probably don't need these."))
-                        .then(booleanCommand("random_ticks_printing",
-                                "Enables or disables printing of random tick events, this will spam your log with every random tick event that happens.",
-                                "Random ticks printing is now enabled.",
-                                "Random ticks printing is now disabled.",
-                                a -> FlowingFluids.config.printRandomTicks = a, () -> FlowingFluids.config.printRandomTicks)
-
-                        ).then(booleanCommand("water_level_tinting",
-                                "Enables or disables water level tinting, this will make water change colour based on its level.",
-                                "water_level_tinting is now enabled.",
-                                "water_level_tinting is now disabled.",
-                                a -> FlowingFluids.config.debugWaterLevelColours = a, () -> FlowingFluids.config.debugWaterLevelColours)
-                        ).then(Commands.literal("kill_all_current_fluid_updates")
-                                .executes(cont -> {
-                                    FlowingFluids.debug_killFluidUpdatesUntilTime = System.currentTimeMillis() + 3000;
-                                    return message(cont, "All fluid flowing ticks will be ignored and allowed to freeze in place over the next 3 seconds.\nAll fluids that are loaded and ticking during this time will completely stop updating and freeze in place until the next time they get updated.\n You may use the debug command \"plug_fluids_in_nearby_chunks\" to surround all these frozen fluids with appropriate blocks to prevent further flow.");
-                                })
-                        ).then(Commands.literal("how_many_fluids_plugged_in_world_gen_this_session")
-                                .executes(cont ->
-                                        message(cont, FlowingFluids.waterPluggedThisSession + " fluids have been plugged during world gen this session."))
-                        ).then(Commands.literal("super_sponge_at_me")
-                                .executes(cont -> {
-                                    int drained = superSponge(cont.getSource().getLevel(), BlockPos.containing(cont.getSource().getPosition()), Fluids.WATER);
-                                    return message(cont, drained + " blocks of water have been drained.");
-                                })
-                                .then(Commands.argument("fluid", BlockStateArgument.block(commandBuildContext))
-                                    .executes(cont -> {
-                                                var fluidState = BlockStateArgument.getBlock(cont, "fluid").getState().getFluidState();
-                                                if (fluidState.isEmpty() || !(fluidState.getType() instanceof FlowingFluid flows)) {
-                                                    throw notFluidException.create();
-                                                }
-                                        int drained = superSponge(cont.getSource().getLevel(), BlockPos.containing(cont.getSource().getPosition()), flows);
-                                                return message(cont, drained + " blocks of " + flows.getSource().defaultFluidState().createLegacyBlock().getBlock().getName().getString() +" have been drained.");
-                                            }
-                                    )
-                                )
-                        ).then(booleanCommand("announce_world_gen_actions",
-                                "Enables or disables world gen action announcements, this will spam your log with every world gen action that happens because of this mod, including the location of this action (E.G. the plug fluids during world gen feature).",
-                                "World gen action announcements are now enabled.",
-                                "World gen action announcements are now disabled.",
-                                a -> FlowingFluids.config.announceWorldGenActions = a, () -> FlowingFluids.config.announceWorldGenActions)
-                        ).then(Commands.literal("surround_all_fluids_in_nearby_chunks_with_blocks")
-                                .executes(cont ->{
-                                    var level = cont.getSource().getLevel();
-                                    var pos = cont.getSource().getPosition();
-                                    var posChunk = new ChunkPos(new BlockPos((int) pos.x, (int) pos.y, (int) pos.z));
-
-                                    var dist = level.getServer().getPlayerList().getSimulationDistance();
-
-                                    int count = FlowingFluids.waterPluggedThisSession;
-                                    for (int x = posChunk.x-dist; x <= posChunk.x+dist; x++) {
-                                        for (int z = posChunk.z-dist; z <= posChunk.z+dist; z++) {
-                                            if (level.hasChunk(x, z)) {
-                                                PlugWaterFeature.processChunk(level, new ChunkPos(x, z), level.getChunk(x, z));
-                                            }
-                                        }
-                                    }
-                                    return message(cont, "All fluids, within "+dist+" chunks of you, have had any fluids that are exposed to air plugged up with appropriate blocks.\n" +
-                                            "This will not affect any fluids that are not exposed to air, or are already plugged.\n" +
-                                            "This has plugged " + (FlowingFluids.waterPluggedThisSession - count) + " fluids in total.");
-                                })
-                        ).then(Commands.literal("force_tick_all_fluids_in_nearby_chunks")
-                                        .executes(cont ->{
-                                            var level = cont.getSource().getLevel();
-                                            var pos = cont.getSource().getPosition();
-                                            var posChunk = new ChunkPos(new BlockPos((int) pos.x, (int) pos.y, (int) pos.z));
-
-                                            var dist = level.getServer().getPlayerList().getSimulationDistance();
-                                            var rand = level.getRandom();
-                                            final AtomicInteger count = new AtomicInteger();
-                                            for (int x = posChunk.x-dist; x <= posChunk.x+dist; x++) {
-                                                for (int z = posChunk.z-dist; z <= posChunk.z+dist; z++) {
-                                                    if (level.hasChunk(x, z)) {
-                                                        level.getChunk(x, z).findBlocks(BlockBehaviour.BlockStateBase::liquid,
-                                                                (blockPos, blockState) -> {
-                                                            level.scheduleTick(blockPos, blockState.getFluidState().getType(), 1 + rand.nextInt(200));
-                                                            count.incrementAndGet();
-                                                        });
-                                                    }
-                                                }
-                                            }
-                                            return message(cont, "All fluids, within "+dist+" chunks of you, have been forcibly added to the tick queue with random intervals over the next 0-10 seconds, EXPECT SOME LAG! Amount force ticked = " + count.get());
-                                        })
-                        ).then(Commands.literal("is_infinite_water_biome")
-                                        .executes(cont ->{
-                                            var level = cont.getSource().getLevel();
-                                            var pos = cont.getSource().getPosition();
-                                            return message(cont, "You are "+
-                                                    (FFFluidUtils.matchInfiniteBiomes(level.getBiome(new BlockPos((int) pos.x, (int) pos.y, (int) pos.z)))
-                                                            ? "IN" : "NOT IN") + " an Infinite biome. By default these are: Oceans, Rivers, and Swamps.\n" +
-                                                                    "Mods can add their own via the api but most modded oceans and rivers should be accounted for automatically by this mod.");
-                                        })
-                        )
+                ).then(debug(commandBuildContext)
                 );
 
         if (FlowingFluids.isThisModLoaded("create")) {
-            commands.then(Commands.literal("create_mod_compat")
-                    .executes(commandContext -> message(commandContext, "Settings for Create Mod compatibility, use these to change how fluids interact with Create water wheels and pipes."))
-                    .then(Commands.literal("info")
-                            .executes(c -> message(c, "The Create mod uses water wheels as it's most primitive power source. Flowing Fluids has settings to change how these water wheels get powered due to the additional challenges of the flowing fluids mod interactions with fluids."))
-                    )
-                    .then(Commands.literal("water_wheel_requirements")
-                            .executes(cont -> message(cont, "Changes how the Create Mod's water wheels interact with fluids, select an mode to get further information. Default is flow. Water wheel mode is currently set to " + FlowingFluids.config.create_waterWheelMode))
-                            .then(Commands.literal("flow")
-                                    .executes(cont -> {
-                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FLOW;
-                                        return messageAndSaveConfig(cont, "Water wheel mode is now set to require flow.\nWater wheels will only spin if the water has a level gradient, which almost always requires the water to be actively flowing.");
-                                    })
-                            ).then(Commands.literal("flow_or_river")
-                                    .executes(cont -> {
-                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FLOW_OR_RIVER;
-                                        return messageAndSaveConfig(cont, "Water wheel mode is now set to require flow or river.\nWater wheels will only spin if the water has a level gradient, which almost always requires the water to be actively flowing, or if the water is in a river biome touching any water, and within 5 blocks of sea level. Will always spin in the same direction when using a river as a source.");
-                                    })
-                            ).then(Commands.literal("flow_or_river_opposite_spin")
-                                    .executes(cont -> {
-                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FLOW_OR_RIVER_OPPOSITE;
-                                        return messageAndSaveConfig(cont, "Water wheel mode is now set to require flow or river with opposite spin.\nWater wheels will only spin if the water has a level gradient, which almost always requires the water to be actively flowing, or if the water is in a river biome touching any water, and within 5 blocks of sea level. Will spin in the opposite direction to the other river mode.");
-                                    })
-                            ).then(Commands.literal("fluid")
-                                    .executes(cont -> {
-                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FLUID;
-                                        return messageAndSaveConfig(cont, "Water wheel mode is now set to only require fluid to be present in the checked spaces. Will always spin in the same direction.");
-                                    })
-                            ).then(Commands.literal("fluid_opposite_spin")
-                                    .executes(cont -> {
-                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FLUID_OPPOSITE;
-                                        return messageAndSaveConfig(cont, "Water wheel mode is now set to only require fluid to be present in the checked spaces. Will spin in the opposite direction to the other fluid mode.");
-                                    })
-                            ).then(Commands.literal("full_fluid")
-                                    .executes(cont -> {
-                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FULL_FLUID;
-                                        return messageAndSaveConfig(cont, "Water wheel mode is now set to only require a full 8 levels of fluid to be present in the checked spaces. Will always spin in the same direction.");
-                                    })
-                            ).then(Commands.literal("full_fluid_opposite_spin")
-                                    .executes(cont -> {
-                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.REQUIRE_FULL_FLUID_OPPOSITE;
-                                        return messageAndSaveConfig(cont, "Water wheel mode is now set to only require a full 8 levels of fluid to be present in the checked spaces. Will spin in the opposite direction to the other full fluid mode.");
-                                    })
-                            ).then(Commands.literal("always")
-                                    .executes(cont -> {
-                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.ALWAYS;
-                                        return messageAndSaveConfig(cont, "water wheel mode is now set to always spin.\nWater wheels will always spin with max strength regardless of present fluids.");
-                                    })
-                            ).then(Commands.literal("always_opposite_spin")
-                                    .executes(cont -> {
-                                        FlowingFluids.config.create_waterWheelMode = FFConfig.CreateWaterWheelMode.ALWAYS_OPPOSITE;
-                                        return messageAndSaveConfig(cont, "water wheel mode is now set to always spin with opposite spin.\nWater wheels will always spin with max strength regardless of present fluids, and will spin in the opposite direction to the other always mode.");
-                                    })
-                            )
-                    ).then(Commands.literal("pipes")
-                            .then(booleanCommand("infinite_pipe_fluid_source",
-                                    "Enables or disables infinite pipe fluid source, if disabled pipes will consume the source fluid block.",
-                                    "Pipes will now not consume the source fluid block.",
-                                    "Pipes will now consume the source fluid block.",
-                                    a -> FlowingFluids.config.create_infinitePipes = a, () -> FlowingFluids.config.create_infinitePipes)
-                            ).then(Commands.literal("info")
-                                    .executes(c -> message(c, "Create mod pipes will draw fluids only when the entire input block is full (8 levels of fluid). This is required for fluid levels to remain consistent between bucket and other usages, and for Flowing Fluids to be as unobtrusive as possible to the Create mod's inner workings. That being said if you want an easy time of using pipes without worrying about water usage, then enable the infinite pipes setting. You can also disable Create pipes from outputting water blocks in it's own config settings"))
-                            )
-                    )
-
-            );
+            commands.then(create());
         }
 
         dispatcher.register(commands);

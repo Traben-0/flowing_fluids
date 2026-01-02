@@ -5,6 +5,7 @@
 - added various seaLevelOverride commands to set a custom sea level for fluid behaviors in a given dimension or everywhere
 - fixed various sea level related bugs
 - added an info message to guide users to the presets command
+- added the river_only command options for create water wheel behaviours
 
 [0.6.1]
 - fixed a forge crash
