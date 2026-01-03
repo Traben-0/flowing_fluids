@@ -3,7 +3,8 @@
 - added the `settings_presets` commands to allow easy switching between ready-made performance and gameplay settings presets, the `performance_ultra` preset for example offers up to 6x the performance for much reduced flow quality
 - added support for 1.21.9 and 1.21.11
 - massively improved water displacement upon placing blocks or using pistons, fluids can be pushed through vastly more complex "pipes" much more easily
-- added optional sounds when fluids are displaced by blocks or pistons, can be toggled for either event separately in the settings
+- fluids no longer always make sounds due to the vanilla sound check seeing partial water
+- added various sounds for fluid behaviors toggleable via settings
 - added various seaLevelOverride commands to set a custom sea level for fluid behaviors in a given dimension or everywhere
 - fixed various sea level related bugs
 - added an info message to guide users to the presets command

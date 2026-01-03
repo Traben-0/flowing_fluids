@@ -1,8 +1,11 @@
 package traben.flowing_fluids.mixin.mixins;
 
 
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
@@ -196,5 +199,10 @@ public abstract class MixinWaterFluid extends FlowingFluid {
         if (FlowingFluids.config.enableMod && FlowingFluids.config.isFluidAllowed(this)) {
             cir.setReturnValue(Mth.clamp(FlowingFluids.config.waterTickDelay, 1, 255));
         }
+    }
+
+    @WrapWithCondition(method = "animateTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;playLocalSound(DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFZ)V"))
+    private boolean ff$cancelWaterSounds(Level instance, double d, double e, double f, SoundEvent arg, SoundSource arg2, float g, float h, boolean bl) {
+        return !FlowingFluids.config.enableMod;
     }
 }

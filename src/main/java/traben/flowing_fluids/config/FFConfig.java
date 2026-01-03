@@ -60,6 +60,8 @@ public class FFConfig {
     public float concreteDrainsWaterChance = 0.5f;
     public float displacementDepthMultiplier = 1f;
     public DisplacementSounds displacementSounds = DisplacementSounds.BOTH;
+    public float flowSoundChance = 0.15f;
+
 
 
     // create mod options
@@ -177,6 +179,7 @@ public class FFConfig {
         concreteDrainsWaterChance = buffer.readFloat();
         displacementDepthMultiplier = buffer.readFloat();
         displacementSounds = buffer.readEnum(DisplacementSounds.class);
+        flowSoundChance = buffer.readFloat();
 
 
         //create mod options
@@ -239,6 +242,7 @@ public class FFConfig {
         buffer.writeFloat(concreteDrainsWaterChance);
         buffer.writeFloat(displacementDepthMultiplier);
         buffer.writeEnum(displacementSounds);
+        buffer.writeFloat(flowSoundChance);
 
         //create mod options
         buffer.writeEnum(create_waterWheelMode);

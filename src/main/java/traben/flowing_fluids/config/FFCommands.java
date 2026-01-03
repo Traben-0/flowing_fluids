@@ -509,6 +509,19 @@ public class FFCommands {
                                 a -> FlowingFluids.config.enableMod = a,
                                 () -> FlowingFluids.config.enableMod)
 
+                        ).then(Commands.literal("sounds")
+                                .then(enumCommand("displacement_sounds",
+                                                "Controls whether or not fluid displacements, via pistons or otherwise, make sounds.",
+                                                a -> FlowingFluids.config.displacementSounds = a, () -> FlowingFluids.config.displacementSounds,
+                                                Pair.of(FFConfig.DisplacementSounds.NONE, "Displaced fluids will now be silent."),
+                                                Pair.of(FFConfig.DisplacementSounds.BLOCKS_ONLY, "Displaced fluids will now only make sounds when displaced by placed blocks."),
+                                                Pair.of(FFConfig.DisplacementSounds.PISTON_ONLY, "Displaced fluids will now only make sounds when displaced by pistons."),
+                                                Pair.of(FFConfig.DisplacementSounds.BOTH, "Displaced fluids will now make sounds when displaced by both pistons and placed blocks.")
+                                        )
+                                ).then(floatChanceCommand("flow_sound_chance",
+                                        "Controls how often flowing fluids make sounds when they flow. Default is 0.05 (5% chance per fluid flow). Set to 0 to disable flowing sounds.",
+                                        (a) -> FlowingFluids.config.flowSoundChance = a,() -> FlowingFluids.config.flowSoundChance)
+                                )
                         ).then(Commands.literal("behaviour")
                                 .executes(commandContext -> message(commandContext, "Behaviour settings for Flowing Fluids, use these to change how fluids behave."))
                                 .then(intCommand("min_level_for_ice",
@@ -612,15 +625,7 @@ public class FFCommands {
                                                 )
                                         )
                                 ).then(Commands.literal("pistons_and_displacement")
-                                        .then(enumCommand("displacement_sounds",
-                                                "Controls whether or not fluid displacements, via pistons or otherwise, make sounds.",
-                                                a -> FlowingFluids.config.displacementSounds = a, () -> FlowingFluids.config.displacementSounds,
-                                                Pair.of(FFConfig.DisplacementSounds.NONE, "Displaced fluids will now be silent."),
-                                                Pair.of(FFConfig.DisplacementSounds.BLOCKS_ONLY, "Displaced fluids will now only make sounds when displaced by placed blocks."),
-                                                Pair.of(FFConfig.DisplacementSounds.PISTON_ONLY, "Displaced fluids will now only make sounds when displaced by pistons."),
-                                                Pair.of(FFConfig.DisplacementSounds.BOTH, "Displaced fluids will now make sounds when displaced by both pistons and placed blocks.")
-                                                )
-                                        ).then(booleanCommand("pistons_push_fluids",
+                                        .then(booleanCommand("pistons_push_fluids",
                                                 "Enables or disables piston pushing, if disabled pistons will no longer push fluids but will cause fluid displacements like any placed block would.\nIf enabled pistons can push fluids the full regular piston distance and will be blocked by things like obsidian at the end.",
                                                 "Piston pushing is now enabled.\nLiquids will now be pushed by pistons. You can modify the distance liquids are pushed by changing the displacement_distance_multiplier, but this does affect other things and may increase lag.",
                                                 "Piston pushing is now disabled.\nLiquids will no longer be pushed by pistons.",

@@ -9,6 +9,8 @@ import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockGetter;
@@ -25,6 +27,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -281,10 +284,11 @@ public abstract class MixinFlowingFluid extends Fluid {
             boolean wentDown = false;
             boolean wasPressured = false;
 
+            int initAmount = fluidState.getAmount();
+
             try {
 
                 BlockPos posDown = blockPos.below();
-                int initAmount = fluidState.getAmount();
                 // check if we can flow down and if so how much fluid remains out of the 8 total possible
                 int remainingAmount = flowing_fluids$checkAndFlowDown(level, blockPos, fluidState, thisState, posDown,
                         level.getBlockState(posDown), initAmount);
@@ -367,6 +371,11 @@ public abstract class MixinFlowingFluid extends Fluid {
 
                 FlowingFluids.isManeuveringFluids = false;
                 FlowingFluids.pistonTick = false;
+
+                if (initAmount > 4 // ignore small water settling
+                        && (directionFinal != null || wentDown)) {
+                    FFFluidUtils.playFlowSound(level, blockPos, this);
+                }
 
                 //#if CREATE
                 //$$ if (FlowingFluids.CREATE && directionFinal != null) { // update if this become non create exclusive
@@ -706,5 +715,4 @@ public abstract class MixinFlowingFluid extends Fluid {
         //add extra fluid check for replacing into self
         return FFFluidUtils.canFluidFlowFromPosToDirection((FlowingFluid) sourceFluid, sourceAmount, blockGetter, blockPos, blockState, direction, blockPos2, blockState2, fluidState2);
     }
-
 }

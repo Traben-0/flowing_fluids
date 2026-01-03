@@ -1,6 +1,7 @@
 package traben.flowing_fluids;
 
 import it.unimi.dsi.fastutil.Pair;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
@@ -14,6 +15,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
@@ -29,6 +31,7 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.spongepowered.asm.mixin.Unique;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -538,5 +541,23 @@ public class FFFluidUtils {
     public static boolean matchInfiniteBiomes(Holder<Biome> biome){
         return FlowingFluids.infiniteBiomeTags.stream().anyMatch(biome::is)
                 || FlowingFluids.infiniteBiomes.stream().anyMatch(biome::is);
+    }
+
+
+    private static long lastFlowSoundTime = 0;
+
+    public static void playFlowSound(Level level, BlockPos blockPos, Fluid fluid) {
+        if (FlowingFluids.config.flowSoundChance == 0f) return;
+        if (level.getRandom().nextFloat() > FlowingFluids.config.flowSoundChance) return;
+
+        long currentTime = level.getGameTime();
+        if (lastFlowSoundTime + 60 > currentTime) return;
+
+        boolean lava = fluid.isSame(Fluids.LAVA);
+        level.playSound(null, blockPos, lava ? SoundEvents.LAVA_AMBIENT : SoundEvents.WATER_AMBIENT,
+                SoundSource.BLOCKS, 1.0F, 1.0F
+        );
+
+        lastFlowSoundTime = currentTime;
     }
 }
