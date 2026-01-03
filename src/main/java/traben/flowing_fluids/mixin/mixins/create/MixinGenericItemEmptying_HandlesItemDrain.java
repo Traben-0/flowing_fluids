@@ -16,7 +16,13 @@ public abstract class MixinGenericItemEmptying_HandlesItemDrain {
 //$$ import org.spongepowered.asm.mixin.injection.At;
 //$$ import org.spongepowered.asm.mixin.injection.Inject;
 //$$ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+//#if FABRIC
 //$$ import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
+//#elseif FORGE
+//$$ import net.minecraftforge.fluids.FluidStack;
+//#else
+//$$ import net.neoforged.neoforge.fluids.FluidStack;
+//#endif
 //$$ import net.createmod.catnip.data.Pair;
 //$$ import net.minecraft.world.item.ItemStack;
 //$$ import net.minecraft.world.level.Level;
@@ -55,11 +61,11 @@ public abstract class MixinGenericItemEmptying_HandlesItemDrain {
     //$$     return 81000L / 8 * level; // new amount
     //$$ }
     //#else
-    //$$     @Unique
-    //$$ private static long waterModified(int level) {
+    //$$ @Unique
+    //$$ private static int waterModified(int level) {
     //$$     if (level == 0) return 0;
-    //$$     if (level == 8) return 1000L;
-    //$$     return 1000L / 8 * level; // new amount
+    //$$     if (level == 8) return 1000;
+    //$$     return 1000 / 8 * level; // new amount
     //$$ }
     //#endif
 //$$ }
