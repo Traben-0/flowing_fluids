@@ -39,6 +39,8 @@ public abstract class MixinCauldronInteraction {
 
     @Inject(method = "bootStrap", at = @At(value = "INVOKE", target = "Lnet/minecraft/core/cauldron/CauldronInteraction;bootStrap()V", shift =  At.Shift.AFTER))
     private static void ff$bootStrap(CallbackInfo ci) {
+
+        // todo api for mods, will require making these real generic somehow
         EMPTY
                 //#if MC > 12001
                 .map()

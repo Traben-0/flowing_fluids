@@ -38,6 +38,7 @@ public enum FFConfigPreset {
             config.lavaFlowDistance = 2;
             config.lavaNetherFlowDistance = 3;
             config.randomTickLevelingDistance = 24;
+            config.displacementDepthMultiplier = 2/3f;
             FlowingFluids.config = config;
         }
     },
@@ -55,6 +56,7 @@ public enum FFConfigPreset {
             config.lavaFlowDistance = 1;
             config.lavaNetherFlowDistance = 2;
             config.randomTickLevelingDistance = 16;
+            config.displacementDepthMultiplier = 1/3f;
             FlowingFluids.config = config;
         }
     },

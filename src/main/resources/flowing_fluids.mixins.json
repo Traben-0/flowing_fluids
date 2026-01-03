@@ -26,6 +26,7 @@
     "MixinLavaFluid",
     "MixinLevel",
     "MixinLiquidBlock",
+    "MixinPistonAirPlacementMarker",
     "MixinPlayerConnect",
     "MixinSeaGrassBlock",
     "MixinTallSeaGrassBlock",

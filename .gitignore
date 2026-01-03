@@ -40,5 +40,6 @@ jars/*
 .vscode
 .settings
 Merged/
+.architectury-transformer/
 
 versions/*/api/

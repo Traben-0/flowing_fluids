@@ -611,19 +611,34 @@ public class FFCommands {
                                                         })
                                                 )
                                         )
-                                ).then(booleanCommand("pistons_push_fluids",
-                                        "Enables or disables piston pushing, if disabled pistons will no longer push fluids.",
-                                        "Piston pushing is now enabled.\nLiquids will now be pushed by pistons.",
-                                        "Piston pushing is now disabled.\nLiquids will no longer be pushed by pistons.",
-                                        a -> FlowingFluids.config.enablePistonPushing = a, () -> FlowingFluids.config.enablePistonPushing)
-                                ).then(booleanCommand("easy_piston_pumps",
-                                        "Makes fluids above pistons delay their falling to make pumping upwards much easier.",
-                                        a -> FlowingFluids.config.easyPistonPump = a, () -> FlowingFluids.config.easyPistonPump)
-                                ).then(booleanCommand("placed_blocks_displace_fluids",
-                                        "Enables or disables placed blocks displacing fluids, if disabled placed blocks will no longer displace fluids.",
-                                        "Placed blocks displacing fluids is now enabled.\nLiquids will now be displaced by blocks placed inside them.",
-                                        "Placed blocks displacing fluids is now disabled.\nLiquids will no longer be displaced by blocks placed inside them.",
-                                        a -> FlowingFluids.config.enableDisplacement = a, () -> FlowingFluids.config.enableDisplacement)
+                                ).then(Commands.literal("pistons_and_displacement")
+                                        .then(enumCommand("displacement_sounds",
+                                                "Controls whether or not fluid displacements, via pistons or otherwise, make sounds.",
+                                                a -> FlowingFluids.config.displacementSounds = a, () -> FlowingFluids.config.displacementSounds,
+                                                Pair.of(FFConfig.DisplacementSounds.NONE, "Displaced fluids will now be silent."),
+                                                Pair.of(FFConfig.DisplacementSounds.BLOCKS_ONLY, "Displaced fluids will now only make sounds when displaced by placed blocks."),
+                                                Pair.of(FFConfig.DisplacementSounds.PISTON_ONLY, "Displaced fluids will now only make sounds when displaced by pistons."),
+                                                Pair.of(FFConfig.DisplacementSounds.BOTH, "Displaced fluids will now make sounds when displaced by both pistons and placed blocks.")
+                                                )
+                                        ).then(booleanCommand("pistons_push_fluids",
+                                                "Enables or disables piston pushing, if disabled pistons will no longer push fluids but will cause fluid displacements like any placed block would.\nIf enabled pistons can push fluids the full regular piston distance and will be blocked by things like obsidian at the end.",
+                                                "Piston pushing is now enabled.\nLiquids will now be pushed by pistons. You can modify the distance liquids are pushed by changing the displacement_distance_multiplier, but this does affect other things and may increase lag.",
+                                                "Piston pushing is now disabled.\nLiquids will no longer be pushed by pistons.",
+                                                a -> FlowingFluids.config.enablePistonPushing = a, () -> FlowingFluids.config.enablePistonPushing)
+                                        ).then(booleanCommand("easy_piston_pumps",
+                                                "Makes fluids above pistons delay their falling to make pumping upwards much easier.",
+                                                a -> FlowingFluids.config.easyPistonPump = a, () -> FlowingFluids.config.easyPistonPump)
+                                        ).then(booleanCommand("displace_fluids",
+                                                "Enables or disables placed blocks displacing fluids, if disabled placed blocks will no longer displace fluids.",
+                                                "Placed blocks displacing fluids is now enabled.\nLiquids will now be displaced by blocks placed inside them.",
+                                                "Placed blocks displacing fluids is now disabled.\nLiquids will no longer be displaced by blocks placed inside them.",
+                                                a -> FlowingFluids.config.enableDisplacement = a, () -> FlowingFluids.config.enableDisplacement)
+                                        ).then(floatCommand("displacement_distance_multiplier",
+                                                        "Sets a multiplier for how far fluids will try to be displaced when a block is placed inside them, or a piston pushes them, higher values mean further displacement.\nThe default value is 1.0, min is 0.1, and a maximum of 3.0.",
+                                                        "multiplier", 0.1f, 3.0f,
+                                                        a -> FlowingFluids.config.displacementDepthMultiplier = a, () -> FlowingFluids.config.displacementDepthMultiplier
+                                                )
+                                        )
                                 ).then(Commands.literal("waterlogged_blocks_flow_mode")
                                         .executes(cont -> message(cont, "Controls how water flows into or out fo water loggable blocks, due to limitations you cannot have two side by side waterloggable blocks flow into each other as they would flicker endlessly, Sea grass and kelp are excluded from this setting and will always break in waters absence, current setting: " + FlowingFluids.config.waterLogFlowMode))
                                         .then(Commands.literal("only_in")

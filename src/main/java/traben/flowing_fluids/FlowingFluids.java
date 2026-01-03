@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import it.unimi.dsi.fastutil.Pair;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.ChatType;
 import net.minecraft.network.chat.Component;
@@ -19,6 +20,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import traben.flowing_fluids.config.FFConfig;
@@ -59,6 +61,7 @@ public class FlowingFluids {
 
     public static boolean isManeuveringFluids = false;
     public static boolean pistonTick = false;
+    public static @Nullable Direction lastPistonMoveDirection = null;
     public static long debug_killFluidUpdatesUntilTime = 0;
     public static int waterPluggedThisSession = 0;
 

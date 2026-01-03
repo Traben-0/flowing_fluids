@@ -58,6 +58,8 @@ public class FFConfig {
     public boolean fastBiomeRefillAtSeaLevelOnly = false;
     public int playerBlockDistanceForFlowing = 0;
     public float concreteDrainsWaterChance = 0.5f;
+    public float displacementDepthMultiplier = 1f;
+    public DisplacementSounds displacementSounds = DisplacementSounds.BOTH;
 
 
     // create mod options
@@ -173,6 +175,8 @@ public class FFConfig {
         fastBiomeRefillAtSeaLevelOnly = buffer.readBoolean();
         playerBlockDistanceForFlowing = buffer.readVarInt();
         concreteDrainsWaterChance = buffer.readFloat();
+        displacementDepthMultiplier = buffer.readFloat();
+        displacementSounds = buffer.readEnum(DisplacementSounds.class);
 
 
         //create mod options
@@ -233,6 +237,8 @@ public class FFConfig {
         buffer.writeBoolean(fastBiomeRefillAtSeaLevelOnly);
         buffer.writeVarInt(playerBlockDistanceForFlowing);
         buffer.writeFloat(concreteDrainsWaterChance);
+        buffer.writeFloat(displacementDepthMultiplier);
+        buffer.writeEnum(displacementSounds);
 
         //create mod options
         buffer.writeEnum(create_waterWheelMode);
@@ -317,6 +323,22 @@ public class FFConfig {
         BLOCK_LOWER_BOUND,
         SLAB,
         CARPET
+    }
+
+    public enum DisplacementSounds {
+        NONE,
+        PISTON_ONLY,
+        BLOCKS_ONLY,
+        BOTH;
+
+        public boolean allow(boolean isPiston) {
+            return switch (this) {
+                case NONE -> false;
+                case BOTH -> true;
+                case PISTON_ONLY -> isPiston;
+                case BLOCKS_ONLY -> !isPiston;
+            };
+        }
     }
 
     //#if MC <= 12001
