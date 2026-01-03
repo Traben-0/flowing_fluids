@@ -1,7 +1,7 @@
 package traben.flowing_fluids.mixin.mixins;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.cauldron.CauldronInteraction;
+import net.minecraft.server.Bootstrap;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -16,8 +16,6 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.alchemy.PotionContents;
-import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
@@ -26,9 +24,7 @@ import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -38,10 +34,10 @@ import traben.flowing_fluids.FlowingFluids;
 
 import static net.minecraft.core.cauldron.CauldronInteraction.*;
 
-@Mixin(CauldronInteraction.class)
+@Mixin(Bootstrap.class)
 public abstract class MixinCauldronInteraction {
 
-    @Inject(method = "bootStrap", at = @At("TAIL"))
+    @Inject(method = "bootStrap", at = @At(value = "INVOKE", target = "Lnet/minecraft/core/cauldron/CauldronInteraction;bootStrap()V", shift =  At.Shift.AFTER))
     private static void ff$bootStrap(CallbackInfo ci) {
         EMPTY
                 //#if MC > 12001
@@ -50,9 +46,17 @@ public abstract class MixinCauldronInteraction {
                 .compute(Items.LAVA_BUCKET, (k, prev) -> (blockState, level, blockPos, player, interactionHand, itemStack) -> {
             if (!allow(Fluids.LAVA)) return prev.interact(blockState, level, blockPos, player, interactionHand, itemStack);
             if (!level.isClientSide()) {
-                if (isUnderWater(level, blockPos)) return result(false);
-                return fillCauldron(blockState, level, blockPos, player, interactionHand, itemStack,
-                        Blocks.LAVA_CAULDRON.defaultBlockState());
+                if (isUnderWater(level, blockPos)
+                        // only full lava buckets can fill cauldrons
+                        || itemStack.getDamageValue() != 0)
+                    return result(false);
+                player.setItemInHand(interactionHand, Items.BUCKET.getDefaultInstance());
+                player.awardStat(Stats.FILL_CAULDRON);
+                player.awardStat(Stats.ITEM_USED.get(itemStack.getItem()));
+                level.setBlockAndUpdate(blockPos, Blocks.LAVA_CAULDRON.defaultBlockState());
+                level.playSound(null, blockPos, SoundEvents.BUCKET_EMPTY_LAVA, SoundSource.BLOCKS, 1.0F, 1.0F);
+                level.gameEvent(null, GameEvent.FLUID_PLACE, blockPos);
+                return result(true);
             }
             return result(true);
         });
@@ -116,24 +120,6 @@ public abstract class MixinCauldronInteraction {
         });
 
 
-
-        LAVA
-                //#if MC > 12001
-                .map()
-                //#endif
-                .compute(Items.LAVA_BUCKET, (k, prev) ->  (blockState, level, blockPos, player, interactionHand, itemStack) -> {
-            if (!allow(Fluids.LAVA))
-                return prev.interact(blockState, level, blockPos, player, interactionHand, itemStack);
-            if (!level.isClientSide()) {
-                if (isUnderWater(level, blockPos)) return result(false);
-                if (fillCauldron(blockState, level, blockPos, player, interactionHand, itemStack,
-                        Blocks.LAVA_CAULDRON.defaultBlockState()) != result(true)) {
-                    return emptyCauldron(blockState, level, blockPos, player, interactionHand, itemStack,
-                            Items.LAVA_BUCKET.getDefaultInstance(), SoundEvents.BUCKET_FILL_LAVA);
-                }
-            }
-            return result(true);
-        });
         LAVA
                 //#if MC > 12001
                 .map()
@@ -149,18 +135,6 @@ public abstract class MixinCauldronInteraction {
                 .compute(Items.POWDER_SNOW_BUCKET, (k, prev) ->  (blockState, level, blockPos, player, interactionHand, itemStack) -> {
             if (!allow()) return prev.interact(blockState, level, blockPos, player, interactionHand, itemStack);
             return result(false);
-        });
-        LAVA
-                //#if MC > 12001
-                .map()
-                //#endif
-                .compute(Items.BUCKET, (k, prev) ->  (blockState, level, blockPos, player, interactionHand, itemStack) -> {
-            if (!allow(Fluids.LAVA)) return prev.interact(blockState, level, blockPos, player, interactionHand, itemStack);
-            if (!level.isClientSide()) {
-                return emptyCauldron(blockState, level, blockPos, player, interactionHand, itemStack,
-                            Items.LAVA_BUCKET.getDefaultInstance(), SoundEvents.BUCKET_FILL_LAVA);
-            }
-            return result(true);
         });
 
 
@@ -224,7 +198,7 @@ public abstract class MixinCauldronInteraction {
                                                       BlockState defaultFilledCauldronState) {
         int bucketAmount = 8 - bucket.getDamageValue();
         int ogAmount = bucketAmount;
-        int cauldronNeeds = 3 - cauldron.getValue(LayeredCauldronBlock.LEVEL);
+        int cauldronNeeds = cauldron.is(Blocks.CAULDRON) ? 3 : 3 - cauldron.getValue(LayeredCauldronBlock.LEVEL);
         switch (cauldronNeeds) {
             case 1:
                 if (bucketAmount >= 3) {
@@ -243,13 +217,13 @@ public abstract class MixinCauldronInteraction {
                 break;
             case 3:
                 if (bucketAmount >= 8) {
-                    bucketAmount -= 6;
+                    bucketAmount -= 8;
                     level.setBlockAndUpdate(blockPos, defaultFilledCauldronState.setValue(LayeredCauldronBlock.LEVEL, 3));
-                } else if (bucketAmount >= 6) {
-                    bucketAmount -= 6;
+                } else if (bucketAmount >= 5) {
+                    bucketAmount -= 5;
                     level.setBlockAndUpdate(blockPos, defaultFilledCauldronState.setValue(LayeredCauldronBlock.LEVEL, 2));
-                } else if (bucketAmount >= 3) {
-                    bucketAmount -= 3;
+                } else if (bucketAmount >= 2) {
+                    bucketAmount -= 2;
                     level.setBlockAndUpdate(blockPos, defaultFilledCauldronState.setValue(LayeredCauldronBlock.LEVEL, 1));
                 }
                 break;
@@ -257,6 +231,7 @@ public abstract class MixinCauldronInteraction {
                 break;
         }
 
+        System.out.println("Bucket amount after: " + bucketAmount + " (was " + ogAmount + ") cauldron was " + (cauldron.is(Blocks.CAULDRON) ? 0 : cauldron.getValue(LayeredCauldronBlock.LEVEL)) + " level, is now " + (level.getBlockState(blockPos).is(Blocks.CAULDRON) ? 0 : level.getBlockState(blockPos).getValue(LayeredCauldronBlock.LEVEL)));
         if (bucketAmount != ogAmount) {
             player.setItemInHand(interactionHand, ((FFBucketItem) bucket.getItem()).ff$bucketOfAmount(bucket, bucketAmount));
             player.awardStat(Stats.FILL_CAULDRON);
@@ -311,9 +286,9 @@ public abstract class MixinCauldronInteraction {
             default:
                 break;
         }
-
+        System.out.println("Bucket amount after: " + bucketAmount + " (was " + ogAmount + ") cauldron was " + cauldronHas + " level, is now " + (level.getBlockState(blockPos).is(Blocks.CAULDRON) ? 0 : level.getBlockState(blockPos).getValue(LayeredCauldronBlock.LEVEL)));
         if (bucketAmount != ogAmount) {
-            player.setItemInHand(interactionHand, ((FFBucketItem) defaultFilledBucket.getItem()).ff$bucketOfAmount(bucket, bucketAmount));
+            player.setItemInHand(interactionHand, ((FFBucketItem) defaultFilledBucket.getItem()).ff$bucketOfAmount(defaultFilledBucket, bucketAmount));
             player.awardStat(Stats.USE_CAULDRON);
             player.awardStat(Stats.ITEM_USED.get(bucket.getItem()));
             level.playSound(null, blockPos, soundEvent, SoundSource.BLOCKS, 1.0F, 1.0F);
