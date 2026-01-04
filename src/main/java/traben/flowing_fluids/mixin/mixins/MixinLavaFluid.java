@@ -13,12 +13,15 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.*;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
+
+import java.util.Random;
 
 @Mixin(LavaFluid.class)
 public abstract class MixinLavaFluid extends FlowingFluid {
@@ -55,14 +58,23 @@ public abstract class MixinLavaFluid extends FlowingFluid {
         }
     }
 
+    @Unique private static Random random = new Random();
+
     @Inject(method = "getTickDelay", at = @At(value = "RETURN"), cancellable = true)
     private void ff$modifyTickDelay(final LevelReader level, final CallbackInfoReturnable<Integer> cir) {
         if (FlowingFluids.config.enableMod
                 && FlowingFluids.config.isFluidAllowed(this)) {
-            cir.setReturnValue(Mth.clamp(FFFluidUtils.dimensionEvaporatesWaterVanilla(level)
-                    ? FlowingFluids.config.lavaNetherTickDelay
-                    : FlowingFluids.config.lavaTickDelay,
-                    1,255));
+            int value = Mth.clamp(FFFluidUtils.dimensionEvaporatesWaterVanilla(level)
+                            ? FlowingFluids.config.lavaNetherTickDelay
+                            : FlowingFluids.config.lavaTickDelay,
+                    1,255);
+
+            if (FlowingFluids.config.tickDelaySpread > 0) {
+                // randomly vary the tick delay a bit to spread out the updates, this will sadly affect flow behaviour
+                // somewhat but is necessary to avoid extreme lag spikes
+                value -= random.nextInt(FlowingFluids.config.tickDelaySpread + 1);
+            }
+            cir.setReturnValue(value);
         }
     }
 

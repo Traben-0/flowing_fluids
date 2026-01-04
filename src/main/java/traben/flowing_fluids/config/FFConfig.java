@@ -6,7 +6,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
 //#if MC > 12100
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.ARGB;
 //#else
 //$$ import net.minecraft.resources.ResourceLocation;
@@ -17,7 +16,6 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
-import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
 
 public class FFConfig {
@@ -61,7 +59,13 @@ public class FFConfig {
     public float displacementDepthMultiplier = 1f;
     public DisplacementSounds displacementSounds = DisplacementSounds.BOTH;
     public float flowSoundChance = 0.15f;
+    public int tickDelaySpread = 0; // not alterable via command, only for auto performance
 
+    // Auto performance handling
+    public AutoPerformance autoPerformanceMode = AutoPerformance.HIGH_QUALITY_DEFAULT;
+    public int autoPerformanceUpdateRateSeconds = 10;
+    public float autoPerformanceMSPTargetMultiplier = 0.9f;
+    public boolean autoPerformanceShowMessages = true;
 
 
     // create mod options
@@ -180,14 +184,21 @@ public class FFConfig {
         displacementDepthMultiplier = buffer.readFloat();
         displacementSounds = buffer.readEnum(DisplacementSounds.class);
         flowSoundChance = buffer.readFloat();
+        tickDelaySpread = buffer.readVarInt();
+
+        // Auto performance handling
+        autoPerformanceMode = buffer.readEnum(AutoPerformance.class);
+        autoPerformanceUpdateRateSeconds = buffer.readVarInt();
+        autoPerformanceMSPTargetMultiplier = buffer.readFloat();
+        autoPerformanceShowMessages = buffer.readBoolean();
 
 
-        //create mod options
+        // create mod options
         create_waterWheelMode = buffer.readEnum(CreateWaterWheelMode.class);
         create_infinitePipes = buffer.readBoolean();
         create_waterWheelFlowMaxTickInterval = buffer.readVarInt();
 
-        //blacklist
+        // blacklist
         fluidBlacklist = buffer.readCollection(ObjectOpenHashSet::new, FriendlyByteBuf::readUtf);
 
         defaultSeaLevelOverride = buffer.readVarInt();
@@ -243,13 +254,20 @@ public class FFConfig {
         buffer.writeFloat(displacementDepthMultiplier);
         buffer.writeEnum(displacementSounds);
         buffer.writeFloat(flowSoundChance);
+        buffer.writeVarInt(tickDelaySpread);
 
-        //create mod options
+        // Auto performance handling
+        buffer.writeEnum(autoPerformanceMode);
+        buffer.writeVarInt(autoPerformanceUpdateRateSeconds);
+        buffer.writeFloat(autoPerformanceMSPTargetMultiplier);
+        buffer.writeBoolean(autoPerformanceShowMessages);
+
+        // create mod options
         buffer.writeEnum(create_waterWheelMode);
         buffer.writeBoolean(create_infinitePipes);
         buffer.writeVarInt(create_waterWheelFlowMaxTickInterval);
 
-        //blacklist
+        // blacklist
         buffer.writeCollection(fluidBlacklist, FriendlyByteBuf::writeUtf);
 
         buffer.writeVarInt(defaultSeaLevelOverride);
@@ -345,7 +363,32 @@ public class FFConfig {
         }
     }
 
+    public enum AutoPerformance {
+        OFF,
+        HIGH_QUALITY_DEFAULT,
+        MEDIUM_QUALITY,
+        LOW_QUALITY;
+
+        public boolean enabled() {
+            return this != OFF;
+        }
+
+        public String pretty() {
+            if (this == OFF) return "";
+            return " with " + pretty2();
+        }
+
+        public String pretty2() {
+            return switch (this) {
+                case OFF -> "";
+                case HIGH_QUALITY_DEFAULT -> "High Quality (Default)";
+                case MEDIUM_QUALITY -> "Medium Quality";
+                case LOW_QUALITY -> "Low Quality";
+            };
+        }
+    }
+
     //#if MC <= 12001
-    //$$ public static final ResourceLocation SERVER_CONFIG_PACKET_ID = FFFluidUtils.res("flowing_fluids:server_config_packet");
+    //$$ public static final ResourceLocation SERVER_CONFIG_PACKET_ID = traben.flowing_fluids.FFFluidUtils.res("flowing_fluids:server_config_packet");
     //#endif
 }

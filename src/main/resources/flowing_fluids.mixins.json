@@ -29,6 +29,7 @@
     "MixinPistonAirPlacementMarker",
     "MixinPlayerConnect",
     "MixinSeaGrassBlock",
+    "MixinServer_AutoPerformance",
     "MixinTallSeaGrassBlock",
     "MixinWaterFluid",
     "MixinWaterPushing",

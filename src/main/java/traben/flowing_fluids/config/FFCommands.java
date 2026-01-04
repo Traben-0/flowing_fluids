@@ -30,6 +30,7 @@ import net.minecraft.world.level.material.Fluids;
 import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
 import traben.flowing_fluids.PlugWaterFeature;
+import traben.flowing_fluids.config.auto_perf.FFAutoPerformance;
 
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -40,6 +41,9 @@ import java.util.stream.Collectors;
 
 public class FFCommands {
     private static int messageAndSaveConfig(CommandContext<CommandSourceStack> context, String text) {
+        if (FlowingFluids.config.autoPerformanceMode.enabled()) {
+            text = text + "\n-------\n[NOTE]: Auto performance handling is enabled, so performance related settings may be changed automatically based on server performance.";
+        }
         FlowingFluids.saveConfig();
         context.getSource().getServer().getPlayerList().getPlayers().forEach(FlowingFluids::sendConfigToClient);
         return message(context, text);
@@ -116,29 +120,67 @@ public class FFCommands {
         return command;
     }
 
-    public static LiteralArgumentBuilder<CommandSourceStack> presets() {
-        var presets = Commands.literal("settings_presets");
-        presets.executes(cont ->
-                message(cont, "These are preset configurations for Flowing Fluids, use these to quickly apply a set of settings suited to a particular playstyle or performance needs."));
 
-        for (FFConfigPreset configPreset : FFConfigPreset.values()) {
-            presets.then(Commands.literal(configPreset.name().toLowerCase())
+    public static LiteralArgumentBuilder<CommandSourceStack> presets() {
+        var all = Commands.literal("performance_and_presets")
+                .then(Commands.literal("automatic_performance_handling")
+                        .then(enumCommand("mode",
+                                        """
+                                                When enabled this will automatically adjust performance settings on the fly based on server performance.
+                                                OFF: Disables auto performance handling.
+                                                HIGH_QUALITY_DEFAULT: Uses high quality (default) flow settings but will slow down tick rates as the server lags.
+                                                MEDIUM_QUALITY: Uses lower quality fluid flow settings and will slow down tick rates as the server lags.
+                                                LOW_QUALITY: Uses really low quality fluid flow settings and will slow down tick rates as the server lags.
+                                                To manually use these settings without auto tweaking, turn this off and use the presets command instead.""",
+                                        a -> FlowingFluids.config.autoPerformanceMode = a,
+                                        () -> FlowingFluids.config.autoPerformanceMode,
+                                        Pair.of(FFConfig.AutoPerformance.OFF, "Auto performance handling is now OFF."),
+                                        Pair.of(FFConfig.AutoPerformance.HIGH_QUALITY_DEFAULT, "Auto performance handling is now set to HIGH_QUALITY_DEFAULT."),
+                                        Pair.of(FFConfig.AutoPerformance.MEDIUM_QUALITY, "Auto performance handling is now set to MEDIUM_QUALITY."),
+                                        Pair.of(FFConfig.AutoPerformance.LOW_QUALITY, "Auto performance handling is now set to LOW_QUALITY.")
+                                )
+                        ).then(intCommand("update_interval_seconds",
+                                "Sets the interval in seconds at which server performance is checked and settings adjusted if needed.\nDefault is " + new FFConfig().autoPerformanceUpdateRateSeconds + " seconds.",
+                                "seconds", 3, 3600,
+                                a -> FlowingFluids.config.autoPerformanceUpdateRateSeconds = a,
+                                () -> FlowingFluids.config.autoPerformanceUpdateRateSeconds
+                                )
+                        ).then(floatCommand("mspt_leniency",
+                                        "(Advanced) this controls how lenient the auto performance handling is when considering whether or not to slow down fluid flow rates." +
+                                                "\nIf set to 1 then the auto performance handler will apply only when the server exceeds the ideal maximum mspt (typically 50)." +
+                                                "\nIf set to 2 then the auto performance handler will apply only when the server is running at double the ideal maximum mspt (typically 100)." +
+                                                "\nHigher values make the auto performance handler less responsive to lag spikes which you might want with heavy modpack servers." +
+                                                "\nValues below 1 are only really needed if you want to be preventative about going over the ideal maximum mspt." +
+                                                "\nDefault is " + new FFConfig().autoPerformanceMSPTargetMultiplier + ". Must be between 0.5 and 5.",
+                                        "multiplier", 0.5f, 5f,
+                                        a -> FlowingFluids.config.autoPerformanceMSPTargetMultiplier = a,
+                                        () -> FlowingFluids.config.autoPerformanceMSPTargetMultiplier
+                                )
+                        )
+                );
+
+
+        var presets = Commands.literal("presets")
+                .executes(cont ->
+                    message(cont, "These are simple preset configurations for Flowing Fluids, use these to quickly apply a set of settings suited to a particular playstyle or performance needs."));
+
+        for (FFConfigPreset configPreset : FFConfigPreset.registered) {
+            presets.then(Commands.literal(configPreset.commandName.toLowerCase())
                     .executes(cont -> {
-                        configPreset.apply();
-                        return messageAndSaveConfig(cont, configPreset.explanation+"\n---------\nApplied the preset: " + configPreset.name().toLowerCase());
+                        configPreset.apply(FlowingFluids.config);
+                        return messageAndSaveConfig(cont, configPreset.explanation+"\n---------\nApplied the preset: " + configPreset.commandName.toLowerCase());
                     })
                     .then(Commands.literal("explain")
                             .executes(cont -> message(cont, configPreset.explanation))
-                    ).then(Commands.literal("apply_preset")
+                    ).then(Commands.literal("apply")
                             .executes(cont -> {
-                                configPreset.apply();
-                                return messageAndSaveConfig(cont, "Applied the preset: " + configPreset.name().toLowerCase());
+                                configPreset.apply(FlowingFluids.config);
+                                return messageAndSaveConfig(cont, configPreset.explanation+"\n---------\nApplied the preset: " + configPreset.commandName.toLowerCase());
                             })
                     )
             );
         }
-
-        return presets;
+        return all.then(presets);
     }
 
     public static LiteralArgumentBuilder<CommandSourceStack> seaLevelOverrides() {
@@ -473,7 +515,7 @@ public class FFCommands {
                             FlowingFluids.config.hideStartMessage = true;
                             return messageAndSaveConfig(c, "The Flowing Fluids start message will no longer be shown to the first player joining.");
                         } )
-                ).then(Commands.literal("settings")
+                ).then(Commands.literal("advanced_settings")
                         .executes(commandContext -> message(commandContext, "Settings for Flowing Fluids, use these to change how fluids behave."))
                         .then(booleanCommand("plug_fluids_during_world_gen",
                                         "Enables or disables plugging all fluids that are generated with air beside or below them.\nThis is an IMMENSE reduction in lag during world generation.",

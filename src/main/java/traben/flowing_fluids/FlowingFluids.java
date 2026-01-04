@@ -6,9 +6,7 @@ import it.unimi.dsi.fastutil.Pair;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.ChatType;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.OutgoingChatMessage;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BiomeTags;
@@ -101,13 +99,17 @@ public class FlowingFluids {
     public static void sendConfigToClient(ServerPlayer player) {
         if (showFirstMessage && !config.hideStartMessage) {
             player.sendSystemMessage(
-                    Component.literal("[Flowing Fluids mod loaded]")
+                    Component.literal("[Flowing Fluids mod loaded]\n")
                             .withStyle(ChatFormatting.GOLD)
-                            .append(Component.literal(" see ")
+                            .append(Component.literal("- Automatic performance handling is ")
                                     .withStyle(ChatFormatting.WHITE))
-                            .append(Component.literal("/flowing_fluids settings_presets")
+                            .append(Component.literal(config.autoPerformanceMode.enabled() ? "enabled" : "disabled")
+                                    .withStyle(config.autoPerformanceMode.enabled() ? ChatFormatting.GREEN : ChatFormatting.RED))
+                            .append(Component.literal(config.autoPerformanceMode.pretty() + ".\n- See ")
+                                    .withStyle(ChatFormatting.WHITE))
+                            .append(Component.literal("/flowing_fluids performance_and_presets")
                                     .withStyle(ChatFormatting.GRAY))
-                            .append(Component.literal(" for ready made gameplay and performance settings presets.")
+                            .append(Component.literal(" to change this or access other ready-made gameplay and performance settings presets.")
                                     .withStyle(ChatFormatting.WHITE))
             );
             showFirstMessage = false;

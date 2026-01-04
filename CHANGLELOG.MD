@@ -1,12 +1,14 @@
 
 [1.0]
-- added the `settings_presets` commands to allow easy switching between ready-made performance and gameplay settings presets, the `performance_ultra` preset for example offers up to 6x the performance for much reduced flow quality
+- added an automatic performance handling system that will dynamically reduce fluid tick rates based on current server lag
+- added various ready-made settings presets for easily applying different performance levels, and gameplay settings
 - added support for 1.21.9 and 1.21.11
 - massively improved water displacement upon placing blocks or using pistons, fluids can be pushed through vastly more complex "pipes" much more easily
 - fluids no longer always make sounds due to the vanilla sound check seeing partial water
 - added various sounds for fluid behaviors toggleable via settings
 - added various seaLevelOverride commands to set a custom sea level for fluid behaviors in a given dimension or everywhere
 - fixed various sea level related bugs
+- allowed water in non-infinite biomes to evaporate at sea level if above water so they don't pool there forever
 - added an info message to guide users to the presets command
 - added the river_only command options for create water wheel behaviors
 - massively improved how create water wheels interact with flowing fluids, they should now work much more reliably and consistently and can no longer be tricked into infinitely spinning without a flow (when flow is configured to be required i.e. default)

@@ -27,6 +27,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
 
+import java.util.Random;
+
 
 @Mixin(WaterFluid.class)
 public abstract class MixinWaterFluid extends FlowingFluid {
@@ -161,7 +163,11 @@ public abstract class MixinWaterFluid extends FlowingFluid {
     private boolean ff$tryEvaporate(final Level level, final BlockPos blockPos, int amount, float chance) {
         if (chance < FlowingFluids.config.evaporationChanceV2) {
             // evaporate over time if not raining
-            if (amount <= getDropOff(level) && level.getFluidState(blockPos.below()).isEmpty()) {
+            if (amount <= getDropOff(level)
+                    && (level.getFluidState(blockPos.below()).isEmpty())
+                        // handles water that gets stuck above water on the edges of infinite biomes
+                        || (hasSkyLight && !isInfBiome && FFFluidUtils.seaLevel(level) == blockPos.getY() )
+            ) {
                 level.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());
                 return true;
             }
@@ -194,10 +200,20 @@ public abstract class MixinWaterFluid extends FlowingFluid {
         }
     }
 
+    @Unique private static Random random = new Random();
+
     @Inject(method = "getTickDelay", at = @At(value = "RETURN"), cancellable = true)
     private void ff$modifyTickDelay(final LevelReader level, final CallbackInfoReturnable<Integer> cir) {
         if (FlowingFluids.config.enableMod && FlowingFluids.config.isFluidAllowed(this)) {
-            cir.setReturnValue(Mth.clamp(FlowingFluids.config.waterTickDelay, 1, 255));
+
+            int value = Mth.clamp(FlowingFluids.config.waterTickDelay, 1, 255);
+
+            if (FlowingFluids.config.tickDelaySpread > 0) {
+                // randomly vary the tick delay a bit to spread out the updates, this will sadly affect flow behaviour
+                // somewhat but is necessary to avoid extreme lag spikes
+                value -= random.nextInt(FlowingFluids.config.tickDelaySpread + 1);
+            }
+            cir.setReturnValue(value);
         }
     }
 
