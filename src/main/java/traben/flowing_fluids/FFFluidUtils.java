@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.worldgen.DimensionTypes;
 import net.minecraft.resources.ResourceLocation;
@@ -410,10 +411,26 @@ public class FFFluidUtils {
 
 
     private static boolean checkBlockIsNonDisplacer(Fluid fluid, BlockState state) {
-        return FlowingFluids.nonDisplacerTags.stream().anyMatch(pair ->
-                        (pair.first() == Fluids.EMPTY || pair.first().isSame(fluid)) && state.is(pair.second()))
-                || FlowingFluids.nonDisplacers.stream().anyMatch(pair ->
-                        (pair.first() == Fluids.EMPTY || pair.first().isSame(fluid)) && state.is(pair.second()));
+        if (matchesAny(FlowingFluids.nonDisplacers.get(fluid), state::is)) return true;
+        if (matchesAny(FlowingFluids.nonDisplacerTags.get(fluid), state::is)) return true;
+
+        //#if MC > 1.20.1
+        String blockId = BuiltInRegistries.BLOCK.wrapAsHolder(state.getBlock()).getRegisteredName();
+        //#else
+        //$$ String blockId = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
+        //#endif
+        if (matchesAny(FlowingFluids.nonDisplacerIds.get(fluid), blockId::equals)) return true;
+
+        return matchesAny(FlowingFluids.nonDisplacerTagIds.get(fluid),
+                tag -> state.getTags().anyMatch(it -> it.location().toString().equals(tag)));
+    }
+
+    private static <T> boolean matchesAny(Iterable<T> items, Predicate<T> condition) {
+        if (items == null) return false;
+        for (T item : items) {
+            if (condition.test(item)) return true;
+        }
+        return false;
     }
 
     public static void displaceFluids(final Level level, final BlockPos pos, final BlockState state, final int flags, final LevelChunk levelChunk, final BlockState originalState) {

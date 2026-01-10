@@ -21,6 +21,8 @@ import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
 import traben.flowing_fluids.config.FFConfig;
 
+import java.util.ArrayList;
+
 public class FlowingFluidsApiImpl implements FlowingFluidsAPI {
 
     private final String modid;
@@ -138,12 +140,22 @@ public class FlowingFluidsApiImpl implements FlowingFluidsAPI {
 
     @Override
     public void registerBlockTagThatWontDisplaceFluid(final @NotNull Fluid fluid, final @NotNull TagKey<Block> tag) {
-        FlowingFluids.nonDisplacerTags.add(Pair.of(fluid, tag));
+        FlowingFluids.nonDisplacerTags.computeIfAbsent(fluid, a-> new ArrayList<>()).add(tag);
     }
 
     @Override
     public void registerBlockThatWontDisplaceFluid(final @NotNull Fluid fluid, final @NotNull Block block) {
-        FlowingFluids.nonDisplacers.add(Pair.of(fluid, block));
+        FlowingFluids.nonDisplacers.computeIfAbsent(fluid, a-> new ArrayList<>()).add(block);
+    }
+
+    @Override
+    public void registerBlockTagStringIdThatWontDisplaceFluid(final @NotNull Fluid fluid, final @NotNull String tag) {
+        FlowingFluids.nonDisplacerTagIds.computeIfAbsent(fluid, a-> new ArrayList<>()).add(tag);
+    }
+
+    @Override
+    public void registerBlockStringIdThatWontDisplaceFluid(final @NotNull Fluid fluid, final @NotNull String block) {
+        FlowingFluids.nonDisplacerIds.computeIfAbsent(fluid, a-> new ArrayList<>()).add(block);
     }
 
     @Override

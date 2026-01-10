@@ -3,6 +3,7 @@ package traben.flowing_fluids;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import it.unimi.dsi.fastutil.Pair;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
@@ -28,8 +29,10 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 //#if FABRIC
@@ -64,9 +67,15 @@ public class FlowingFluids {
     public static int waterPluggedThisSession = 0;
 
     public static boolean CREATE = false;
+    public static boolean TWILIGHT_FOREST = false;
 
-    public static Set<Pair<Fluid, TagKey<Block>>> nonDisplacerTags = new HashSet<>();
-    public static Set<Pair<Fluid,Block>> nonDisplacers = new HashSet<>();
+    public static Map<Fluid, List<TagKey<Block>>> nonDisplacerTags = new Object2ObjectOpenHashMap<>();
+    public static Map<Fluid, List<Block>> nonDisplacers = new Object2ObjectOpenHashMap<>();
+
+    public static Map<Fluid, List<String>> nonDisplacerTagIds = new Object2ObjectOpenHashMap<>();
+    public static Map<Fluid, List<String>> nonDisplacerIds = new Object2ObjectOpenHashMap<>();
+
+
     public static Set<TagKey<Biome>> infiniteBiomeTags = new HashSet<>();
     public static Set<ResourceKey<Biome>> infiniteBiomes = new HashSet<>();
 
@@ -77,7 +86,7 @@ public class FlowingFluids {
     public static void error(String str) { LOG.error("[Flowing Fluids] {}", str); }
 
     public static void start() {
-        info("initialising");
+        info("initialising.");
 
         infiniteBiomeTags.add(BiomeTags.IS_OCEAN);
         infiniteBiomeTags.add(BiomeTags.IS_RIVER);
@@ -85,13 +94,25 @@ public class FlowingFluids {
         infiniteBiomes.add(Biomes.SWAMP);
         infiniteBiomes.add(Biomes.MANGROVE_SWAMP);
 
-        nonDisplacerTags.add(Pair.of(Fluids.WATER, BlockTags.ICE));
-        nonDisplacers.add(Pair.of(Fluids.WATER, Blocks.SPONGE));
-        nonDisplacers.add(Pair.of(Fluids.LAVA,Blocks.OBSIDIAN));
+        var waterBlockList = new ArrayList<Block>();
+        var lavaBlockList = new ArrayList<Block>();
+        var waterBlockTagList = new ArrayList<TagKey<Block>>();
+        var waterBlockListIds = new ArrayList<String>();
+
+        waterBlockTagList.add(BlockTags.ICE);
+        waterBlockList.add(Blocks.SPONGE);
+        lavaBlockList.add(Blocks.OBSIDIAN);
+
+        waterBlockListIds.add("twilightforest:twilight_portal");
+        nonDisplacerTags.put(Fluids.WATER, waterBlockTagList);
+        nonDisplacers.put(Fluids.WATER, waterBlockList);
+        nonDisplacers.put(Fluids.LAVA, lavaBlockList);
+        nonDisplacerIds.put(Fluids.WATER, waterBlockListIds);
 
         loadConfig();
 
         CREATE = isThisModLoaded("create");
+        TWILIGHT_FOREST = isThisModLoaded("twilightforest");
     }
 
     private static boolean showFirstMessage = true;

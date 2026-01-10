@@ -13,12 +13,33 @@ public abstract class FFAutoPerformance {
 
     private static final Map<FFConfig.AutoPerformance, FFConfigPreset[]> autoPerformanceMap = new Object2ObjectOpenHashMap<>();
 
+
+    public static void tickUnchanged(float mspt) {
+        PerformanceMetric.metrics.get(currentAutoPerformanceLevel).tick(mspt);
+    }
+
+    private static int currentAutoPerformanceLevel = 0;
+
+    public static int level() {
+        return currentAutoPerformanceLevel;
+    }
+
+    public static void setLevel(int level, float mspt) {
+        currentAutoPerformanceLevel = level;
+        tickUnchanged(mspt);
+    }
+
+    public static FFConfigPreset current() {
+        return getForModeAndLevel(FlowingFluids.config.autoPerformanceMode, currentAutoPerformanceLevel);
+    }
+
     public static FFConfigPreset getForModeAndLevel(FFConfig.AutoPerformance mode, int level /* 0..3 */) {
         return autoPerformanceMap.get(mode)[level];
     }
 
     public static void resetAuto() {
         assert FlowingFluids.config.autoPerformanceMode.enabled();
+        currentAutoPerformanceLevel = 0;
         getForModeAndLevel(FlowingFluids.config.autoPerformanceMode, 0).apply(FlowingFluids.config);
     }
 
@@ -55,5 +76,26 @@ public abstract class FFAutoPerformance {
         config.tickDelaySpread = newConfig.tickDelaySpread;
     }
 
+    public static void report() {
+        var str = "\n-----------------------"
+                + "\n Auto Performance Report: Mode (" + FlowingFluids.config.autoPerformanceMode + ")"
+                + "\n-----------------------";
+
+        float total = 0;
+        int count = 0;
+        for (PerformanceMetric metric : PerformanceMetric.metrics.values()) {
+            float average = metric.averageMspt();
+            total += average;
+            if (average > 0f) count++;
+
+            str +=    "\n Level " + metric.level + (metric.level == currentAutoPerformanceLevel ? " (current)" : "")
+                    + "\n - Average mspt: " + average
+                    + "\n - Intervals: " + metric.intervalsAtLevel
+                    + "\n-----------------------";
+        }
+        str += "\n Overall average mspt across all levels: " + (count == 0 ? 0f : total / count);
+
+        FlowingFluids.info(str + "\n-----------------------");
+    }
 }
 

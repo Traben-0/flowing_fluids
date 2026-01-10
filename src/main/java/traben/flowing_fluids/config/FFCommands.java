@@ -31,6 +31,7 @@ import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
 import traben.flowing_fluids.PlugWaterFeature;
 import traben.flowing_fluids.config.auto_perf.FFAutoPerformance;
+import traben.flowing_fluids.config.auto_perf.PerformanceMetric;
 
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -132,7 +133,11 @@ public class FFCommands {
                                                 MEDIUM_QUALITY: Uses lower quality fluid flow settings and will slow down tick rates as the server lags.
                                                 LOW_QUALITY: Uses really low quality fluid flow settings and will slow down tick rates as the server lags.
                                                 To manually use these settings without auto tweaking, turn this off and use the presets command instead.""",
-                                        a -> FlowingFluids.config.autoPerformanceMode = a,
+                                        a -> {
+                                            if (a != FlowingFluids.config.autoPerformanceMode) PerformanceMetric.resetMetrics();
+                                            FlowingFluids.config.autoPerformanceMode = a;
+                                            FFAutoPerformance.resetAuto();
+                                        },
                                         () -> FlowingFluids.config.autoPerformanceMode,
                                         Pair.of(FFConfig.AutoPerformance.OFF, "Auto performance handling is now OFF."),
                                         Pair.of(FFConfig.AutoPerformance.HIGH_QUALITY_DEFAULT, "Auto performance handling is now set to HIGH_QUALITY_DEFAULT."),
@@ -358,6 +363,15 @@ public class FFCommands {
                                             ? "IN" : "NOT IN") + " an Infinite biome. By default these are: Oceans, Rivers, and Swamps.\n" +
                                     "Mods can add their own via the api but most modded oceans and rivers should be accounted for automatically by this mod.");
                         })
+                ).then(Commands.literal("log_auto_performance_report")
+                        .executes(cont ->{
+                            if (FlowingFluids.config.autoPerformanceMode.enabled()) {
+                                FFAutoPerformance.report();
+                                return message(cont, "The Flowing Fluids auto performance handler report has been printed to the game log");
+                            } else {
+                                return message(cont, "Auto performance handling is not currently enabled, there is nothing to report.");
+                            }
+                        })
                 );
     }
 
@@ -526,6 +540,7 @@ public class FFCommands {
                         ).then(Commands.literal("reset_all_to_defaults")
                                 .executes(cont -> {
                                     FlowingFluids.config = new FFConfig();
+                                    FFAutoPerformance.resetAuto();
                                     return messageAndSaveConfig(cont, "All Flowing Fluids settings have been reset to defaults.");
                                 })
                         ).then(Commands.literal("appearance")

@@ -25,9 +25,6 @@ public abstract class MixinServer_AutoPerformance {
     @Unique
     private long lastSysTimeAdjusted = 0;
 
-    @Unique
-    private int currentAutoPerformanceLevel = 0;
-
     @Inject(method = "stopServer", at = @At(value = "HEAD"))
     private void ff$resetAutoPerformance(CallbackInfo ci) {
         if (!FlowingFluids.config.enableMod || !FlowingFluids.config.autoPerformanceMode.enabled())
@@ -38,7 +35,6 @@ public abstract class MixinServer_AutoPerformance {
         FlowingFluids.saveConfig();
 
         lastSysTimeAdjusted = 0;
-        currentAutoPerformanceLevel = 0;
     }
 
     @Inject(method = "tickServer", at = @At(value = "TAIL"))
@@ -66,39 +62,50 @@ public abstract class MixinServer_AutoPerformance {
         //$$ var mspt = getAverageTickTime();
         //#endif
 
-        int initialLevel = currentAutoPerformanceLevel;
+        int initialLevel = FFAutoPerformance.level();
+        int level = initialLevel;
 
         if (mspt <= msptGoal * 0.5) { // only lower if we can maybe handle it
-            if (currentAutoPerformanceLevel <= 0) return;
-            currentAutoPerformanceLevel--;
+            if (level <= 0) {
+                FFAutoPerformance.tickUnchanged(mspt);
+                return;
+            }
+            level--;
 
             // extra decrements for great performance
-            if (mspt <= msptGoal * 0.25) currentAutoPerformanceLevel--;
-            if (mspt <= msptGoal * 0.125) currentAutoPerformanceLevel--;
-            if (mspt <= msptGoal * 0.0625) currentAutoPerformanceLevel--; // doubt (tm)
-            if (currentAutoPerformanceLevel < 0) currentAutoPerformanceLevel = 0;
+            if (mspt <= msptGoal * 0.25) level--;
+            if (mspt <= msptGoal * 0.125) level--;
+            if (mspt <= msptGoal * 0.0625) level--; // doubt (tm)
+            if (level < 0) level = 0;
         } else if (mspt >= msptGoal) {
-            if (currentAutoPerformanceLevel >= PerformanceSpeed.max()) return;
-            currentAutoPerformanceLevel++;
+            if (level >= PerformanceSpeed.max()) {
+                FFAutoPerformance.tickUnchanged(mspt);
+                return;
+            }
+            level++;
 
             // extra increments for terrible performance
             for (int multiplier = 2; multiplier <= 6; multiplier++) {
-                if (mspt >= msptGoal * multiplier) currentAutoPerformanceLevel++;
+                if (mspt >= msptGoal * multiplier) level++;
             }
-            if (currentAutoPerformanceLevel > PerformanceSpeed.max()) currentAutoPerformanceLevel = PerformanceSpeed.max();
+            if (level > PerformanceSpeed.max()) level = PerformanceSpeed.max();
 
-        } else return;
+        } else {
+            FFAutoPerformance.tickUnchanged(mspt);
+            return;
+        }
 
-        var preset = FFAutoPerformance.getForModeAndLevel(FlowingFluids.config.autoPerformanceMode, currentAutoPerformanceLevel);
+        FFAutoPerformance.setLevel(level, mspt);
+        var preset = FFAutoPerformance.current();
 
         preset.apply(FlowingFluids.config);
 
         if (FlowingFluids.config.autoPerformanceShowMessages) {
-            boolean isMaxed = currentAutoPerformanceLevel >= PerformanceSpeed.max();
+            boolean isMaxed = level >= PerformanceSpeed.max();
             logSeverity(isMaxed ,
                     "[Flowing Fluids] Auto Performance Handling: {} mode's fluid tick rate {} to {} from {} | mspt {} / {} | {} (You can disable this logging in the settings)",
                     FlowingFluids.config.autoPerformanceMode.pretty2(),
-                    (currentAutoPerformanceLevel < initialLevel) ? "increased" : "decreased",
+                    (level < initialLevel) ? "increased" : "decreased",
                     preset.commandName.toLowerCase(),
                     FFAutoPerformance.getForModeAndLevel(FlowingFluids.config.autoPerformanceMode, initialLevel).commandName.toLowerCase(),
                     mspt,
@@ -108,7 +115,7 @@ public abstract class MixinServer_AutoPerformance {
                     //$$ 50,
                     //#endif
                     isMaxed ? "Auto Performance cannot set the tick rate any slower, consider lowering your auto performance quality mode if this is still not enough"
-                            : currentAutoPerformanceLevel <= 0
+                            : level <= 0
                                 ? "Auto Performance is running at maximum tick rate, Nice :)"
                                 : "Auto Performance still has wiggle room to speed up or slow down the tick rate of fluids"
                     );

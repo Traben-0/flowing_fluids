@@ -22,7 +22,7 @@ public interface FlowingFluidsAPI {
     /**
      * The version of the API, checking this is up to you.
      */
-    int VERSION = 2;
+    int VERSION = 3;
 
     /**
      * Just in case it wasn't obvious.
@@ -146,6 +146,8 @@ public interface FlowingFluidsAPI {
      */
     void registerBlockThatWontDisplaceFluid(final @NotNull Fluid fluid, @NotNull Block block);
 
+    void registerBlockTagStringIdThatWontDisplaceFluid(final @NotNull Fluid fluid, final @NotNull String tag);
+    void registerBlockStringIdThatWontDisplaceFluid(final @NotNull Fluid fluid, final @NotNull String block);
 
     /**
      * Registers a Biome or BiomeTag that will infinitely refill water over time.

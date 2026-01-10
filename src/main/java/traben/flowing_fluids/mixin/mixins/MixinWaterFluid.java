@@ -3,6 +3,7 @@ package traben.flowing_fluids.mixin.mixins;
 
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
@@ -39,14 +40,6 @@ public abstract class MixinWaterFluid extends FlowingFluid {
     @Shadow
     public abstract boolean isSame(final Fluid fluid);
 
-    @Unique
-    boolean isWithinInfBiomeHeights = false;
-    @Unique
-    boolean isInfBiome = false;
-    @Unique
-    boolean hasSkyLight = false;
-
-
     @Override
     protected void randomTick(
             //#if MC > 12100
@@ -64,23 +57,34 @@ public abstract class MixinWaterFluid extends FlowingFluid {
 
         if (FlowingFluids.config.dontTickAtLocation(blockPos, level)) return; // do not calculate
 
+        int amount = fluidState.getAmount();
 
-        isWithinInfBiomeHeights = FlowingFluids.config.fastBiomeRefillAtSeaLevelOnly
+        // Twilight forest presents its fluid state as water at level 1
+        if (FlowingFluids.TWILIGHT_FOREST
+                && amount == 1
+                && "twilightforest:twilight_portal".equals(
+                    //#if MC > 1.20.1
+                    BuiltInRegistries.BLOCK.wrapAsHolder(level.getBlockState(blockPos).getBlock()).getRegisteredName()
+                    //#else
+                    //$$ BuiltInRegistries.BLOCK.getKey(level.getBlockState(blockPos).getBlock()).toString()
+                    //#endif
+        )) return;
+
+        boolean isWithinInfBiomeHeights = FlowingFluids.config.fastBiomeRefillAtSeaLevelOnly
                 ? FFFluidUtils.seaLevel(level) == blockPos.getY() || FFFluidUtils.seaLevel(level) - 1 == blockPos.getY()
                 : FFFluidUtils.seaLevel(level) == blockPos.getY() && blockPos.getY() > 0;
 
-        hasSkyLight = level.getBrightness(LightLayer.SKY, blockPos) > 0; // is close enough to sky/atmosphere access
+        boolean isInfBiome = FFFluidUtils.matchInfiniteBiomes(level.getBiome(blockPos));
 
-        isInfBiome = FFFluidUtils.matchInfiniteBiomes(level.getBiome(blockPos));
-
-        int amount = fluidState.getAmount();
         if (amount < 8) {
-            if (ff$tryBiomeFillOrDrain(level, blockPos, amount, level.random.nextFloat())) {
+            boolean hasSkyLight = level.getBrightness(LightLayer.SKY, blockPos) > 0; // is close enough to sky/atmosphere access
+
+            if (ff$tryBiomeFillOrDrain(level, blockPos, amount, level.random.nextFloat(), isInfBiome, isWithinInfBiomeHeights, hasSkyLight)) {
                 if (FlowingFluids.config.printRandomTicks)
                     FlowingFluids.info("--- Water was filled by biome at "+blockPos+". Chance: "+ FlowingFluids.config.oceanRiverSwampRefillChance);
                 return;
             }
-            if (ff$tryRainFill(level, blockPos, level.random.nextFloat())) {
+            if (ff$tryRainFill(level, blockPos, level.random.nextFloat(), isInfBiome, isWithinInfBiomeHeights)) {
                 if (FlowingFluids.config.printRandomTicks)
                     FlowingFluids.info("--- Water was filled by rain at "+blockPos+". Chance: "+ FlowingFluids.config.rainRefillChance);
                 return;
@@ -90,12 +94,12 @@ public abstract class MixinWaterFluid extends FlowingFluid {
                     FlowingFluids.info("--- Water was evaporated via Nether at "+blockPos+". Chance: "+ FlowingFluids.config.evaporationChanceV2);
                 return;
             }
-            if (ff$tryEvaporate(level, blockPos, amount, level.random.nextFloat())) {
+            if (ff$tryEvaporate(level, blockPos, amount, level.random.nextFloat(), isInfBiome, isWithinInfBiomeHeights, hasSkyLight)) {
                 if (FlowingFluids.config.printRandomTicks)
                     FlowingFluids.info("--- Water was evaporated - non Nether at "+blockPos+". Chance: "+ FlowingFluids.config.evaporationChanceV2);
             }
         } else {
-            if (ff$tryRainFill(level, blockPos, level.random.nextFloat())) {
+            if (ff$tryRainFill(level, blockPos, level.random.nextFloat(), isInfBiome, isWithinInfBiomeHeights)) {
                 if (FlowingFluids.config.printRandomTicks)
                     FlowingFluids.info("--- Water was filled by rain at "+blockPos+". Chance: "+ FlowingFluids.config.rainRefillChance);
                 // return;
@@ -107,7 +111,7 @@ public abstract class MixinWaterFluid extends FlowingFluid {
 
 
     @Unique
-    private boolean ff$tryRainFill(final Level level, final BlockPos blockPos, float chance) {
+    private boolean ff$tryRainFill(final Level level, final BlockPos blockPos, float chance, boolean isInfBiome, boolean isWithinInfBiomeHeights) {
         //this evaporation limit is critical!!!! otherwise the water fills endlessly
         if (chance < Math.min(FlowingFluids.config.rainRefillChance, FlowingFluids.config.evaporationChanceV2 / 3)
                 && level.isRaining()
@@ -127,7 +131,7 @@ public abstract class MixinWaterFluid extends FlowingFluid {
     }
 
     @Unique
-    private boolean ff$tryBiomeFillOrDrain(final Level level, final BlockPos blockPos, int amount, float chance) {
+    private boolean ff$tryBiomeFillOrDrain(final Level level, final BlockPos blockPos, int amount, float chance, boolean isInfBiome, boolean isWithinInfBiomeHeights, boolean hasSkyLight) {
         if (FFFluidUtils.seaLevel(level) == blockPos.getY()) {
             // use either infinite biome setting to trigger this draining
             if (chance < FlowingFluids.config.infiniteWaterBiomeNonConsumeChance
@@ -160,7 +164,7 @@ public abstract class MixinWaterFluid extends FlowingFluid {
     }
 
     @Unique
-    private boolean ff$tryEvaporate(final Level level, final BlockPos blockPos, int amount, float chance) {
+    private boolean ff$tryEvaporate(final Level level, final BlockPos blockPos, int amount, float chance, boolean isInfBiome, boolean isWithinInfBiomeHeights, boolean hasSkyLight) {
         if (chance < FlowingFluids.config.evaporationChanceV2) {
             // evaporate over time if not raining
             if (amount <= getDropOff(level)
