@@ -33,10 +33,12 @@ public abstract class MixinWaterWheel{
 //$$ import traben.flowing_fluids.FFFluidUtils;
 //$$ import traben.flowing_fluids.FlowingFluids;
 //$$ import traben.flowing_fluids.IFFFlowListener;
+//$$ import traben.flowing_fluids.FFFlowListenerLevel;
 //$$ import traben.flowing_fluids.config.FFConfig;
 //$$ import it.unimi.dsi.fastutil.Pair;
 //$$
 //$$ import java.util.LinkedList;
+//$$ import java.util.HashSet;
 //$$ import java.util.List;
 //$$ import java.util.Map;
 //$$ import java.util.Set;
@@ -57,16 +59,42 @@ public abstract class MixinWaterWheel{
 //$$         super(type, pos, state);
 //$$     }
 //$$
+//$$     @Override
+//$$     public void invalidate() {
+//$$         // remove listeners
+//$$         if (level instanceof FFFlowListenerLevel listenerGetter) {
+//$$             var listeners = listenerGetter.ff$getFlowListenerPositions();
+//$$             for (final BlockPos blockPos : this.getOffsetsToCheck()) {
+//$$                 var pos = blockPos.offset(worldPosition);
+//$$                 var list = listeners.get(pos);
+//$$                 if  (list == null) continue;
+//$$                 list.remove(worldPosition);
+//$$                 if (list.isEmpty()) listeners.remove(pos);
+//$$             }
+//$$         }
+//$$
+//$$         super.invalidate();
+//$$     }
+//$$
 //$$     @Inject(method = "determineAndApplyFlowScore",
 //$$             at = @At(value = "HEAD"),
 //$$             cancellable = true, remap = false)
 //$$     private void ff$modifyWaterCheck(final CallbackInfo ci) {
 //$$         try {
-//$$             //leave if no change or level is null
+//$$             // leave if no change or level is null
 //$$             if (!FlowingFluids.config.enableMod
 //$$                     || FlowingFluids.config.create_waterWheelMode == FFConfig.CreateWaterWheelMode.REQUIRE_FLOW
 //$$                     || level == null
 //$$             ) return;
+//$$
+//$$             // assert listeners
+//$$             if (level instanceof FFFlowListenerLevel listenerGetter) {
+//$$                 var listeners = listenerGetter.ff$getFlowListenerPositions();
+//$$                 for (final BlockPos blockPos : this.getOffsetsToCheck()) {
+//$$                     var list = listeners.computeIfAbsent(blockPos.offset(worldPosition), k -> new HashSet<>());
+//$$                     list.add(worldPosition);
+//$$                 }
+//$$             }
 //$$
 //$$             //if REQUIRE_FLOW_OR_RIVER, check for river else fallback to regular flow check
 //$$             if (FlowingFluids.config.create_waterWheelMode.isRiver()

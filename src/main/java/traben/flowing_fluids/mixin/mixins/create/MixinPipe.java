@@ -8,8 +8,7 @@ import traben.flowing_fluids.mixin.CancelTarget;
 @Mixin(CancelTarget.class)
 public abstract class MixinPipe{
 }
-//#elseif FABRIC
-//$$
+//#else
 //$$
 //$$ import com.simibubi.create.content.fluids.OpenEndedPipe;
 //$$ import com.simibubi.create.infrastructure.config.AllConfigs;
@@ -26,7 +25,7 @@ public abstract class MixinPipe{
 //$$
 //$$ @Pseudo
 //$$ @Mixin(OpenEndedPipe.class)
-//$$ public abstract class MixinPipe{
+//$$ public abstract class MixinPipe {
 //$$
 //$$ //!(Boolean)AllConfigs.server().fluids.pipesPlaceFluidSourceBlocks.get()
 //$$
@@ -39,15 +38,15 @@ public abstract class MixinPipe{
 //$$     @ModifyArg(method = "removeFluidFromSpace",
 //$$             at = @At(value = "INVOKE",
 //$$                     target = "Lnet/minecraft/world/level/Level;setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;I)Z"
-//$$             , ordinal = 1), index = 1)
+//$$                     , ordinal = 1), index = 1)
 //$$     private BlockState ff$modifyWaterRemoval(final BlockState blockState) {
 //$$         if (FlowingFluids.config.enableMod
 //$$                 && !FlowingFluids.config.create_infinitePipes
 //$$                 && FlowingFluids.config.isFluidAllowed(blockState.getFluidState())
-//$$                 && AllConfigs.server().fluids.pipesPlaceFluidSourceBlocks.get()){
+//$$                 && AllConfigs.server().fluids.pipesPlaceFluidSourceBlocks.get()) {
 //$$             world.getChunkAt(outputPos).getBlockTicks().schedule(
 //$$                     //todo test
-//$$                     new ScheduledTick<>(blockState.getBlock(), outputPos, world.getGameTime() + 5,99));
+//$$                     new ScheduledTick<>(blockState.getBlock(), outputPos, world.getGameTime() + 5, 99));
 //$$             return Blocks.AIR.defaultBlockState();
 //$$         }
 //$$         return blockState;

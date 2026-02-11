@@ -30,6 +30,7 @@ import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
+import org.apache.commons.lang3.tuple.Triple;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Unique;
@@ -37,9 +38,11 @@ import org.spongepowered.asm.mixin.Unique;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.IntStream;
 
 public class FFFluidUtils {
 
@@ -257,25 +260,32 @@ public class FFFluidUtils {
     }
 
     public static Pair<Integer, Runnable> placeConnectedFluidAmountAndPlaceAction(final LevelAccessor levelAccessor, final BlockPos blockPos, final int amountToPlace, final FlowingFluid fluid, int depth, boolean doUp, boolean doDown) {
+        return placeConnectedFluidAmountAndPlaceActionAndNotify(levelAccessor, blockPos, amountToPlace, fluid, depth, doUp, doDown, false);
+    }
+
+    public static Pair<Integer, Runnable> placeConnectedFluidAmountAndPlaceActionAndNotify(final LevelAccessor levelAccessor, final BlockPos blockPos, final int amountToPlace, final FlowingFluid fluid, int depth, boolean doUp, boolean doDown, boolean notifyListeners) {
         var originalState = levelAccessor.getFluidState(blockPos);
         int originalAmount = originalState.getAmount();
         if (originalState.getType().isSame(fluid) && originalAmount > 0) {
 
             //check for quick exit
             if (originalAmount + amountToPlace <= 8) {
-                return Pair.of(0,()->FFFluidUtils.setFluidStateAtPosToNewAmount(levelAccessor, blockPos, fluid, originalAmount + amountToPlace));
+                return Pair.of(0,()->{
+                    FFFluidUtils.setFluidStateAtPosToNewAmount(levelAccessor, blockPos, fluid, originalAmount + amountToPlace);
+                    if (notifyListeners) notifyListeners(levelAccessor, blockPos, Direction.DOWN, fluid, false);
+                });
             }
-
-            return placeConnectedFluidAmountAndPlaceActionCanIgnoreStart(levelAccessor, blockPos, amountToPlace, fluid, depth, doUp, doDown, null);
+            return placeConnectedFluidAmountAndPlaceActionCanIgnoreStart(levelAccessor, blockPos, amountToPlace, fluid, depth, doUp, doDown, null, notifyListeners);
         }
         return Pair.of(amountToPlace, null);
     }
 
     public static @NotNull Pair<Integer, Runnable> placeConnectedFluidAmountAndPlaceActionCanIgnoreStart(
-            LevelAccessor levelAccessor, BlockPos blockPos, int amountToPlace, FlowingFluid fluid, int depth, boolean doUp, boolean doDown, @Nullable List<BlockPos> ignore) {
+            LevelAccessor levelAccessor, BlockPos blockPos, int amountToPlace, FlowingFluid fluid, int depth, boolean doUp, boolean doDown, @Nullable List<BlockPos> ignore, boolean notifyListeners) {
 
         List<BlockPos> toCheck = new ArrayList<>(); // for O(1) ordered index access
         Set<BlockPos> seen = new HashSet<>(); // for O(1) containment checks
+        List<Direction> dirs = new ArrayList<>();
 
         toCheck.add(blockPos);
         if (ignore != null) seen.addAll(ignore);
@@ -283,16 +293,25 @@ public class FFFluidUtils {
         final Consumer<BlockPos> addSurroundingPositions = blockPos1 -> {
             for (Direction direction : getCardinalsShuffle(levelAccessor.getRandom())) {
                 BlockPos offset = blockPos1.relative(direction);
-                if (seen.add(offset)) toCheck.add(offset);
+                if (seen.add(offset)) {
+                    toCheck.add(offset);
+                    if (notifyListeners) dirs.add(direction);
+                }
             }
             if (doUp) {
                 // do these last just as preference
                 BlockPos up = blockPos1.above();
-                if (seen.add(up)) toCheck.add(up);
+                if (seen.add(up)) {
+                    toCheck.add(up);
+                    if (notifyListeners) dirs.add(Direction.UP);
+                }
             }
             if (doDown) {
                 BlockPos down = blockPos1.below();
-                if (seen.add(down)) toCheck.add(down);
+                if (seen.add(down)) {
+                    toCheck.add(down);
+                    if (notifyListeners) dirs.add(Direction.DOWN);
+                }
             }
 
         };
@@ -300,8 +319,8 @@ public class FFFluidUtils {
 
         List<Runnable> onSuccessPlacers = new ArrayList<>();
         int amountLeftToPlace = amountToPlace;
-
-        for (int i = ignore != null && ignore.contains(blockPos) ? 1 : 0; i < toCheck.size(); i++) {
+        int i = ignore != null && ignore.contains(blockPos) ? 1 : 0;
+        for (; i < toCheck.size(); i++) {
             var pos = toCheck.get(i);
 
             if (toCheck.size() > depth) break;
@@ -331,7 +350,16 @@ public class FFFluidUtils {
             return Pair.of(amountToPlace, null);
         }
 
-        return Pair.of(amountLeftToPlace, () -> onSuccessPlacers.forEach(Runnable::run));
+        int finalI = i;
+        return Pair.of(amountLeftToPlace, () -> {
+            onSuccessPlacers.forEach(Runnable::run);
+            if (notifyListeners) {
+                // This technically differs from the flowing fluids tick notifier as it notifies of the flow To this pos
+                // rather than the flow From this pos, but for our purposes this is fine
+                IntStream.range(0, Math.min(finalI, toCheck.size() - 1))
+                        .forEach(j ->  notifyListeners(levelAccessor, toCheck.get(j), dirs.get(j), fluid, false));
+            }
+        });
     }
 
 
@@ -520,7 +548,7 @@ public class FFFluidUtils {
         }
 
         var result = placeConnectedFluidAmountAndPlaceActionCanIgnoreStart(level, pos,
-                amountRemaining, flowSource, (int) (200 * FlowingFluids.config.displacementDepthMultiplier), true, true, positionsToIgnore);
+                amountRemaining, flowSource, (int) (200 * FlowingFluids.config.displacementDepthMultiplier), true, true, positionsToIgnore, false);
 
         // finalize placement if we found anywhere to put it and break if we are done
         if (result.first() < amountRemaining) {
@@ -576,5 +604,18 @@ public class FFFluidUtils {
         );
 
         lastFlowSoundTime = currentTime;
+    }
+
+    public static void notifyListeners(LevelAccessor level, BlockPos pos, Direction direction, Fluid fluid, boolean downAlso) {
+        if (!(level instanceof FFFlowListenerLevel)) return;
+        Map<BlockPos, Set<BlockPos>> listeners = ((FFFlowListenerLevel) level).ff$getFlowListenerPositions();
+        Set<BlockPos> positions = listeners.get(pos);
+        if (positions != null) {
+            for (BlockPos listenerPos : positions) {
+                if (level.getBlockEntity(pos) instanceof IFFFlowListener listener) {
+                    listener.ff$acceptRecentFlow(listenerPos, direction, fluid, downAlso);
+                }
+            }
+        }
     }
 }

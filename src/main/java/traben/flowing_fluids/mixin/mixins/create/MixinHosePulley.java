@@ -48,9 +48,9 @@ public abstract class MixinHosePulley{
 //$$ public abstract class MixinHosePulley {
 //$$
 //$$
-//$$     @Shadow private FluidDrainingBehaviour drainer;
+//$$     @Shadow(remap = false) private FluidDrainingBehaviour drainer;
 //$$
-//$$     @Shadow private FluidFillingBehaviour filler;
+//$$     @Shadow(remap = false) private FluidFillingBehaviour filler;
 //$$
 //$$     @WrapOperation(method = "extract(Lnet/fabricmc/fabric/api/transfer/v1/fluid/FluidVariant;JLnet/fabricmc/fabric/api/transfer/v1/transaction/TransactionContext;)J",
 //$$             at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/fluids/transfer/FluidDrainingBehaviour;getDrainableFluid(Lnet/minecraft/core/BlockPos;)Lio/github/fabricators_of_create/porting_lib/fluids/FluidStack;"))
