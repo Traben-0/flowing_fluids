@@ -1,0 +1,47 @@
+{
+  "required": true,
+  "package": "traben.flowing_fluids.mixin.mixins",
+  "plugin": "traben.flowing_fluids.mixin.Plugin",
+  "compatibilityLevel": "JAVA_17",
+  "minVersion": "0.8",
+  "client": [
+    "MixinDisconnect",
+    "MixinLiquidBlockRenderer"
+  ],
+  "mixins": [
+    "MixinAfterChunkGen",
+    "MixinBlockState",
+    "MixinBoatFloating",
+    "MixinBottleItem",
+    "MixinBucketItem",
+    "MixinCauldronInteraction",
+    "MixinConcretePowderBlock",
+    "MixinDispenserBlock",
+    "MixinEntityBreeding",
+    "MixinFarmBlock",
+    "MixinFlowingFluid",
+    "MixinIceCreationCondition",
+    "MixinKelpBlock",
+    "MixinKelpPlantBlock",
+    "MixinLavaFluid",
+    "MixinLevel",
+    "MixinLiquidBlock",
+    "MixinPistonAirPlacementMarker",
+    "MixinPlayerConnect",
+    "MixinSeaGrassBlock",
+    "MixinServer_AutoPerformance",
+    "MixinTallSeaGrassBlock",
+    "MixinWaterFluid",
+    "MixinWaterPushing",
+    "create.FluidDrainingBehaviourAccessor",
+    "create.FluidManipulationBehaviourAccessor",
+    "create.MixinGenericItemEmptying_HandlesItemDrain",
+    "create.MixinHosePulley",
+    "create.MixinPipe",
+    "create.MixinWaterWheel",
+    "sodium.MixinFluidRenderer2"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

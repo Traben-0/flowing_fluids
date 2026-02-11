@@ -1,0 +1,33 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+#issueTrackerURL = ""
+license = "GNU LGPL 3.0"
+
+[[mods]]
+modId = "flowing_fluids"
+version = "${version}"
+displayName = "Flowing Fluids"
+authors = "Traben"
+description = '''
+Gives fluids realistic flowing physics, making them mostly finite.
+With various settings for performance, visuals, and gameplay interaction.
+'''
+logoFile = "assets/flowing_fluids/icon.png"
+
+# this being optional means it will only trigger a warning when
+# the mod is present AND has a wrong version
+# this warning is needed for the crash triggered by the mixin plugin
+[[dependencies.flowing_fluids]]
+modId = "create"
+mandatory = false
+versionRange = "[0.6,)"
+ordering = "NONE"
+side = "BOTH"
+
+
+[[mixins]]
+config = "flowing_fluids.mixins.json"
+
+#https://github.com/CaffeineMC/lithium/wiki/Disabling-Lithium's-Mixins-using-your-mod's-fabric.mod.json-or-neoforge.mods.toml
+["lithium:options"]
+"mixin.world.chunk_ticking.spread_ice" = false

@@ -219,7 +219,19 @@ such as quickly draining an ocean, is going to cause some unavoidable server sid
 
 ![lag](https://i.imgur.com/H1GpmCs.gif)
 
-The mod has various settings to tweak the performance have a look around and see what works for you.
+The mod has various settings to tweak the performance have a look around and see what works for you. There are even some ready-made presets available to make it easier, which will apply multiple settings changes with a single command:
+
+use `/flowing_fluids settings_presets` to see the available presets
+
+![presets](.github/assets/presets.png)
+
+Here are some mspt examples with the different performance focused settings presets:
+
+![presets](.github/assets/presets2.png)
+
+*(note the performance mode names are simplified here for readability, the actual preset names are auto generated)*
+
+There are also some gameplay presets available as well such as one to disable all infinite water biome behaviours.
 
 The mod also makes a pass over every chunk after generation and plugs up all exposed fluids so you don't end up with 
 hundreds of fluid ticks happening right after the world loads as entire oceans drain into vast cave systems.
