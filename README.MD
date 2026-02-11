@@ -229,9 +229,7 @@ Here are some mspt examples with the different performance focused settings pres
 
 ![presets](.github/assets/presets2.png)
 
-- `performance_quality` just slows down fluid tick rates and keeps the same behaviours
-- `performance_medium` reduces tickrates further while also reducing fluid flow settings to be more performant
-- `performance_ultra` massively reduces tick rates and flow settings to provide the best reasonable performance, at the cost of fluid behaviour quality (e.g. water will have a much longer time settling and flowing)
+*(note the performance mode names are simplified here for readability, the actual preset names are auto generated)*
 
 There are also some gameplay presets available as well such as one to disable all infinite water biome behaviours.
 
