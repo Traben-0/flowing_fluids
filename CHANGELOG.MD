@@ -1,4 +1,8 @@
 
+[1.0.1]
+- fixed a crash on dedicated servers
+- fixed a crash on certain neoforge and forge versions
+
 [1.0]
 - added an automatic performance handling system that will dynamically reduce fluid tick rates based on current server lag
 - added various ready-made settings presets for easily applying different performance levels, and gameplay settings

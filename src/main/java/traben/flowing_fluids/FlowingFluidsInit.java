@@ -6,7 +6,6 @@ import traben.flowing_fluids.config.FFCommands;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 
-@net.fabricmc.api.Environment(net.fabricmc.api.EnvType.CLIENT)
 public class FlowingFluidsInit implements ModInitializer {
     @Override
     public void onInitialize() {

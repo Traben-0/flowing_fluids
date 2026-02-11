@@ -16,8 +16,18 @@ import traben.flowing_fluids.FlowingFluids;
 @Mixin(Entity.class)
 public class MixinWaterPushing {
 
+    //#if FABRIC
+    private static final String METHOD_NAME = "updateFluidHeightAndDoFluidPushing";
+    //#elseif FORGE
+    //$$ private static final String METHOD_NAME = "updateFluidHeightAndDoFluidPushing(Ljava/util/function/Predicate;)V";
+    //#elseif NEOFORGE && MC >= 1.21.11
+    //$$ private static final String METHOD_NAME = "updateFluidHeightAndDoFluidPushing(Z)V";
+    //#else
+    //$$ private static final String METHOD_NAME = "updateFluidHeightAndDoFluidPushing()V";
+    //#endif
+
     @ModifyExpressionValue(
-            method = "updateFluidHeightAndDoFluidPushing",
+            method = METHOD_NAME,
             at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;isPushedByFluid()Z")
 
     )
