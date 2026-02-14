@@ -1,3 +1,5 @@
+[1.0.3]
+- fixed another forge launch issue for certain versions
 
 [1.0.2]
 - fixed a launch crash on forge
