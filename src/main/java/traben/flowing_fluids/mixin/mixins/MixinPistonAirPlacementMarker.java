@@ -14,12 +14,12 @@ import traben.flowing_fluids.FlowingFluids;
 public abstract class MixinPistonAirPlacementMarker {
 
     @Inject(method = "moveBlocks", at = @At("HEAD"))
-    private static void flowing_fluids$handlePistonAirPlacementMarker(Level level, BlockPos blockPos, Direction direction, boolean bl, CallbackInfoReturnable<Boolean> cir) {
+    private void flowing_fluids$handlePistonAirPlacementMarker(Level level, BlockPos blockPos, Direction direction, boolean bl, CallbackInfoReturnable<Boolean> cir) {
         FlowingFluids.lastPistonMoveDirection = bl ? direction : direction.getOpposite();
     }
 
     @Inject(method = "moveBlocks", at = @At("RETURN"))
-    private static void flowing_fluids$handlePistonAirPlacementMarker2(CallbackInfoReturnable<Boolean> cir) {
+    private void flowing_fluids$handlePistonAirPlacementMarker2(CallbackInfoReturnable<Boolean> cir) {
         FlowingFluids.lastPistonMoveDirection = null;
     }
 }

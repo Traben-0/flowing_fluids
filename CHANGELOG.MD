@@ -1,4 +1,8 @@
 
+[1.0.2]
+- fixed a launch crash on forge
+- made the start-up message clearer about the fact that automatic performance will overwrite manually applied settings
+
 [1.0.1]
 - fixed a crash on dedicated servers
 - fixed a crash on certain neoforge and forge versions

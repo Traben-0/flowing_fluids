@@ -126,7 +126,7 @@ public class FlowingFluids {
                                     .withStyle(ChatFormatting.WHITE))
                             .append(Component.literal(config.autoPerformanceMode.enabled() ? "enabled" : "disabled")
                                     .withStyle(config.autoPerformanceMode.enabled() ? ChatFormatting.GREEN : ChatFormatting.RED))
-                            .append(Component.literal(config.autoPerformanceMode.pretty() + ".\n- See ")
+                            .append(Component.literal(config.autoPerformanceMode.pretty() + ".\n- This will overwrite & handle performance settings automatically for you.\n- See ")
                                     .withStyle(ChatFormatting.WHITE))
                             .append(Component.literal("/flowing_fluids performance_and_presets")
                                     .withStyle(ChatFormatting.GRAY))
