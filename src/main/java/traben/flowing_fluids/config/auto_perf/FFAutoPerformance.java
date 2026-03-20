@@ -38,9 +38,10 @@ public abstract class FFAutoPerformance {
     }
 
     public static void resetAuto() {
-        assert FlowingFluids.config.autoPerformanceMode.enabled();
-        currentAutoPerformanceLevel = 0;
-        getForModeAndLevel(FlowingFluids.config.autoPerformanceMode, 0).apply(FlowingFluids.config);
+        if (FlowingFluids.config.autoPerformanceMode.enabled()) {
+            currentAutoPerformanceLevel = 0;
+            getForModeAndLevel(FlowingFluids.config.autoPerformanceMode, 0).apply(FlowingFluids.config);
+        }
     }
 
     public static void registerPerformanceTypes() {

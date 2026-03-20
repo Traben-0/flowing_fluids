@@ -134,9 +134,14 @@ public class FFCommands {
                                                 LOW_QUALITY: Uses really low quality fluid flow settings and will slow down tick rates as the server lags.
                                                 To manually use these settings without auto tweaking, turn this off and use the presets command instead.""",
                                         a -> {
-                                            if (a != FlowingFluids.config.autoPerformanceMode) PerformanceMetric.resetMetrics();
-                                            FlowingFluids.config.autoPerformanceMode = a;
-                                            FFAutoPerformance.resetAuto();
+                                            try {
+                                                if (a != FlowingFluids.config.autoPerformanceMode) PerformanceMetric.resetMetrics();
+                                                FlowingFluids.config.autoPerformanceMode = a;
+                                                FFAutoPerformance.resetAuto();
+                                            } catch (Exception e) {
+                                                FlowingFluids.error("Error while setting auto performance mode");
+                                                e.printStackTrace();
+                                            }
                                         },
                                         () -> FlowingFluids.config.autoPerformanceMode,
                                         Pair.of(FFConfig.AutoPerformance.OFF, "Auto performance handling is now OFF."),

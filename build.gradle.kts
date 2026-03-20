@@ -53,6 +53,7 @@ base.archivesName.set("flowing_fluids-$modVersion-${project.name}")
 
 // todo figure out why preprocessor wont work with these
 val accessWidener = "flowing_fluids_" + when {
+    mcVersion >= 260100 -> 13
     mcVersion >= 12109 -> 12
     mcVersion >= 12106 -> 11
     mcVersion >= 12105 -> 10
@@ -120,6 +121,7 @@ dependencies {
     }
 
     modImpl("maven.modrinth:sodium:",
+        260100 to ver(null, null,  null), //TODO
         12109 to ver("sFfidWgd", null,  "PdQpfqPZ"),
         12106 to ver("7pwil2dy", null,  "q6wdZywr"),
         12105 to ver("fVbw1C7i", null,  "dfyNHRhw"),
@@ -162,16 +164,17 @@ dependencies {
 
     if (platform.isFabric) {
         val fab = when {
-            mcVersion >= 12109 -> "0.138.3+1.21.10"
-            mcVersion >= 12106 -> "0.128.2+1.21.6"
-            mcVersion >= 12105 -> "0.128.2+1.21.5"
-            mcVersion >= 12104 -> "0.119.4+1.21.4"
-            mcVersion >= 12102 -> "0.114.1+1.21.3"
-            mcVersion >= 12100 -> "0.102.0+1.21"
-            mcVersion >= 12006 -> "0.100.8+1.20.6"
-            mcVersion >= 12004 -> "0.97.3+1.20.4"
-            mcVersion >= 12002 -> "0.91.6+1.20.2"
-            mcVersion >= 12000 -> "0.92.6+1.20.1"
+            mcVersion >= 26_01_00 -> "0.143.14+26.1"
+            mcVersion >= 1_21_09 -> "0.138.3+1.21.10"
+            mcVersion >= 1_21_06 -> "0.128.2+1.21.6"
+            mcVersion >= 1_21_05 -> "0.128.2+1.21.5"
+            mcVersion >= 1_21_04 -> "0.119.4+1.21.4"
+            mcVersion >= 1_21_02 -> "0.114.1+1.21.3"
+            mcVersion >= 1_21_00 -> "0.102.0+1.21"
+            mcVersion >= 1_20_06 -> "0.100.8+1.20.6"
+            mcVersion >= 1_20_04 -> "0.97.3+1.20.4"
+            mcVersion >= 1_20_02 -> "0.91.6+1.20.2"
+            mcVersion >= 1_20_00 -> "0.92.6+1.20.1"
             else -> null
         }
 //        setOf(
@@ -244,9 +247,18 @@ loom {
 
 loom.noServerRunConfigs()
 
-tasks.remapJar {
-    injectAccessWidener = true
-    if (!platform.isFabric) atAccessWideners.add(accessWidener)
+if (platform.isUnobfuscated) {
+    tasks.jar {
+//        injectAccessWidener = true
+//        if (!platform.isFabric) atAccessWideners.add(accessWidener)
+    }
+//TODO 26.1 alternative impl
+
+} else {
+    tasks.remapJar {
+        injectAccessWidener = true
+        if (!platform.isFabric) atAccessWideners.add(accessWidener)
+    }
 }
 
 tasks.processResources {

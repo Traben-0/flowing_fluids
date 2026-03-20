@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Set;
 
 //#if FABRIC
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 //#elseif FORGE
@@ -137,7 +136,12 @@ public class FlowingFluids {
         }
 
         //#if FABRIC
-        FriendlyByteBuf buf = PacketByteBufs.create();
+        FriendlyByteBuf buf =
+                //#if MC >= 26.1
+                //$$ net.fabricmc.fabric.api.networking.v1.FriendlyByteBufs.create();
+                //#else
+                net.fabricmc.fabric.api.networking.v1.PacketByteBufs.create();
+                //#endif
 
         FlowingFluids.config.encodeToByteBuffer(buf);
         ServerPlayNetworking.send(player,

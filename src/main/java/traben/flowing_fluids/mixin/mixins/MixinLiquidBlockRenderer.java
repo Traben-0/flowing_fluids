@@ -1,7 +1,6 @@
 package traben.flowing_fluids.mixin.mixins;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import net.minecraft.client.renderer.block.LiquidBlockRenderer;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
@@ -10,7 +9,12 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import traben.flowing_fluids.FlowingFluids;
 import traben.flowing_fluids.config.FFConfig;
 
-@Mixin(value = LiquidBlockRenderer.class, priority = 1001)
+//#if MC >= 26.1
+//$$ @Mixin(value = net.minecraft.client.renderer.block.FluidRenderer.class, priority = 1001)
+//#else
+@Mixin(value = net.minecraft.client.renderer.block.LiquidBlockRenderer.class, priority = 1001)
+//#endif
+
 public abstract class MixinLiquidBlockRenderer {
 
     @ModifyVariable(

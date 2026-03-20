@@ -30,7 +30,7 @@ public class FFConfig {
     public boolean printRandomTicks = false;
     public boolean hideFlowingTexture = true;
     public LiquidHeight fullLiquidHeight = LiquidHeight.REGULAR;
-    public float farmlandDrainWaterChance = 0.1f;
+    public float farmlandDrainWaterChance = 0.01f;
     public boolean debugWaterLevelColours = false;
     public WaterLogFlowMode waterLogFlowMode = WaterLogFlowMode.IN_FROM_TOP_ELSE_OUT;
     public int waterFlowDistance = 4;

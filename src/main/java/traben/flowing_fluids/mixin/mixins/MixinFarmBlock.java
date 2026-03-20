@@ -4,7 +4,6 @@ import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.block.FarmBlock;
 import net.minecraft.world.level.material.Fluids;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -13,7 +12,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import traben.flowing_fluids.FFFluidUtils;
 import traben.flowing_fluids.FlowingFluids;
 
-@Mixin(FarmBlock.class)
+//#if MC >= 26.1
+//$$ @Mixin(net.minecraft.world.level.block.FarmlandBlock.class)
+//#else
+@Mixin(net.minecraft.world.level.block.FarmBlock.class)
+//#endif
 public class MixinFarmBlock {
 
     @Inject(

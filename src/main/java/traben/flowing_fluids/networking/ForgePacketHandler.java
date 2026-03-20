@@ -59,7 +59,7 @@ package traben.flowing_fluids.networking;
 //$$
 //$$
 //$$     public static class FFConfigPacket extends FFConfig {
-//$$         private boolean is_valid;
+//$$         private transient boolean is_valid;
 //$$
 //$$         public FFConfigPacket() {
 //$$         }
