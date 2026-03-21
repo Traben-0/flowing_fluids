@@ -247,18 +247,9 @@ loom {
 
 loom.noServerRunConfigs()
 
-if (platform.isUnobfuscated) {
-    tasks.jar {
-//        injectAccessWidener = true
-//        if (!platform.isFabric) atAccessWideners.add(accessWidener)
-    }
-//TODO 26.1 alternative impl
-
-} else {
-    tasks.remapJar {
-        injectAccessWidener = true
-        if (!platform.isFabric) atAccessWideners.add(accessWidener)
-    }
+tasks.remapJar {
+    injectAccessWidener = true
+    if (!platform.isFabric) atAccessWideners.add(accessWidener)
 }
 
 tasks.processResources {

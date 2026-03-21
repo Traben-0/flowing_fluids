@@ -7,7 +7,7 @@ plugins {
     // Advanced users may use multiple (potentially independent) multi-version trees in different sub-projects.
     // This is currently equivalent to applying `com.replaymod.preprocess-root`.
     kotlin("jvm") version "2.3.0" apply false
-    id("gg.essential.loom") version "1.15.48" apply false // https://repo.essential.gg/#/public/gg/essential/loom/gg.essential.loom.gradle.plugin
+    id("gg.essential.loom") version "1.11.38" apply false // https://repo.essential.gg/#/public/gg/essential/loom/gg.essential.loom.gradle.plugin
     id("gg.essential.multi-version.root")
 }
 
