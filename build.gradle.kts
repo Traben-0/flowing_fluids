@@ -127,10 +127,10 @@ dependencies {
         12105 to ver("fVbw1C7i", null,  "dfyNHRhw"),
         12104 to ver("c3YkZvne", null,  "XgEfENfn"),
         12103 to ver("rLBgU2jc", null,  "M0CXIL7c"),
-        12100 to "u1OEbNKx",
-        12006 to "OwLQelEI",
-        12004 to "4GyXKCLd",
-        12002 to "pmgeU5yX",
+        12100 to ver("u1OEbNKx", null,  null),
+        12006 to ver("OwLQelEI", null,  null),
+        12004 to ver("4GyXKCLd", null,  null),
+        12002 to ver("pmgeU5yX", null,  null),
         12000 to ver("ygf8cVZg", null,  null),
         )
     modImpl("maven.modrinth:embeddium:", // forge sodium port
