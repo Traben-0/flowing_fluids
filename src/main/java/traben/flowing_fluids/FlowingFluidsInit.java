@@ -11,7 +11,11 @@ public class FlowingFluidsInit implements ModInitializer {
     public void onInitialize() {
         CommandRegistrationCallback.EVENT.register(FFCommands::registerCommands);
         //#if MC > 12001
-        net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.playS2C().register(
+        //#if MC >= 260100
+        net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.clientboundPlay().register(
+        //#else
+        //$$ net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.playS2C().register(
+        //#endif
                 traben.flowing_fluids.networking.FFConfigDataFabric.type,
                 traben.flowing_fluids.networking.FFConfigDataFabric.CODEC);
         //#endif

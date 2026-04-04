@@ -31,7 +31,11 @@ public abstract class MixinBlockState extends StateHolder<Block, BlockState> {
     @Shadow
     public abstract FluidState getFluidState();
 
-    //#if MC > 12001
+    //#if MC >= 260100
+    //$$ protected MixinBlockState(final Block owner, final Property<?>[] properties, final Comparable<?>[] values) {
+    //$$     super(owner, properties, values);
+    //$$ }
+    //#elseif MC > 12001
     protected MixinBlockState(final Block owner, final Reference2ObjectArrayMap<Property<?>, Comparable<?>> values, final MapCodec<BlockState> propertiesCodec) {
         super(owner, values, propertiesCodec);
     }

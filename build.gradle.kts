@@ -210,6 +210,12 @@ dependencies {
 
     implementation("com.demonwav.mcdev:annotations:2.1.0")
 
+    if (platform.isFabric) {
+        implementation("net.fabricmc:sponge-mixin:0.14.0+mixin.0.8.6")
+        implementation("io.github.llamalad7:mixinextras-fabric:0.4.1")
+        // annotationProcessor("io.github.llamalad7:mixinextras-fabric:0.4.1")
+        // annotationProcessor("net.fabricmc:sponge-mixin:0.14.0+mixin.0.8.6")
+    }
 }
 
 tasks.processResources {

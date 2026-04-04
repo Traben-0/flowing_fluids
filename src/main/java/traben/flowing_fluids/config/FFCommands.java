@@ -321,13 +321,19 @@ public class FFCommands {
                         .executes(cont ->{
                             var level = cont.getSource().getLevel();
                             var pos = cont.getSource().getPosition();
-                            var posChunk = new ChunkPos(new BlockPos((int) pos.x, (int) pos.y, (int) pos.z));
+                            var bp = new BlockPos((int) pos.x, (int) pos.y, (int) pos.z);
+                            var posChunk = new ChunkPos(bp.getX() >> 4, bp.getZ() >> 4);
 
                             var dist = level.getServer().getPlayerList().getSimulationDistance();
 
                             int count = FlowingFluids.waterPluggedThisSession;
+                            //#if MC >= 260100
+                            //$$ for (int x = posChunk.x()-dist; x <= posChunk.x()+dist; x++) {
+                            //$$     for (int z = posChunk.z()-dist; z <= posChunk.z()+dist; z++) {
+                            //#else
                             for (int x = posChunk.x-dist; x <= posChunk.x+dist; x++) {
                                 for (int z = posChunk.z-dist; z <= posChunk.z+dist; z++) {
+                            //#endif
                                     if (level.hasChunk(x, z)) {
                                         PlugWaterFeature.processChunk(level, new ChunkPos(x, z), level.getChunk(x, z));
                                     }
@@ -341,13 +347,19 @@ public class FFCommands {
                         .executes(cont ->{
                             var level = cont.getSource().getLevel();
                             var pos = cont.getSource().getPosition();
-                            var posChunk = new ChunkPos(new BlockPos((int) pos.x, (int) pos.y, (int) pos.z));
+                            var bp = new BlockPos((int) pos.x, (int) pos.y, (int) pos.z);
+                            var posChunk = new ChunkPos(bp.getX() >> 4, bp.getZ() >> 4);
 
                             var dist = level.getServer().getPlayerList().getSimulationDistance();
                             var rand = level.getRandom();
                             final AtomicInteger count = new AtomicInteger();
+                            //#if MC >= 260100
+                            //$$ for (int x = posChunk.x()-dist; x <= posChunk.x()+dist; x++) {
+                            //$$     for (int z = posChunk.z()-dist; z <= posChunk.z()+dist; z++) {
+                            //#else
                             for (int x = posChunk.x-dist; x <= posChunk.x+dist; x++) {
                                 for (int z = posChunk.z-dist; z <= posChunk.z+dist; z++) {
+                            //#endif
                                     if (level.hasChunk(x, z)) {
                                         level.getChunk(x, z).findBlocks(BlockBehaviour.BlockStateBase::liquid,
                                                 (blockPos, blockState) -> {
