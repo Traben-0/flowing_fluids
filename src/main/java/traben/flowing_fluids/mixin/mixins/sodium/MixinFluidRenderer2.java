@@ -53,8 +53,7 @@ package traben.flowing_fluids.mixin.mixins.sodium;
 //#else
 //#endif
 
-//TODO 26.1
-//#if FABRIC && MC >= 12100 && MC < 26.1 || !FORGE && MC >= 12103 && MC < 12109 && MC < 26.1
+//#if FABRIC && MC >= 12100 || !FORGE && MC >= 12103 && MC < 12109
 /// difference is still mostly identical but seems 1.20.1 sodium won't get the 0.6 update so just making separate mixin down here
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;

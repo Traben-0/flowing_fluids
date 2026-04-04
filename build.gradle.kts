@@ -121,7 +121,7 @@ dependencies {
     }
 
     modImpl("maven.modrinth:sodium:",
-        260100 to ver(null, null,  null), //TODO
+        260100 to ver("Amr4VcZo", null,  "Fg5Mk6Y3"),
         12109 to ver("sFfidWgd", null,  "PdQpfqPZ"),
         12106 to ver("7pwil2dy", null,  "q6wdZywr"),
         12105 to ver("fVbw1C7i", null,  "dfyNHRhw"),
