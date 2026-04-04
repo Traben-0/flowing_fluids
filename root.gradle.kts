@@ -53,11 +53,10 @@ preprocess {
     val current = null.connectToVersion(1_21_09)
 
     current.connectToVersion(1_21_11)
-//        .connectToVersion(26_01_00, forge = false, neoforge = false)
+        .connectToVersion(26_01_00, forge = false, neoforge = false)
 
 
     // next, then remap the main project to this and set the current to old
-    //current.connectToVersion(12109, forge = false, neoforge = false)
 
     // older
     current.connectToVersion(1_21_06)

@@ -247,9 +247,12 @@ loom {
 
 loom.noServerRunConfigs()
 
-tasks.remapJar {
-    injectAccessWidener = true
-    if (!platform.isFabric) atAccessWideners.add(accessWidener)
+tasks.matching { it.name == "remapJar" }.configureEach {
+    setProperty("injectAccessWidener", true)
+    if (!platform.isFabric) {
+        val atAccessWideners = property("atAccessWideners") as org.gradle.api.provider.HasMultipleValues<String>
+        atAccessWideners.add(accessWidener)
+    }
 }
 
 tasks.processResources {
