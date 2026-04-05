@@ -327,7 +327,7 @@ public class FFCommands {
                             var dist = level.getServer().getPlayerList().getSimulationDistance();
 
                             int count = FlowingFluids.waterPluggedThisSession;
-                            //#if MC >= 260100
+                            //#if MC >= 26.1
                             //$$ for (int x = posChunk.x()-dist; x <= posChunk.x()+dist; x++) {
                             //$$     for (int z = posChunk.z()-dist; z <= posChunk.z()+dist; z++) {
                             //#else
@@ -353,7 +353,7 @@ public class FFCommands {
                             var dist = level.getServer().getPlayerList().getSimulationDistance();
                             var rand = level.getRandom();
                             final AtomicInteger count = new AtomicInteger();
-                            //#if MC >= 260100
+                            //#if MC >= 26.1
                             //$$ for (int x = posChunk.x()-dist; x <= posChunk.x()+dist; x++) {
                             //$$     for (int z = posChunk.z()-dist; z <= posChunk.z()+dist; z++) {
                             //#else

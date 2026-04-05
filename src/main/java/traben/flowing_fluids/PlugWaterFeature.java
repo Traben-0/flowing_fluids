@@ -35,13 +35,14 @@ public class PlugWaterFeature {
         var set = new HashSet<BlockPos>();
         int minSectionY;
         int maxSectionY;
-        // #if MC>12100
+
+        //#if MC > 1.21
         minSectionY = chunkAccess.getMinSectionY();
         maxSectionY = chunkAccess.getMaxSectionY();
-        // #else
-        // $$ minSectionY = chunkAccess.getMinSection();
-        // $$ maxSectionY = chunkAccess.getMaxSection();
-        // #endif
+        //#else
+        //$$ minSectionY = chunkAccess.getMinSection();
+        //$$ maxSectionY = chunkAccess.getMaxSection();
+        //#endif
 
         for (int i = minSectionY; i < maxSectionY; ++i) {
             LevelChunkSection levelChunkSection = chunkAccess.getSection(chunkAccess.getSectionIndexFromSectionY(i));
@@ -101,6 +102,7 @@ public class PlugWaterFeature {
                 return defTrue;
             if (set.contains(mutableBlockPos))
                 return defTrue;
+
             BlockState blockState = chunkAccess.getBlockState(mutableBlockPos);
             if (blockState.isAir() && blockState.getFluidState().isEmpty()) {
                 var immutable = mutableBlockPos.immutable();
@@ -112,19 +114,16 @@ public class PlugWaterFeature {
 
         List<Runnable> runs = new ArrayList<>();
         for (BlockPos blockPos : set) {
-            if (doneSet.contains(blockPos))
-                continue;
+            if (doneSet.contains(blockPos)) continue;
 
             boolean neighbourWater = false;
             runs.clear();
             for (Direction dir : dirs) {
                 mutableBlockPos.setWithOffset(blockPos, dir);
                 var result = testDo.get();
-                if (result == null)
-                    continue;
+                if (result == null) continue;
                 if (result.first()) {
-                    neighbourWater = true; // or is testing from chunk edge, in which case we force the plug even if
-                                           // it's a lone block
+                    neighbourWater = true; // or is testing from chunk edge, in which case we force the plug even if it's a lone block
                 } else {
                     runs.add(result.second());
                 }
@@ -140,8 +139,7 @@ public class PlugWaterFeature {
 
     private static boolean isFluidSource(BlockState state) {
         var fluid = state.getFluidState();
-        if (fluid.isEmpty() || !fluid.isSource())
-            return false;
+        if (fluid.isEmpty() || !fluid.isSource()) return false;
 
         return FlowingFluids.config.isFluidAllowed(fluid);
     }
@@ -168,8 +166,8 @@ public class PlugWaterFeature {
             }
         }
         if (FlowingFluids.config.announceWorldGenActions)
-            FlowingFluids.info("placed block during world gen: " + blockState + " at /tp @s " + pos.getX() + " "
-                    + pos.getY() + " " + pos.getZ());
+            FlowingFluids.info("placed block during world gen: " + blockState + " at /tp @s " +
+                    pos.getX() + " " + pos.getY() + " " + pos.getZ());
 
         FlowingFluids.waterPluggedThisSession++;
         chunk.setBlockState(pos, blockState,

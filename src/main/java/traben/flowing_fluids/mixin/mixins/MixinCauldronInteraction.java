@@ -32,7 +32,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import traben.flowing_fluids.FFBucketItem;
 import traben.flowing_fluids.FlowingFluids;
 
-//#if MC >= 260100
+//#if MC >= 26.1
 //$$ import static net.minecraft.core.cauldron.CauldronInteractions.*;
 //#else
 import static net.minecraft.core.cauldron.CauldronInteraction.*;
@@ -41,7 +41,7 @@ import static net.minecraft.core.cauldron.CauldronInteraction.*;
 @Mixin(Bootstrap.class)
 public abstract class MixinCauldronInteraction {
 
-    //#if MC >= 260100
+    //#if MC >= 26.1
     //$$ @Inject(method = "bootStrap", at = @At(value = "INVOKE", target = "Lnet/minecraft/core/cauldron/CauldronInteractions;bootStrap()V", shift =  At.Shift.AFTER))
     //#else
     @Inject(method = "bootStrap", at = @At(value = "INVOKE", target = "Lnet/minecraft/core/cauldron/CauldronInteraction;bootStrap()V", shift =  At.Shift.AFTER))
@@ -49,7 +49,7 @@ public abstract class MixinCauldronInteraction {
     private static void ff$bootStrap(CallbackInfo ci) {
 
         // todo api for mods, will require making these real generic somehow
-        //#if MC >= 260100
+        //#if MC >= 26.1
         //$$ { final var prev = EMPTY.get(Items.LAVA_BUCKET.getDefaultInstance());
         //$$ ff$put(EMPTY, Items.LAVA_BUCKET, (blockState, level, blockPos, player, interactionHand, itemStack) -> {
         //#else
@@ -74,12 +74,13 @@ public abstract class MixinCauldronInteraction {
                 return result(true);
             }
             return result(true);
-        //#if MC >= 260100
+        //#if MC >= 26.1
         //$$ }); }
         //#else
         });
         //#endif
-        //#if MC >= 260100
+
+        //#if MC >= 26.1
         //$$ { final var prev = EMPTY.get(Items.WATER_BUCKET.getDefaultInstance());
         //$$ ff$put(EMPTY, Items.WATER_BUCKET, (blockState, level, blockPos, player, interactionHand, itemStack) -> {
         //#else
@@ -95,15 +96,13 @@ public abstract class MixinCauldronInteraction {
                         Blocks.WATER_CAULDRON.defaultBlockState());
             }
             return result(true);
-        //#if MC >= 260100
+        //#if MC >= 26.1
         //$$ }); }
         //#else
         });
         //#endif
 
-
-
-        //#if MC >= 260100
+        //#if MC >= 26.1
         //$$ { final var prev = WATER.get(Items.WATER_BUCKET.getDefaultInstance());
         //$$ ff$put(WATER, Items.WATER_BUCKET, (blockState, level, blockPos, player, interactionHand, itemStack) -> {
         //#else
@@ -122,12 +121,13 @@ public abstract class MixinCauldronInteraction {
                 }
             }
             return result(true);
-        //#if MC >= 260100
+        //#if MC >= 26.1
         //$$ }); }
         //#else
         });
         //#endif
-        //#if MC >= 260100
+
+        //#if MC >= 26.1
         //$$ { final var prev = WATER.get(Items.LAVA_BUCKET.getDefaultInstance());
         //$$ ff$put(WATER, Items.LAVA_BUCKET, (blockState, level, blockPos, player, interactionHand, itemStack) -> {
         //#else
@@ -139,12 +139,13 @@ public abstract class MixinCauldronInteraction {
         //#endif
             if (!allow(Fluids.LAVA)) return prev.interact(blockState, level, blockPos, player, interactionHand, itemStack);
             return result(false);
-        //#if MC >= 260100
+        //#if MC >= 26.1
         //$$ }); }
         //#else
         });
         //#endif
-        //#if MC >= 260100
+
+        //#if MC >= 26.1
         //$$ { final var prev = WATER.get(Items.POWDER_SNOW_BUCKET.getDefaultInstance());
         //$$ ff$put(WATER, Items.POWDER_SNOW_BUCKET, (blockState, level, blockPos, player, interactionHand, itemStack) -> {
         //#else
@@ -156,12 +157,13 @@ public abstract class MixinCauldronInteraction {
         //#endif
             if (!allow()) return prev.interact(blockState, level, blockPos, player, interactionHand, itemStack);
             return result(false);
-        //#if MC >= 260100
+        //#if MC >= 26.1
         //$$ }); }
         //#else
         });
         //#endif
-        //#if MC >= 260100
+
+        //#if MC >= 26.1
         //$$ { final var prev = WATER.get(Items.BUCKET.getDefaultInstance());
         //$$ ff$put(WATER, Items.BUCKET, (blockState, level, blockPos, player, interactionHand, itemStack) -> {
         //#else
@@ -177,14 +179,13 @@ public abstract class MixinCauldronInteraction {
                             Items.WATER_BUCKET.getDefaultInstance(), SoundEvents.BUCKET_FILL);
             }
             return result(true);
-        //#if MC >= 260100
+        //#if MC >= 26.1
         //$$ }); }
         //#else
         });
         //#endif
 
-
-        //#if MC >= 260100
+        //#if MC >= 26.1
         //$$ { final var prev = LAVA.get(Items.WATER_BUCKET.getDefaultInstance());
         //$$ ff$put(LAVA, Items.WATER_BUCKET, (blockState, level, blockPos, player, interactionHand, itemStack) -> {
         //#else
@@ -196,12 +197,13 @@ public abstract class MixinCauldronInteraction {
         //#endif
             if (!allow(Fluids.WATER)) return prev.interact(blockState, level, blockPos, player, interactionHand, itemStack);
             return result(false);
-        //#if MC >= 260100
+        //#if MC >= 26.1
         //$$ }); }
         //#else
         });
         //#endif
-        //#if MC >= 260100
+
+        //#if MC >= 26.1
         //$$ { final var prev = LAVA.get(Items.POWDER_SNOW_BUCKET.getDefaultInstance());
         //$$ ff$put(LAVA, Items.POWDER_SNOW_BUCKET, (blockState, level, blockPos, player, interactionHand, itemStack) -> {
         //#else
@@ -213,15 +215,13 @@ public abstract class MixinCauldronInteraction {
         //#endif
             if (!allow()) return prev.interact(blockState, level, blockPos, player, interactionHand, itemStack);
             return result(false);
-        //#if MC >= 260100
+        //#if MC >= 26.1
         //$$ }); }
         //#else
         });
         //#endif
 
-
-
-        //#if MC >= 260100
+        //#if MC >= 26.1
         //$$ { final var prev = POWDER_SNOW.get(Items.LAVA_BUCKET.getDefaultInstance());
         //$$ ff$put(POWDER_SNOW, Items.LAVA_BUCKET, (blockState, level, blockPos, player, interactionHand, itemStack) -> {
         //#else
@@ -233,12 +233,13 @@ public abstract class MixinCauldronInteraction {
         //#endif
             if (!allow(Fluids.LAVA)) return prev.interact(blockState, level, blockPos, player, interactionHand, itemStack);
             return result(false);
-        //#if MC >= 260100
+        //#if MC >= 26.1
         //$$ }); }
         //#else
         });
         //#endif
-        //#if MC >= 260100
+
+        //#if MC >= 26.1
         //$$ { final var prev = POWDER_SNOW.get(Items.WATER_BUCKET.getDefaultInstance());
         //$$ ff$put(POWDER_SNOW, Items.WATER_BUCKET, (blockState, level, blockPos, player, interactionHand, itemStack) -> {
         //#else
@@ -250,7 +251,7 @@ public abstract class MixinCauldronInteraction {
         //#endif
             if (!allow(Fluids.WATER)) return prev.interact(blockState, level, blockPos, player, interactionHand, itemStack);
             return result(false);
-        //#if MC >= 260100
+        //#if MC >= 26.1
         //$$ }); }
         //#else
         });
@@ -399,7 +400,7 @@ public abstract class MixinCauldronInteraction {
     }
 
 
-    //#if MC >= 260100
+    //#if MC >= 26.1
     //$$ @Unique
     //$$ private static void ff$put(Object dispatcher, net.minecraft.world.item.Item item, net.minecraft.core.cauldron.CauldronInteraction interaction) {
     //$$     try {
