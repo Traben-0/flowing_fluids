@@ -67,6 +67,11 @@
             "loaders": ["NeoForge"], "versions": ["1.21.11"]
         }, {
             "loaders": ["Fabric", "Quilt"], "versions": ["1.21.11"]
-        }
+        },
+
+        {"loaders": ["NeoForge"],
+            "versions": ["26.1", "26.1.1"]},
+        {"loaders": ["Fabric", "Quilt"],
+            "versions": ["26.1", "26.1.1"]}
     ]
 }

@@ -32,20 +32,32 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import traben.flowing_fluids.FFBucketItem;
 import traben.flowing_fluids.FlowingFluids;
 
+//#if MC >= 26.1
+//$$ import static net.minecraft.core.cauldron.CauldronInteractions.*;
+//#else
 import static net.minecraft.core.cauldron.CauldronInteraction.*;
+//#endif
 
 @Mixin(Bootstrap.class)
 public abstract class MixinCauldronInteraction {
 
+    //#if MC >= 26.1
+    //$$ @Inject(method = "bootStrap", at = @At(value = "INVOKE", target = "Lnet/minecraft/core/cauldron/CauldronInteractions;bootStrap()V", shift =  At.Shift.AFTER))
+    //#else
     @Inject(method = "bootStrap", at = @At(value = "INVOKE", target = "Lnet/minecraft/core/cauldron/CauldronInteraction;bootStrap()V", shift =  At.Shift.AFTER))
+    //#endif
     private static void ff$bootStrap(CallbackInfo ci) {
+
+        //TODO keep an eye on the tags map added in 26.1, no need to add anything yet but might be usable for easier modded support
 
         // todo api for mods, will require making these real generic somehow
         EMPTY
-                //#if MC > 12001
+                //#if MC >= 26.1
+                //$$ .items
+                //#elseif MC > 1.20.1
                 .map()
                 //#endif
-                .compute(Items.LAVA_BUCKET, (k, prev) -> (blockState, level, blockPos, player, interactionHand, itemStack) -> {
+                .compute(Items.LAVA_BUCKET, (k, prev) ->  (blockState, level, blockPos, player, interactionHand, itemStack) -> {
             if (!allow(Fluids.LAVA)) return prev.interact(blockState, level, blockPos, player, interactionHand, itemStack);
             if (!level.isClientSide()) {
                 if (isUnderWater(level, blockPos)
@@ -62,8 +74,11 @@ public abstract class MixinCauldronInteraction {
             }
             return result(true);
         });
+
         EMPTY
-                //#if MC > 12001
+                //#if MC >= 26.1
+                //$$ .items
+                //#elseif MC > 1.20.1
                 .map()
                 //#endif
                 .compute(Items.WATER_BUCKET, (k, prev) ->  (blockState, level, blockPos, player, interactionHand, itemStack) -> {
@@ -75,10 +90,10 @@ public abstract class MixinCauldronInteraction {
             return result(true);
         });
 
-
-
         WATER
-                //#if MC > 12001
+                //#if MC >= 26.1
+                //$$ .items
+                //#elseif MC > 1.20.1
                 .map()
                 //#endif
                 .compute(Items.WATER_BUCKET, (k, prev) ->  (blockState, level, blockPos, player, interactionHand, itemStack) -> {
@@ -92,24 +107,33 @@ public abstract class MixinCauldronInteraction {
             }
             return result(true);
         });
+
         WATER
-                //#if MC > 12001
+                //#if MC >= 26.1
+                //$$ .items
+                //#elseif MC > 1.20.1
                 .map()
                 //#endif
                 .compute(Items.LAVA_BUCKET, (k, prev) ->  (blockState, level, blockPos, player, interactionHand, itemStack) -> {
             if (!allow(Fluids.LAVA)) return prev.interact(blockState, level, blockPos, player, interactionHand, itemStack);
             return result(false);
         });
+
         WATER
-                //#if MC > 12001
+                //#if MC >= 26.1
+                //$$ .items
+                //#elseif MC > 1.20.1
                 .map()
                 //#endif
                 .compute(Items.POWDER_SNOW_BUCKET, (k, prev) ->  (blockState, level, blockPos, player, interactionHand, itemStack) -> {
             if (!allow()) return prev.interact(blockState, level, blockPos, player, interactionHand, itemStack);
             return result(false);
         });
+
         WATER
-                //#if MC > 12001
+                //#if MC >= 26.1
+                //$$ .items
+                //#elseif MC > 1.20.1
                 .map()
                 //#endif
                 .compute(Items.BUCKET, (k, prev) ->  (blockState, level, blockPos, player, interactionHand, itemStack) -> {
@@ -121,17 +145,21 @@ public abstract class MixinCauldronInteraction {
             return result(true);
         });
 
-
         LAVA
-                //#if MC > 12001
+                //#if MC >= 26.1
+                //$$ .items
+                //#elseif MC > 1.20.1
                 .map()
                 //#endif
                 .compute(Items.WATER_BUCKET, (k, prev) ->  (blockState, level, blockPos, player, interactionHand, itemStack) -> {
             if (!allow(Fluids.WATER)) return prev.interact(blockState, level, blockPos, player, interactionHand, itemStack);
             return result(false);
         });
+
         LAVA
-                //#if MC > 12001
+                //#if MC >= 26.1
+                //$$ .items
+                //#elseif MC > 1.20.1
                 .map()
                 //#endif
                 .compute(Items.POWDER_SNOW_BUCKET, (k, prev) ->  (blockState, level, blockPos, player, interactionHand, itemStack) -> {
@@ -139,18 +167,21 @@ public abstract class MixinCauldronInteraction {
             return result(false);
         });
 
-
-
         POWDER_SNOW
-                //#if MC > 12001
+                //#if MC >= 26.1
+                //$$ .items
+                //#elseif MC > 1.20.1
                 .map()
                 //#endif
                 .compute(Items.LAVA_BUCKET, (k, prev) ->  (blockState, level, blockPos, player, interactionHand, itemStack) -> {
             if (!allow(Fluids.LAVA)) return prev.interact(blockState, level, blockPos, player, interactionHand, itemStack);
             return result(false);
         });
+
         POWDER_SNOW
-                //#if MC > 12001
+                //#if MC >= 26.1
+                //$$ .items
+                //#elseif MC > 1.20.1
                 .map()
                 //#endif
                 .compute(Items.WATER_BUCKET, (k, prev) ->  (blockState, level, blockPos, player, interactionHand, itemStack) -> {
@@ -299,5 +330,4 @@ public abstract class MixinCauldronInteraction {
         }
         return result(false);
     }
-
 }

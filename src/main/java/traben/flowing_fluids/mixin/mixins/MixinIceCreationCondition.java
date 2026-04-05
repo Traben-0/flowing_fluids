@@ -13,6 +13,23 @@ import traben.flowing_fluids.FlowingFluids;
 @Mixin(Biome.class)
 public class MixinIceCreationCondition {
 
+    //#if MC >= 26.1
+    //$$ @com.llamalad7.mixinextras.injector.ModifyExpressionValue(
+    //$$         method = "shouldFreeze(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Z)Z",
+    //$$         at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/material/FluidState;is(Ljava/lang/Object;)Z")
+    //$$ )
+    //$$ private boolean ff$freeze(boolean original, @com.llamalad7.mixinextras.sugar.Local(name = "fluidState") FluidState fluidState) {
+    //$$     if (!original
+    //$$             && fluidState != null
+    //$$             && FlowingFluids.config.enableMod
+    //$$             && FlowingFluids.config.isWaterAllowed()
+    //$$             && fluidState.getType() == Fluids.FLOWING_WATER
+    //$$             && fluidState.getAmount() >= FlowingFluids.config.minWaterLevelForIce) {
+    //$$         return true; // force it to see water so we can freeze
+    //$$     }
+    //$$     return original;
+    //$$ }
+    //#else
     @WrapOperation(
             method = "shouldFreeze(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Z)Z",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/material/FluidState;getType()Lnet/minecraft/world/level/material/Fluid;")
@@ -27,4 +44,5 @@ public class MixinIceCreationCondition {
         }
         return original.call(instance);
     }
+    //#endif
 }

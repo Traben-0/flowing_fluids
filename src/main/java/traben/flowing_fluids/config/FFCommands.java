@@ -205,25 +205,29 @@ public class FFCommands {
                         .executes(cont -> {
                             var level = cont.getSource().getLevel();
                             int override = FlowingFluids.config.dimensionSeaLevelOverrides.getOrDefault(level.dimensionType().hashCode(), Integer.MIN_VALUE);
-                            return message(cont, "The sea level override as seen by Flowing Fluids for this dimension is " + (override == Integer.MIN_VALUE ? "NO OVERRIDE SET" : override) + ". And for the default override it is set to: " + FlowingFluids.config.defaultSeaLevelOverride + ".");
+                            return message(cont, "The sea level override as seen by Flowing Fluids for this dimension is " + (override == Integer.MIN_VALUE ? "NONE" : override) + ". And for the default override it is set to: " + (FlowingFluids.config.defaultSeaLevelOverride == Integer.MIN_VALUE ? "NONE" : FlowingFluids.config.defaultSeaLevelOverride) + ".");
                         })
-                ).then(Commands.argument("set_dimension_override", IntegerArgumentType.integer(-999999, 999999))
-                        .executes(cont -> {
-                            int override = cont.getArgument("distance", Integer.class);
-                            FlowingFluids.config.dimensionSeaLevelOverrides.put(cont.getSource().getLevel().dimensionType().hashCode(), override);
-                            return messageAndSaveConfig(cont, "The sea level override for this dimension is now set to " + override + ". Warning! mod or datapack changes that alter dimension properties will unset this...");
-                        })
+                ).then(Commands.literal("set_dimension_override")
+                        .then(Commands.argument("level", IntegerArgumentType.integer(-999999, 999999))
+                            .executes(cont -> {
+                                int override = cont.getArgument("level", Integer.class);
+                                FlowingFluids.config.dimensionSeaLevelOverrides.put(cont.getSource().getLevel().dimensionType().hashCode(), override);
+                                return messageAndSaveConfig(cont, "The sea level override for this dimension is now set to " + override + ". Warning! mod or datapack changes that alter dimension properties will unset this...");
+                            })
+                        )
                 ).then(Commands.literal("clear_dimension_override")
                         .executes(cont -> {
                             FlowingFluids.config.dimensionSeaLevelOverrides.remove(cont.getSource().getLevel().dimensionType().hashCode());
                             return messageAndSaveConfig(cont, "The sea level override for this dimension has been removed.");
                         })
-                ).then(Commands.argument("set_default_override", IntegerArgumentType.integer(-999999, 999999))
-                        .executes(cont -> {
-                            int override = cont.getArgument("distance", Integer.class);
-                            FlowingFluids.config.defaultSeaLevelOverride = override;
-                            return messageAndSaveConfig(cont, "The default sea level override is now set to " + override + ".");
-                        })
+                ).then(Commands.literal("set_default_override")
+                        .then(Commands.argument("level", IntegerArgumentType.integer(-999999, 999999))
+                            .executes(cont -> {
+                                int override = cont.getArgument("level", Integer.class);
+                                FlowingFluids.config.defaultSeaLevelOverride = override;
+                                return messageAndSaveConfig(cont, "The default sea level override is now set to " + override + ".");
+                            })
+                        )
                 ).then(Commands.literal("clear_default_override")
                         .executes(cont -> {
                             FlowingFluids.config.defaultSeaLevelOverride = Integer.MIN_VALUE;
@@ -321,13 +325,19 @@ public class FFCommands {
                         .executes(cont ->{
                             var level = cont.getSource().getLevel();
                             var pos = cont.getSource().getPosition();
-                            var posChunk = new ChunkPos(new BlockPos((int) pos.x, (int) pos.y, (int) pos.z));
+                            var bp = new BlockPos((int) pos.x, (int) pos.y, (int) pos.z);
+                            var posChunk = new ChunkPos(bp.getX() >> 4, bp.getZ() >> 4);
 
                             var dist = level.getServer().getPlayerList().getSimulationDistance();
 
                             int count = FlowingFluids.waterPluggedThisSession;
+                            //#if MC >= 26.1
+                            //$$ for (int x = posChunk.x()-dist; x <= posChunk.x()+dist; x++) {
+                            //$$     for (int z = posChunk.z()-dist; z <= posChunk.z()+dist; z++) {
+                            //#else
                             for (int x = posChunk.x-dist; x <= posChunk.x+dist; x++) {
                                 for (int z = posChunk.z-dist; z <= posChunk.z+dist; z++) {
+                            //#endif
                                     if (level.hasChunk(x, z)) {
                                         PlugWaterFeature.processChunk(level, new ChunkPos(x, z), level.getChunk(x, z));
                                     }
@@ -341,13 +351,19 @@ public class FFCommands {
                         .executes(cont ->{
                             var level = cont.getSource().getLevel();
                             var pos = cont.getSource().getPosition();
-                            var posChunk = new ChunkPos(new BlockPos((int) pos.x, (int) pos.y, (int) pos.z));
+                            var bp = new BlockPos((int) pos.x, (int) pos.y, (int) pos.z);
+                            var posChunk = new ChunkPos(bp.getX() >> 4, bp.getZ() >> 4);
 
                             var dist = level.getServer().getPlayerList().getSimulationDistance();
                             var rand = level.getRandom();
                             final AtomicInteger count = new AtomicInteger();
+                            //#if MC >= 26.1
+                            //$$ for (int x = posChunk.x()-dist; x <= posChunk.x()+dist; x++) {
+                            //$$     for (int z = posChunk.z()-dist; z <= posChunk.z()+dist; z++) {
+                            //#else
                             for (int x = posChunk.x-dist; x <= posChunk.x+dist; x++) {
                                 for (int z = posChunk.z-dist; z <= posChunk.z+dist; z++) {
+                            //#endif
                                     if (level.hasChunk(x, z)) {
                                         level.getChunk(x, z).findBlocks(BlockBehaviour.BlockStateBase::liquid,
                                                 (blockPos, blockState) -> {

@@ -33,19 +33,18 @@ public class PlugWaterFeature {
         BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
 
         var set = new HashSet<BlockPos>();
-        for (int i =
-                //#if MC>12100
-                chunkAccess.getMinSectionY();
-                //#else
-                //$$ chunkAccess.getMinSection();
-                //#endif
-             i <
-                //#if MC>12100
-                chunkAccess.getMaxSectionY();
-                //#else
-                //$$ chunkAccess.getMaxSection();
-                //#endif
-             ++i) {
+        int minSectionY;
+        int maxSectionY;
+
+        //#if MC > 1.21
+        minSectionY = chunkAccess.getMinSectionY();
+        maxSectionY = chunkAccess.getMaxSectionY();
+        //#else
+        //$$ minSectionY = chunkAccess.getMinSection();
+        //$$ maxSectionY = chunkAccess.getMaxSection();
+        //#endif
+
+        for (int i = minSectionY; i < maxSectionY; ++i) {
             LevelChunkSection levelChunkSection = chunkAccess.getSection(chunkAccess.getSectionIndexFromSectionY(i));
             if (levelChunkSection.maybeHas(PlugWaterFeature::isFluidSource)) {
                 BlockPos blockPos = SectionPos.of(chunkAccess.getPos(), i).origin();
@@ -66,35 +65,44 @@ public class PlugWaterFeature {
     }
 
     public static void processChunk(LevelAccessor level, ChunkPos chunk, ChunkAccess chunkAccess) {
+        int cx = chunk.getMinBlockX() >> 4;
+        int cz = chunk.getMinBlockZ() >> 4;
 
-        boolean hasXNeg = level.hasChunk(chunk.x - 1, chunk.z);
-        boolean hasXPos = level.hasChunk(chunk.x + 1, chunk.z);
-        boolean hasZNeg = level.hasChunk(chunk.x, chunk.z - 1);
-        boolean hasZPos = level.hasChunk(chunk.x, chunk.z + 1);
+        boolean hasXNeg = level.hasChunk(cx - 1, cz);
+        boolean hasXPos = level.hasChunk(cx + 1, cz);
+        boolean hasZNeg = level.hasChunk(cx, cz - 1);
+        boolean hasZPos = level.hasChunk(cx, cz + 1);
 
-        var set = findBlocks(chunkAccess, 0, 0, 0, 16, 16, 16);
-        if (hasXNeg) set.addAll(findBlocks(level.getChunk(chunk.x - 1, chunk.z), 15, 0, 0, 16, 16, 16));
-        if (hasXPos) set.addAll(findBlocks(level.getChunk(chunk.x + 1, chunk.z), 0, 0, 0, 1, 16, 16));
-        if (hasZNeg) set.addAll(findBlocks(level.getChunk(chunk.x, chunk.z - 1), 0, 0, 15, 16, 16, 16));
-        if (hasZPos) set.addAll(findBlocks(level.getChunk(chunk.x, chunk.z + 1), 0, 0, 0, 16, 16, 1));
+        Set<BlockPos> set = findBlocks(chunkAccess, 0, 0, 0, 16, 16, 16);
+        if (hasXNeg)
+            set.addAll(findBlocks(level.getChunk(cx - 1, cz), 15, 0, 0, 16, 16, 16));
+        if (hasXPos)
+            set.addAll(findBlocks(level.getChunk(cx + 1, cz), 0, 0, 0, 1, 16, 16));
+        if (hasZNeg)
+            set.addAll(findBlocks(level.getChunk(cx, cz - 1), 0, 0, 15, 16, 16, 16));
+        if (hasZPos)
+            set.addAll(findBlocks(level.getChunk(cx, cz + 1), 0, 0, 0, 16, 16, 1));
 
-
-        if (set.isEmpty()) return;
+        if (set.isEmpty())
+            return;
 
         int minx = chunk.getMinBlockX();
         int minz = chunk.getMinBlockZ();
         int maxx = chunk.getMaxBlockX();
         int maxz = chunk.getMaxBlockZ();
 
-
         BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
         int sea = FFFluidUtils.seaLevel(level) - 5;
 
         var doneSet = new HashSet<BlockPos>();
         Supplier<Pair<Boolean, Runnable>> testDo = () -> {
-            if (mutableBlockPos.getX() < minx || mutableBlockPos.getX() > maxx) return defTrue;
-            if (mutableBlockPos.getZ() < minz || mutableBlockPos.getZ() > maxz) return defTrue;
-            if (set.contains(mutableBlockPos)) return defTrue;
+            if (mutableBlockPos.getX() < minx || mutableBlockPos.getX() > maxx)
+                return defTrue;
+            if (mutableBlockPos.getZ() < minz || mutableBlockPos.getZ() > maxz)
+                return defTrue;
+            if (set.contains(mutableBlockPos))
+                return defTrue;
+
             BlockState blockState = chunkAccess.getBlockState(mutableBlockPos);
             if (blockState.isAir() && blockState.getFluidState().isEmpty()) {
                 var immutable = mutableBlockPos.immutable();
@@ -158,7 +166,8 @@ public class PlugWaterFeature {
             }
         }
         if (FlowingFluids.config.announceWorldGenActions)
-            FlowingFluids.info("placed block during world gen: " + blockState + " at /tp @s " + pos.getX() + " " + pos.getY() + " " + pos.getZ());
+            FlowingFluids.info("placed block during world gen: " + blockState + " at /tp @s " +
+                    pos.getX() + " " + pos.getY() + " " + pos.getZ());
 
         FlowingFluids.waterPluggedThisSession++;
         chunk.setBlockState(pos, blockState,
@@ -167,6 +176,6 @@ public class PlugWaterFeature {
                 //#else
                 //$$ false
                 //#endif
-                );
+        );
     }
 }

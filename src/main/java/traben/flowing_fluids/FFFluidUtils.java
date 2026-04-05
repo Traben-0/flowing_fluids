@@ -450,7 +450,11 @@ public class FFFluidUtils {
         if (matchesAny(FlowingFluids.nonDisplacerIds.get(fluid), blockId::equals)) return true;
 
         return matchesAny(FlowingFluids.nonDisplacerTagIds.get(fluid),
+                //#if MC >= 26.1
+                //$$ tag -> state.tags().anyMatch(it -> it.location().toString().equals(tag)));
+                //#else
                 tag -> state.getTags().anyMatch(it -> it.location().toString().equals(tag)));
+                //#endif
     }
 
     private static <T> boolean matchesAny(Iterable<T> items, Predicate<T> condition) {

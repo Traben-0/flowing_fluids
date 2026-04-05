@@ -16,7 +16,9 @@ import traben.flowing_fluids.FlowingFluids;
 @Mixin(Entity.class)
 public class MixinWaterPushing {
 
-    //#if FABRIC
+    //#if MC >= 26.1
+    //$$ private static final String METHOD_NAME = "updateFluidInteraction";
+    //#elseif FABRIC
     private static final String METHOD_NAME = "updateFluidHeightAndDoFluidPushing";
     //#elseif FORGE
     //$$ private static final String METHOD_NAME = "updateFluidHeightAndDoFluidPushing(Ljava/util/function/Predicate;)V";

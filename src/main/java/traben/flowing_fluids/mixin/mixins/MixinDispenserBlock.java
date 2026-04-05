@@ -42,12 +42,8 @@ public class MixinDispenserBlock {
         //execute on tail to allow any other mixins to apply
         if (item.asItem() instanceof FFBucketItem bucket){
 
-            BiFunction<BlockSource, ItemStack, ItemStack> delegate = behavior instanceof DefaultDispenseItemBehavior d ? d::execute : behavior::dispense;
-
-            DefaultDispenseItemBehavior wrappedBehaviour;
-
             if (bucket == Items.BUCKET){
-                wrappedBehaviour = new DefaultDispenseItemBehavior() {
+                DISPENSER_REGISTRY.put(item.asItem(), new DefaultDispenseItemBehavior() {
                     public @NotNull ItemStack execute(BlockSource blockSource, ItemStack item) {
                         if (FlowingFluids.config.enableMod && item.getItem() instanceof FFBucketItem bucket) {
                             BlockPos blockPos = blockSource.
@@ -87,11 +83,11 @@ public class MixinDispenserBlock {
                             }
                         }
                         //vanilla handling
-                        return delegate.apply(blockSource, item);
+                        return behavior.dispense(blockSource, item); //delegate.apply(blockSource, item);
                     }
-                };
+                });
             }else{
-                wrappedBehaviour = new DefaultDispenseItemBehavior() {
+                DISPENSER_REGISTRY.put(item.asItem(), new DefaultDispenseItemBehavior() {
                     public @NotNull ItemStack execute(BlockSource blockSource, ItemStack item) {
                         if (FlowingFluids.config.enableMod
                                 && item.getItem() instanceof FFBucketItem bucket
@@ -132,12 +128,10 @@ public class MixinDispenserBlock {
                             }
                         }
                         //vanilla handling
-                        return delegate.apply(blockSource, item);
+                        return behavior.dispense(blockSource, item); //delegate.apply(blockSource, item);
                     }
-                };
+                });
             }
-
-            DISPENSER_REGISTRY.put(item.asItem(), wrappedBehaviour);
         }
     }
 }

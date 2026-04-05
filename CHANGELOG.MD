@@ -1,4 +1,8 @@
 
+[1.0.5]
+- updated to 26.1
+- fixed the sea level override command
+
 [1.0.4]
 - fixed the autoperformance mode command not working correctly
 - reduced the default farmland water drain rate by 10 times
