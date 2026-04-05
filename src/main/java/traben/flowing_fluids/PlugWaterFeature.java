@@ -173,11 +173,11 @@ public class PlugWaterFeature {
 
         FlowingFluids.waterPluggedThisSession++;
         chunk.setBlockState(pos, blockState,
-                // #if MC>=12105
+                //#if MC>=12105
                 0 // no updates pls
-                  // #else
-                  // $$ false
-                  // #endif
+                //#else
+                //$$ false
+                //#endif
         );
     }
 }
