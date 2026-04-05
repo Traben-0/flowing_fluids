@@ -205,25 +205,29 @@ public class FFCommands {
                         .executes(cont -> {
                             var level = cont.getSource().getLevel();
                             int override = FlowingFluids.config.dimensionSeaLevelOverrides.getOrDefault(level.dimensionType().hashCode(), Integer.MIN_VALUE);
-                            return message(cont, "The sea level override as seen by Flowing Fluids for this dimension is " + (override == Integer.MIN_VALUE ? "NO OVERRIDE SET" : override) + ". And for the default override it is set to: " + FlowingFluids.config.defaultSeaLevelOverride + ".");
+                            return message(cont, "The sea level override as seen by Flowing Fluids for this dimension is " + (override == Integer.MIN_VALUE ? "NONE" : override) + ". And for the default override it is set to: " + (FlowingFluids.config.defaultSeaLevelOverride == Integer.MIN_VALUE ? "NONE" : FlowingFluids.config.defaultSeaLevelOverride) + ".");
                         })
-                ).then(Commands.argument("set_dimension_override", IntegerArgumentType.integer(-999999, 999999))
-                        .executes(cont -> {
-                            int override = cont.getArgument("distance", Integer.class);
-                            FlowingFluids.config.dimensionSeaLevelOverrides.put(cont.getSource().getLevel().dimensionType().hashCode(), override);
-                            return messageAndSaveConfig(cont, "The sea level override for this dimension is now set to " + override + ". Warning! mod or datapack changes that alter dimension properties will unset this...");
-                        })
+                ).then(Commands.literal("set_dimension_override")
+                        .then(Commands.argument("level", IntegerArgumentType.integer(-999999, 999999))
+                            .executes(cont -> {
+                                int override = cont.getArgument("level", Integer.class);
+                                FlowingFluids.config.dimensionSeaLevelOverrides.put(cont.getSource().getLevel().dimensionType().hashCode(), override);
+                                return messageAndSaveConfig(cont, "The sea level override for this dimension is now set to " + override + ". Warning! mod or datapack changes that alter dimension properties will unset this...");
+                            })
+                        )
                 ).then(Commands.literal("clear_dimension_override")
                         .executes(cont -> {
                             FlowingFluids.config.dimensionSeaLevelOverrides.remove(cont.getSource().getLevel().dimensionType().hashCode());
                             return messageAndSaveConfig(cont, "The sea level override for this dimension has been removed.");
                         })
-                ).then(Commands.argument("set_default_override", IntegerArgumentType.integer(-999999, 999999))
-                        .executes(cont -> {
-                            int override = cont.getArgument("distance", Integer.class);
-                            FlowingFluids.config.defaultSeaLevelOverride = override;
-                            return messageAndSaveConfig(cont, "The default sea level override is now set to " + override + ".");
-                        })
+                ).then(Commands.literal("set_default_override")
+                        .then(Commands.argument("level", IntegerArgumentType.integer(-999999, 999999))
+                            .executes(cont -> {
+                                int override = cont.getArgument("level", Integer.class);
+                                FlowingFluids.config.defaultSeaLevelOverride = override;
+                                return messageAndSaveConfig(cont, "The default sea level override is now set to " + override + ".");
+                            })
+                        )
                 ).then(Commands.literal("clear_default_override")
                         .executes(cont -> {
                             FlowingFluids.config.defaultSeaLevelOverride = Integer.MIN_VALUE;

@@ -6,3 +6,5 @@ accessible method net/minecraft/world/level/material/FlowingFluid canHoldFluid (
 accessible method net/minecraft/world/level/material/FlowingFluid beforeDestroyingBlock (Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V
 accessible method net/minecraft/core/dispenser/DefaultDispenseItemBehavior execute (Lnet/minecraft/core/dispenser/BlockSource;Lnet/minecraft/world/item/ItemStack;)Lnet/minecraft/world/item/ItemStack;
 accessible field net/minecraft/world/level/Level random Lnet/minecraft/util/RandomSource;
+
+accessible field net/minecraft/core/cauldron/CauldronInteraction$Dispatcher items Ljava/util/Map;
