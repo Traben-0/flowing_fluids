@@ -7,7 +7,7 @@ plugins {
     // Advanced users may use multiple (potentially independent) multi-version trees in different sub-projects.
     // This is currently equivalent to applying `com.replaymod.preprocess-root`.
     kotlin("jvm") version "2.3.0" apply false
-    id("gg.essential.loom") version "1.11.38" apply false // https://repo.essential.gg/#/public/gg/essential/loom/gg.essential.loom.gradle.plugin
+    id("gg.essential.loom") version "1.15.48" apply false // https://repo.essential.gg/#/public/gg/essential/loom/gg.essential.loom.gradle.plugin
     id("gg.essential.multi-version.root")
 }
 
@@ -34,32 +34,29 @@ preprocess {
     fun Node?.connectToVersion(mcVersion: Int, forge: Boolean = true, neoforge: Boolean = true): Node {
         val verString = mcVersion.formatVersionNumber()
 
-        val fabric = createNode("$verString-fabric", mcVersion, "mojmap")
-        this?.let { fabric.link(it) }
+        // Issue: these need to be created before fabric's node is, only affects 26.1+
+        val forgeNode = if (forge) createNode("$verString-forge", mcVersion, "srg") else null
+        val neoforgeNode = if (neoforge) createNode("$verString-neoforge", mcVersion, "mojmap") else null
 
-        if (forge) {
-            createNode("$verString-forge", mcVersion, "srg")
-            .link(fabric)
-        }
-        if (neoforge) {
-            createNode("$verString-neoforge", mcVersion, "mojmap")
-            .link(fabric)
+        val fabricNode = createNode("$verString-fabric", mcVersion, "mojmap")
+
+        forgeNode?.link(fabricNode)
+        neoforgeNode?.link(fabricNode)
+
+        this?.let {
+            val itVerStr = it.mcVersion.formatVersionNumber()
+            val file = projectDir.resolve("versions/$itVerStr-$verString.txt")
+            it.link(fabricNode, file.takeIf(File::exists))
         }
 
-        return fabric
+        return fabricNode
     }
 
-
-    val current = null.connectToVersion(1_21_09)
-
-    current.connectToVersion(1_21_11)
-        .connectToVersion(26_01_00, forge = false, neoforge = false)
-
-
-    // next, then remap the main project to this and set the current to old
-
     // older
-    current.connectToVersion(1_21_06)
+    null.connectToVersion(26_01_00, forge = false, neoforge = true)
+        .connectToVersion(1_21_11)
+        .connectToVersion(1_21_09)
+        .connectToVersion(1_21_06)
         .connectToVersion(1_21_05)
         .connectToVersion(1_21_04)
         .connectToVersion(1_21_03) // would normally do 12102 to have the lowest compatible version but forge 1.21.2 doesn't exist

@@ -37,5 +37,6 @@
     "lithium:options": {
       "mixin.world.chunk_ticking.spread_ice": false
     }
-  }
+  },
+  "accessWidener" : "${access}"
 }

@@ -51,19 +51,19 @@ val modVersion = properties["mod_version"].toString()
 
 base.archivesName.set("flowing_fluids-$modVersion-${project.name}")
 
-// todo figure out why preprocessor wont work with these
+val manuallyAccessTransform = mcVersion >= 26_00_00 && platform.isNeoForge
 val accessWidener = "flowing_fluids_" + when {
-    mcVersion >= 260100 -> 13
-    mcVersion >= 12109 -> 12
-    mcVersion >= 12106 -> 11
-    mcVersion >= 12105 -> 10
-    mcVersion >= 12104 -> 9
-    mcVersion >= 12102 -> 8
-    mcVersion >= 12100 -> 7
-    mcVersion >= 12006 -> 6
-    mcVersion >= 12004 -> 5
-    mcVersion >= 12002 -> 4
-    mcVersion >= 12001 -> 3
+    mcVersion >= 26_01_00 -> 13
+    mcVersion >= 1_21_09 -> 12
+    mcVersion >= 1_21_06 -> 11
+    mcVersion >= 1_21_05 -> 10
+    mcVersion >= 1_21_04 -> 9
+    mcVersion >= 1_21_02 -> 8
+    mcVersion >= 1_21_00 -> 7
+    mcVersion >= 1_20_06 -> 6
+    mcVersion >= 1_20_04 -> 5
+    mcVersion >= 1_20_02 -> 4
+    mcVersion >= 1_20_01 -> 3
     else -> throw IllegalStateException("Unsupported version: $mcVersion")
 } + ".accesswidener"
 
@@ -98,9 +98,9 @@ dependencies {
 //    implementation(include("gg.essential:universalcraft-$ucVer:415")!!)
 //    implementation(include("gg.essential:vigilance:306")!!)
 
+    //region MOD DEPENDENCIES
 
-
-    fun modImpl(modPrefix: String, vararg versions: Pair<Int, String?>) {
+    fun modImpl(modPrefix: String, vararg versions: Pair<Int, String?>): Boolean {
         for ((versionMC, versionMod) in versions) {
             if (platform.mcVersion >= versionMC) {
                 if (versionMod != null) {
@@ -108,37 +108,40 @@ dependencies {
                         exclude("net.fabricmc.fabric-api")
                         isTransitive = true
                     }
+                    return true
                 }
                 break
             }
         }
+        return false
     }
 
-    fun ver(fabric: String?, forge: String?, neoforge: String?): String?  = when {
+    fun ver(fabric: String?, forge: String?, neoforge: String?): String? = when {
         platform.isFabric -> fabric
         platform.isForge -> forge
         else -> neoforge
     }
 
-    modImpl("maven.modrinth:sodium:",
-        260100 to ver("Amr4VcZo", null,  "Fg5Mk6Y3"),
-        12109 to ver("sFfidWgd", null,  "PdQpfqPZ"),
-        12106 to ver("7pwil2dy", null,  "q6wdZywr"),
-        12105 to ver("fVbw1C7i", null,  "dfyNHRhw"),
-        12104 to ver("c3YkZvne", null,  "XgEfENfn"),
-        12103 to ver("rLBgU2jc", null,  "M0CXIL7c"),
-        12100 to ver("u1OEbNKx", null,  null),
-        12006 to ver("OwLQelEI", null,  null),
-        12004 to ver("4GyXKCLd", null,  null),
-        12002 to ver("pmgeU5yX", null,  null),
-        12000 to ver("ygf8cVZg", null,  null),
+    infix fun String.setVar(enabled: Boolean) = preprocess.vars.put(this, if (enabled) 1 else 0)
+
+    "SODIUM" setVar (
+            modImpl("maven.modrinth:sodium:",
+                260100 to ver("Amr4VcZo", null,  "Fg5Mk6Y3"),
+                12109 to ver("sFfidWgd", null,  "PdQpfqPZ"),
+                12106 to ver("7pwil2dy", null,  "q6wdZywr"),
+                12105 to ver("fVbw1C7i", null,  "dfyNHRhw"),
+                12104 to ver("c3YkZvne", null,  "XgEfENfn"),
+                12103 to ver("rLBgU2jc", null,  "M0CXIL7c"),
+                12100 to ver("u1OEbNKx", null,  null),
+                12006 to ver("OwLQelEI", null,  null),
+                12004 to ver("4GyXKCLd", null,  null),
+                12002 to ver("pmgeU5yX", null,  null),
+                12000 to ver("ygf8cVZg", null,  null),
+            ) or modImpl("maven.modrinth:embeddium:", // forge sodium port
+                12002 to null,
+                12000 to ver(null, "UTbfe5d1", null),
+            )
         )
-    modImpl("maven.modrinth:embeddium:", // forge sodium port
-        12002 to null,
-        12000 to ver(null, "UTbfe5d1", null),
-    )
-
-
 
     // CREATE #https://wiki.createmod.net/developers/
     if (platform.isFabric && mcVersion == 12001) {
@@ -200,6 +203,8 @@ dependencies {
 //        )
     }
 
+    //endregion
+
     if (platform.isNeoForge && mcVersion < 12002) { // NeoForge 20.2.84+ added it themselves
         include("io.github.llamalad7:mixinextras-neoforge:0.4.1:slim")
     }
@@ -210,12 +215,6 @@ dependencies {
 
     implementation("com.demonwav.mcdev:annotations:2.1.0")
 
-    if (platform.isFabric) {
-        implementation("net.fabricmc:sponge-mixin:0.14.0+mixin.0.8.6")
-        implementation("io.github.llamalad7:mixinextras-fabric:0.4.1")
-        // annotationProcessor("io.github.llamalad7:mixinextras-fabric:0.4.1")
-        // annotationProcessor("net.fabricmc:sponge-mixin:0.14.0+mixin.0.8.6")
-    }
 }
 
 tasks.processResources {
@@ -253,18 +252,24 @@ loom {
 
 loom.noServerRunConfigs()
 
-tasks.matching { it.name == "remapJar" }.configureEach {
-    setProperty("injectAccessWidener", true)
-    if (!platform.isFabric) {
-        val atAccessWideners = property("atAccessWideners") as org.gradle.api.provider.HasMultipleValues<String>
-        atAccessWideners.add(accessWidener)
+if (platform.isUnobfuscated) {
+    tasks.jar {
+        // TODO forge
+    }
+} else {
+    tasks.named<net.fabricmc.loom.task.RemapJarTask>("remapJar") {
+        injectAccessWidener = true
+        if (!platform.isFabric) atAccessWideners.add(accessWidener)
     }
 }
 
 tasks.processResources {
     inputs.property("project_version", modVersion)
     filesMatching("fabric.mod.json") {
-        expand(mapOf("version" to modVersion))
+        expand(mapOf(
+            "version" to modVersion,
+            "access" to accessWidener
+        ))
     }
     filesMatching("META-INF/mods.toml") {
         if (platform.isNeoForge || platform.isFabric) {
@@ -285,7 +290,7 @@ tasks.processResources {
         }
     }
     filesMatching("flowing_fluids_*.accesswidener") {
-        if (this.name != accessWidener) this.exclude()
+        if (this.name != accessWidener || manuallyAccessTransform) this.exclude()
     }
 }
 
@@ -300,3 +305,104 @@ tasks.register<Copy>("copyArtifacts") {
 tasks.build {
     finalizedBy("copyArtifacts")
 }
+
+
+
+//region 26.1+ NEOFORGE ACCESS TRANSFORMER GENERATION
+
+//TODO is forge the same? always just relied to architechtury loom for it
+
+val generateAt by tasks.registering {
+    val inputAw = rootDir.resolve("src/main/resources/$accessWidener")
+    val outputDir = layout.buildDirectory.dir("generated/at")
+    val outFile = outputDir.get().file("META-INF/accesstransformer.cfg").asFile
+    outFile.delete() // Old file breaks build otherwise
+
+    inputs.file(inputAw)
+    outputs.dir(outputDir)
+
+    if (manuallyAccessTransform) doLast {
+        val lines = inputAw.absoluteFile.readLines()
+        val entries = parseAw(lines)
+        val atLines = awToAt(entries)
+
+        outFile.parentFile.mkdirs()
+        outFile.writeText(atLines.joinToString("\n"))
+    }
+}
+
+sourceSets {
+    if (manuallyAccessTransform) named("main") {
+        resources.srcDir(generateAt)
+    }
+}
+
+data class AwEntry(
+    val type: Type,
+    val owner: String,
+    val name: String?,
+    val desc: String?,
+    val access: Access
+) {
+    enum class Type { CLASS, METHOD, FIELD }
+    enum class Access { ACCESSIBLE, EXTENDABLE, MUTABLE }
+}
+
+fun parseAw(lines: List<String>): List<AwEntry> {
+    return lines
+        .map { it.trim() }
+        .filter { it.isNotEmpty() && !it.startsWith("#") && !it.startsWith("accessWidener") }
+        .map { line ->
+            val parts = line.split(" ")
+            val access = when (parts[0]) {
+                "accessible" -> AwEntry.Access.ACCESSIBLE
+                "extendable" -> AwEntry.Access.EXTENDABLE
+                "mutable" -> AwEntry.Access.MUTABLE
+                else -> error("Unknown access: ${parts[0]}")
+            }
+
+            when (parts[1]) {
+                "class" -> AwEntry(
+                    AwEntry.Type.CLASS,
+                    parts[2],
+                    null,
+                    null,
+                    access
+                )
+                "method" -> AwEntry(
+                    AwEntry.Type.METHOD,
+                    parts[2],
+                    parts[3],
+                    parts[4],
+                    access
+                )
+                "field" -> AwEntry(
+                    AwEntry.Type.FIELD,
+                    parts[2],
+                    parts[3],
+                    parts[4],
+                    access
+                )
+                else -> error("Unknown type: ${parts[1]}")
+            }
+        }
+}
+
+fun awToAt(entries: List<AwEntry>): List<String> {
+    return entries.mapNotNull { e ->
+        val owner = e.owner.replace('/', '.')
+
+        val prefix = when (e.access) {
+            AwEntry.Access.ACCESSIBLE -> "public"
+            AwEntry.Access.EXTENDABLE -> "public-f"
+            AwEntry.Access.MUTABLE -> "public-f"
+        }
+
+        when (e.type) {
+            AwEntry.Type.CLASS -> "$prefix $owner"
+            AwEntry.Type.METHOD -> "$prefix $owner ${e.name}${e.desc}"
+            AwEntry.Type.FIELD -> "$prefix $owner ${e.name}"
+        }
+    }
+}
+//endregion
