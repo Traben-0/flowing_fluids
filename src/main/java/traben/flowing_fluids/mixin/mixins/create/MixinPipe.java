@@ -10,12 +10,15 @@ public abstract class MixinPipe{
 }
 //#else
 //$$
+//$$ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+//$$ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 //$$ import com.simibubi.create.content.fluids.OpenEndedPipe;
 //$$ import com.simibubi.create.infrastructure.config.AllConfigs;
 //$$ import net.minecraft.core.BlockPos;
 //$$ import net.minecraft.world.level.Level;
 //$$ import net.minecraft.world.level.block.Blocks;
 //$$ import net.minecraft.world.level.block.state.BlockState;
+//$$ import net.minecraft.world.level.material.FluidState;
 //$$ import net.minecraft.world.ticks.ScheduledTick;
 //$$ import org.spongepowered.asm.mixin.Pseudo;
 //$$ import org.spongepowered.asm.mixin.Shadow;
@@ -51,5 +54,36 @@ public abstract class MixinPipe{
 //$$         }
 //$$         return blockState;
 //$$     }
+
+//$$
+//$$     /**
+//$$      * Create can treat a source as immediately refillable and return fluid without changing the world.
+//$$      * That is fine for vanilla infinite-fluid behaviour, but it duplicates finite Flowing Fluids fluid.
+//$$      */
+//$$     @WrapOperation(method = "removeFluidFromSpace",
+//$$             at = @At(value = "INVOKE",
+//$$                     target = "Ljava/lang/Object;equals(Ljava/lang/Object;)Z"),
+//$$             remap = false, require = 0)
+//$$     private boolean ff$disableImmediateRefillShortcut(final Object potentiallyFilled,
+//$$                                                       final Object originalFluidState,
+//$$                                                       final Operation<Boolean> original) {
+//$$         final boolean result = original.call(potentiallyFilled, originalFluidState);
+//$$         if (!result) return false;
+//$$
+//$$         if (!FlowingFluids.config.enableMod || FlowingFluids.config.create_infinitePipes) {
+//$$             return true;
+//$$         }
+//$$
+//$$         if (!(originalFluidState instanceof FluidState fluidState)) {
+//$$             return true;
+//$$         }
+//$$
+//$$         if (!FlowingFluids.config.isFluidAllowed(fluidState)) {
+//$$             return true;
+//$$         }
+//$$
+//$$         return false;
+//$$     }
+
 //$$ }
 //#endif
