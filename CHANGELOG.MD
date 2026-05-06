@@ -3,6 +3,7 @@
 - fixed a launch crash when Sable / Create: Aeronautics was installed
 - fixed an issue preventing the config file from loading or updating properly on NeoForge
 - fixed auto performance overwriting changes in the saved config file
+- fixed create pipes still using the vanilla infinite water check to draw water infinitely
 
 [1.0.5]
 - updated to 26.1
