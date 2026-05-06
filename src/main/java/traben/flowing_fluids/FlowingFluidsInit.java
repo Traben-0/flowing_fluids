@@ -75,6 +75,7 @@ public class FlowingFluidsInit implements ModInitializer {
 //$$ public class FlowingFluidsInit {
 //$$     public FlowingFluidsInit() {
 //$$         NeoForge.EVENT_BUS.register(FlowingFluidsInit.class);
+//$$         FlowingFluids.start();
 //$$     }
 //$$
 //$$     @SubscribeEvent

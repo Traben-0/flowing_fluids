@@ -30,9 +30,9 @@ public abstract class MixinServer_AutoPerformance {
         if (!FlowingFluids.config.enableMod || !FlowingFluids.config.autoPerformanceMode.enabled())
             return;
 
-        // reset auto to default on server close
+        // reset auto-perf level for the next server start. Do NOT saveConfig:
+        // auto-perf adjustments must never overwrite the user's saved config.
         FFAutoPerformance.resetAuto();
-        FlowingFluids.saveConfig();
 
         lastSysTimeAdjusted = 0;
     }
@@ -46,9 +46,9 @@ public abstract class MixinServer_AutoPerformance {
         if (time - lastSysTimeAdjusted < FlowingFluids.config.autoPerformanceUpdateRateSeconds * 1000L) return;
 
         if (lastSysTimeAdjusted == 0) {
-            // first run, old config may have been retained from last session via crash or who knows what, it's easier to reset always than try to parse
+            // first run; reset in-memory auto-perf level. Do NOT saveConfig here:
+            // auto-perf adjustments must never overwrite the user's saved config.
             FFAutoPerformance.resetAuto();
-            FlowingFluids.saveConfig();
         }
 
         lastSysTimeAdjusted = time;
