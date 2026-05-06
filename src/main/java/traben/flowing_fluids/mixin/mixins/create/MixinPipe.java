@@ -54,7 +54,6 @@ public abstract class MixinPipe{
 //$$         }
 //$$         return blockState;
 //$$     }
-
 //$$
 //$$     /**
 //$$      * Create can treat a source as immediately refillable and return fluid without changing the world.
@@ -84,6 +83,5 @@ public abstract class MixinPipe{
 //$$
 //$$         return false;
 //$$     }
-
 //$$ }
 //#endif
