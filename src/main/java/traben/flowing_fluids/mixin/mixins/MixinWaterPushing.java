@@ -30,8 +30,10 @@ public class MixinWaterPushing {
 
     @ModifyExpressionValue(
             method = METHOD_NAME,
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;isPushedByFluid()Z")
-
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;isPushedByFluid()Z"),
+            // Sable (used by Create: Aeronautics) overwrites the target method and removes this INVOKE.
+            // Allow the injection to silently no-op in that case rather than crashing the game.
+            require = 0
     )
     private boolean ff$isPushed(final boolean original) {
         if (!original) return false;
