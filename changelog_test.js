@@ -35,7 +35,7 @@ function changelog(version) {
         continue;
       } else break;
     }
-    if (inside) thisVersion += `${line}\n`;
+    if (inside && line.length !== 0) thisVersion += `${line}\n`;
   }
   return thisVersion;
 }

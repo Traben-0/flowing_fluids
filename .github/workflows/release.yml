@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 25
 
       - name: check changelog & version
         run: node changelog_test.js
@@ -54,14 +54,10 @@ jobs:
       - name: print discord notification json to be verified before final upload (build will take a while)
         run: cat discord_update.json
 
-      - run: ./gradlew build
-
-      - name: upload mod
-        run: node uploader.js
+      - run: ./gradlew build publishMods
         env:
-          CF_TOKEN: ${{ secrets.CF_TOKEN }}
-          CF_COOKIE: ${{ secrets.CF_COOKIE }}
-          MODRINTH: ${{ secrets.MODRINTH }}
+          CURSEFORGE_TOKEN: ${{ secrets.CF_TOKEN }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH }}
 
       - name: discord notification
         run: |
