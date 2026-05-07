@@ -296,17 +296,12 @@ tasks.processResources {
     }
 }
 
-tasks.register<Copy>("copyArtifacts") {
-    mustRunAfter(tasks.build)
-    mustRunAfter(tasks.publishMods)
+tasks.register<Copy>("buildBulkJars") {
+    dependsOn(tasks.build)
 
     from(layout.buildDirectory.dir("libs").get())
     into("${rootDir}\\jars")
     delete(layout.buildDirectory.dir("libs").get())
-}
-
-tasks.build {
-    finalizedBy("copyArtifacts")
 }
 
 private val versionRangeMap: Map<String, Array<String>> = mapOf(

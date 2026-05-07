@@ -54,7 +54,11 @@ jobs:
       - name: print discord notification json to be verified before final upload (build will take a while)
         run: cat discord_update.json
 
-      - run: ./gradlew build publishMods
+      - name: build
+        run: ./gradlew build
+
+      - name: publish
+        run: ./gradlew publishMods
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CF_TOKEN }}
           MODRINTH_TOKEN: ${{ secrets.MODRINTH }}
