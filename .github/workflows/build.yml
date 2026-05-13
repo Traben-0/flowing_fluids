@@ -25,3 +25,11 @@ jobs:
 
       # Build the mod
       - run: ./gradlew build
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: flowing_fluids-all
+          path: |
+            **/build/libs/*.jar
+            !**/build/libs/*-sources.jar
+            !**/build/libs/*-dev.jar
