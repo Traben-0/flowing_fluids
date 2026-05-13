@@ -76,7 +76,7 @@ public abstract class MixinFlowingFluid extends Fluid {
                                                                       final BlockState thisState, final BlockPos posTo, final int destFluidAmount,
                                                                       boolean flowingDown
     ) {
-        //check if either too or from is water loggable and if so exit early if we cannot perform this flow due to settings
+        //check if either to or from is water loggable and if so exit early if we cannot perform this flow due to settings
         boolean fromIsWaterloggable = thisState.getBlock() instanceof LiquidBlockContainer && thisState.getBlock() instanceof BucketPickup;
         if (fromIsWaterloggable
                 && (flowingDown ? //cannot flow out
@@ -262,15 +262,21 @@ public abstract class MixinFlowingFluid extends Fluid {
                 return; // do not calculate and delay the tick
             }
 
-            if (System.currentTimeMillis() < FlowingFluids.debug_killFluidUpdatesUntilTime) {
-                return; // kill this update
+            if (FlowingFluids.debug_killFluidUpdatesUntilTime > 0) {
+                long diff = FlowingFluids.debug_killFluidUpdatesUntilTime - System.currentTimeMillis();
+                if (diff > 0) {
+                    return; // kill this update
+                } else {
+                    FlowingFluids.debug_killFluidUpdatesUntilTime = 0;
+                }
             }
 
             FlowingFluids.isManeuveringFluids = true;
 
+            int seaLevel = FFFluidUtils.seaLevel(level);
             boolean withinInfBiomeHeights = FlowingFluids.config.fastBiomeRefillAtSeaLevelOnly
-                    ? FFFluidUtils.seaLevel(level) == blockPos.getY() || FFFluidUtils.seaLevel(level) - 1 == blockPos.getY()
-                    : FFFluidUtils.seaLevel(level) == blockPos.getY() && blockPos.getY() > 0;
+                    ? seaLevel == blockPos.getY() || seaLevel - 1 == blockPos.getY()
+                    : seaLevel == blockPos.getY() && blockPos.getY() > 0;
 
             boolean isWaterAndInfiniteBiome = fluidState.is(FluidTags.WATER)
                     && withinInfBiomeHeights
@@ -278,7 +284,7 @@ public abstract class MixinFlowingFluid extends Fluid {
                     && level.getBrightness(LightLayer.SKY, blockPos) > 0;
 
             boolean dontConsumeWater = isWaterAndInfiniteBiome
-                    && FFFluidUtils.seaLevel(level) != blockPos.getY()
+                    && seaLevel != blockPos.getY()
                     && level.getRandom().nextFloat() < FlowingFluids.config.infiniteWaterBiomeNonConsumeChance;
 
             //#if MC <= 12100
@@ -354,7 +360,7 @@ public abstract class MixinFlowingFluid extends Fluid {
             } finally {
 
                 if (isWaterAndInfiniteBiome) {
-                    if (FFFluidUtils.seaLevel(level) == blockPos.getY()) {
+                    if (seaLevel == blockPos.getY()) {
                         var amount = level.getFluidState(blockPos).getAmount();
                         if (amount > 0) {
                             if (amount <= getDropOff(level) || level.getRandom().nextFloat() < FlowingFluids.config.infiniteWaterBiomeDrainSurfaceChance) {
