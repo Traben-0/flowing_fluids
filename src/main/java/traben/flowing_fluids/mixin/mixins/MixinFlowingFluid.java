@@ -146,7 +146,7 @@ public abstract class MixinFlowingFluid extends Fluid {
 
             final int amountLess = amount - 1;
 
-            final Direction randomDirection = FFFluidUtils.getCardinalsShuffle(level.getRandom()).get(0);
+            final Direction randomDirection = Direction.Plane.HORIZONTAL.getRandomDirection(level.getRandom());
 
             BiConsumer<BlockPos.MutableBlockPos, BlockPos.MutableBlockPos> move;
             if(level.getRandom().nextBoolean()){
