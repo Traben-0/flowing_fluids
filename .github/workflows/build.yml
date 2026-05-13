@@ -26,10 +26,15 @@ jobs:
       # Build the mod
       - run: ./gradlew build
 
+      # Collect all built JARs into a flat directory
+      - run: |
+          mkdir -p jars
+          find . -path "**/build/libs/*.jar" \
+            ! -name "*-sources.jar" \
+            ! -name "*-dev.jar" \
+            -exec cp {} jars/ \;
+
       - uses: actions/upload-artifact@v7
         with:
           name: flowing_fluids-all
-          path: |
-            **/build/libs/*.jar
-            !**/build/libs/*-sources.jar
-            !**/build/libs/*-dev.jar
+          path: jars/*.jar
