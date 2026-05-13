@@ -2,6 +2,8 @@ package traben.flowing_fluids.mixin.mixins;
 
 
 import it.unimi.dsi.fastutil.Pair;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.shorts.Short2BooleanMap;
 import it.unimi.dsi.fastutil.shorts.Short2BooleanOpenHashMap;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectMap;
@@ -9,8 +11,6 @@ import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockGetter;
@@ -18,7 +18,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.LightLayer;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BucketPickup;
 import net.minecraft.world.level.block.DirectionalBlock;
@@ -28,7 +27,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
-import net.minecraft.world.level.material.Fluids;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -50,9 +48,6 @@ import traben.flowing_fluids.config.FFConfig;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
 import static traben.flowing_fluids.FFFluidUtils.getStateForFluidByAmount;
@@ -519,34 +514,44 @@ public abstract class MixinFlowingFluid extends Fluid {
         // state cache for each position
         Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos = new Short2ObjectOpenHashMap<>();
 
-        //  flags if we should perform checks to override the slope requirement
-        AtomicBoolean anyFlowableNeighbours2LevelsLowerOrMore = new AtomicBoolean(requiresSlope);
+        // flags if we should perform checks to override the slope requirement
+        boolean anyFlowableNeighbours2LevelsLowerOrMore = requiresSlope;
 
         // get the cardinal directions that are valid flow locations sorted by the amount of fluid in them,
         // ties are randomly sorted by initial shuffle
-        List<Direction> directionsCanSpreadToSortedByAmount = FFFluidUtils.getCardinalsShuffle(level.random).stream()
-                .sorted(Comparator.comparingInt((dir1) -> level.getFluidState(blockPos.relative(dir1)).getAmount()))
-                .filter(dir -> {
-                    BlockPos posDir = blockPos.relative(dir);
-                    short key = ffCacheKey(blockPos, posDir);
-                    var statesDir = flowing_fluids$getSetPosCache(key, level, statesAtPos, posDir);
-                    BlockState stateDir = statesDir.first();
-                    var fluidStateDir = statesDir.second();
-                    int amountDir = fluidStateDir.getAmount();
-                    boolean canFlow = flowing_fluids$canSpreadToOptionallySameOrEmpty(fluidState.getType(), amount, level, blockPos,
-                            level.getBlockState(blockPos), dir, posDir, stateDir, fluidStateDir, requiresSlope);
-                    if (canFlow && !anyFlowableNeighbours2LevelsLowerOrMore.get()) {
-                        anyFlowableNeighbours2LevelsLowerOrMore.set(amountDir < amount - 1);
-                    }
-                    return canFlow;
-                })
-                .toList();
+        List<Direction> toSort = new ArrayList<>(FFFluidUtils.getCardinalsShuffle(level.random));
+        // cache the fluid amounts, as getting fluid states is somewhat expensive
+        Object2IntMap<Direction> fluidAmounts = new Object2IntOpenHashMap<>(4);
+        for (Direction dir : toSort) {
+            fluidAmounts.put(dir, level.getFluidState(blockPos.relative(dir)).getAmount());
+        }
+        toSort.sort(Comparator.comparingInt(fluidAmounts::getInt));
+
+        List<Direction> directionsCanSpreadToSortedByAmount = new ArrayList<>();
+        final int amountMinusOne = amount - 1;
+
+        for (Direction direction : toSort) {
+            BlockPos posDir = blockPos.relative(direction);
+            var statesDir = flowing_fluids$getSetPosCache(ffCacheKey(blockPos, posDir), level, statesAtPos, posDir);
+            BlockState stateDir = statesDir.first();
+            var fluidStateDir = statesDir.second();
+            int amountDir = fluidStateDir.getAmount();
+            boolean canFlow = flowing_fluids$canSpreadToOptionallySameOrEmpty(
+                    fluidState.getType(), amount, level, blockPos,
+                    level.getBlockState(blockPos), direction, posDir, stateDir, fluidStateDir, requiresSlope);
+            if (canFlow) {
+                if (!anyFlowableNeighbours2LevelsLowerOrMore) {
+                    anyFlowableNeighbours2LevelsLowerOrMore = amountDir < amountMinusOne;
+                }
+                directionsCanSpreadToSortedByAmount.add(direction);
+            }
+        }
 
         // early escape if no valid neighbours to spread too
         if (directionsCanSpreadToSortedByAmount.isEmpty()) return null;
 
         // force require slope to true if no neighbours are 2 levels lower or more, ignore override if forceFluidLeveling is enabled
-        boolean requiresSlopeWithOverride = requiresSlope || !anyFlowableNeighbours2LevelsLowerOrMore.get();
+        boolean requiresSlopeWithOverride = requiresSlope || !anyFlowableNeighbours2LevelsLowerOrMore;
 
         // perform a deep search for the best direction to spread to with the nearest slope
         Direction spreadDirection = flowing_fluids$getValidDirectionFromDeepSpreadSearch(level, blockPos, fluidState, amount, requiresSlopeWithOverride, directionsCanSpreadToSortedByAmount, statesAtPos);
@@ -577,26 +582,29 @@ public abstract class MixinFlowingFluid extends Fluid {
         // if we need to perform a deeper search
         // check if we can flow down here, if so, return the direction
         // else, perform a deep search for the nearest slope
-        return directionsCanSpreadToSortedByAmount.stream()
-                .map(dir -> {
-                    // we already know we can spread to this direction, so we can just check if we can flow down or
-                    // if we need to perform a deeper search
-                    var posDir = blockPos.relative(dir);
-                    short key = ffCacheKey(blockPos, posDir);
-                    // check if we can flow down here, if so, return the direction
-                    if (level.getFluidState(posDir).getAmount() < (amount - 1) || flowing_fluids$getSetFlowDownCache(key, level, posCanFlowDown, posDir, fluidState.getType(), requiresSlope)) {
-                        return Pair.of(dir, 0);
-                    } else {
-                        // else, perform a deep search for the nearest slope
-                        return Pair.of(dir, flowing_fluids$getSlopeDistance(
-                                level, blockPos, 1, dir.getOpposite(),
-                                fluidState.getType(), amount + 1, posDir, statesAtPos,
-                                posCanFlowDown, requiresSlope, slopeFindDistance));
-                    }
-                })
-                .filter(pair -> !requiresSlope || pair.second() <= slopeFindDistance)
-                .min(Comparator.comparingInt(Pair::second))
-                .map(Pair::first).orElse(null);
+        Direction bestDirection = null;
+        int minimalDistance = Integer.MAX_VALUE;
+
+        for (Direction dir : directionsCanSpreadToSortedByAmount) {
+            var posDir = blockPos.relative(dir);
+            short key = ffCacheKey(blockPos, posDir);
+            int distance;
+            if (level.getFluidState(posDir).getAmount() < (amount - 1) || flowing_fluids$getSetFlowDownCache(key, level, posCanFlowDown, posDir, fluidState.getType(), requiresSlope)) {
+                distance = 0;
+            } else {
+                distance = flowing_fluids$getSlopeDistance(
+                        level, blockPos, 1, dir.getOpposite(),
+                        fluidState.getType(), amount + 1, posDir, statesAtPos,
+                        posCanFlowDown, requiresSlope, slopeFindDistance);
+            }
+            if (!requiresSlope || distance <= slopeFindDistance) {
+                if (distance < minimalDistance) {
+                    minimalDistance = distance;
+                    bestDirection = dir;
+                }
+            }
+        }
+        return bestDirection;
     }
 
     @Unique
