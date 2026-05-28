@@ -520,7 +520,7 @@ public abstract class MixinFlowingFluid extends Fluid {
         // get the cardinal directions that are valid flow locations sorted by the amount of fluid in them,
         // ties are randomly sorted by initial shuffle
         List<Direction> toSort = new ArrayList<>(FFFluidUtils.getCardinalsShuffle(level.random));
-        // cache the fluid amounts, as getting fluid states is somewhat expensive
+        // cache the fluid amounts, as getting fluid states is somewhat expensive when doing a lot
         Object2IntMap<Direction> fluidAmounts = new Object2IntOpenHashMap<>(4);
         for (Direction dir : toSort) {
             fluidAmounts.put(dir, level.getFluidState(blockPos.relative(dir)).getAmount());
@@ -536,8 +536,7 @@ public abstract class MixinFlowingFluid extends Fluid {
             BlockState stateDir = statesDir.first();
             var fluidStateDir = statesDir.second();
             int amountDir = fluidStateDir.getAmount();
-            boolean canFlow = flowing_fluids$canSpreadToOptionallySameOrEmpty(
-                    fluidState.getType(), amount, level, blockPos,
+            boolean canFlow = flowing_fluids$canSpreadToOptionallySameOrEmpty(fluidState.getType(), amount, level, blockPos,
                     level.getBlockState(blockPos), direction, posDir, stateDir, fluidStateDir, requiresSlope);
             if (canFlow) {
                 if (!anyFlowableNeighbours2LevelsLowerOrMore) {
@@ -586,12 +585,16 @@ public abstract class MixinFlowingFluid extends Fluid {
         int minimalDistance = Integer.MAX_VALUE;
 
         for (Direction dir : directionsCanSpreadToSortedByAmount) {
+            // we already know we can spread to this direction, so we can just check if we can flow down or
+            // if we need to perform a deeper search
             var posDir = blockPos.relative(dir);
             short key = ffCacheKey(blockPos, posDir);
             int distance;
+            // check if we can flow down here, if so, return the direction
             if (level.getFluidState(posDir).getAmount() < (amount - 1) || flowing_fluids$getSetFlowDownCache(key, level, posCanFlowDown, posDir, fluidState.getType(), requiresSlope)) {
                 distance = 0;
             } else {
+                // else, perform a deep search for the nearest slope
                 distance = flowing_fluids$getSlopeDistance(
                         level, blockPos, 1, dir.getOpposite(),
                         fluidState.getType(), amount + 1, posDir, statesAtPos,
