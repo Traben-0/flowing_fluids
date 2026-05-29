@@ -20,5 +20,21 @@ jobs:
           distribution: temurin
           java-version: 25
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
       # Build the mod
       - run: ./gradlew build
+
+      # Collect all built JARs into a flat directory
+      - run: |
+          mkdir -p jars
+          find . -path "**/build/libs/*.jar" \
+            ! -name "*-sources.jar" \
+            ! -name "*-dev.jar" \
+            -exec cp {} jars/ \;
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: flowing_fluids-all
+          path: jars/*.jar
