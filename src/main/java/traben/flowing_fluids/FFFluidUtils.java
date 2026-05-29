@@ -1,5 +1,6 @@
 package traben.flowing_fluids;
 
+import com.google.common.collect.Collections2;
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import net.minecraft.core.BlockPos;
@@ -45,6 +46,8 @@ import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
 public class FFFluidUtils {
+    private static final List<List<Direction>> HORIZONTAL_PERMUTATIONS =
+            List.copyOf(Collections2.permutations(Direction.Plane.HORIZONTAL.stream().toList()));
 
     public static int seaLevel(LevelReader level) {
         // Dimension override
@@ -433,7 +436,7 @@ public class FFFluidUtils {
     }
 
     public static List<Direction> getCardinalsShuffle(RandomSource random) {
-        return Direction.Plane.HORIZONTAL.shuffledCopy(random);
+        return HORIZONTAL_PERMUTATIONS.get(random.nextInt(HORIZONTAL_PERMUTATIONS.size()));
     }
 
 
