@@ -247,6 +247,7 @@ public abstract class MixinFlowingFluid extends Fluid {
                     BlockState thisState,
                     //#endif
                     final FluidState fluidState, final CallbackInfo ci) {
+        if (flowing_fluids$shouldPreserveVanilla(level, blockPos, fluidState)) { return; }
         if (FlowingFluids.config.enableMod
                 && FlowingFluids.config.isFluidAllowed(fluidState)) {
             // cancel the original tick
@@ -712,5 +713,23 @@ public abstract class MixinFlowingFluid extends Fluid {
                                                BlockPos blockPos2, BlockState blockState2, FluidState fluidState2) {
         //add extra fluid check for replacing into self
         return FFFluidUtils.canFluidFlowFromPosToDirection((FlowingFluid) sourceFluid, sourceAmount, blockGetter, blockPos, blockState, direction, blockPos2, blockState2, fluidState2);
+    }
+
+    @Unique
+    private static boolean flowing_fluids$shouldPreserveVanilla(Level level, BlockPos pos, FluidState fluidState) {
+        if (!FlowingFluids.config.preserveVanillaWaterInWetBiomes) return false;
+        if (fluidState == null || !fluidState.is(FluidTags.WATER)) return false;
+        if (!FFFluidUtils.matchInfiniteBiomes(level.getBiome(pos))) return false;
+
+        // Allow water to fall freely downward
+        BlockPos below = pos.below();
+        FluidState belowFluid = level.getFluidState(below);
+        if (level.getBlockState(below).isAir()
+                || (!belowFluid.isEmpty() && belowFluid.getAmount() < 8)) return false;
+
+        // Flowing water (amount < 4) is handled normally by Flowing Fluids
+        if (fluidState.getAmount() < 4) return false;
+
+        return true;
     }
 }

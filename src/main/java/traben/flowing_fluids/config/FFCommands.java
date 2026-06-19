@@ -750,6 +750,14 @@ public class FFCommands {
                                         "Liquids at their minimum height will now flow to and over nearby edges, up to 4 blocks away.",
                                         "Liquids at their minimum height will no longer flow to and over nearby edges.",
                                         a -> FlowingFluids.config.flowToEdges = a, () -> FlowingFluids.config.flowToEdges)
+                                ).then(booleanCommand(
+                                        "preserve_vanilla_water_in_wet_biomes",
+                                        "When enabled, source water blocks (8/8) in ocean, river, and swamp biomes will not be processed " +
+                                                "by Flowing Fluids, preserving the original water layout (useful for 3D rivers). " +
+                                                "NOTE: It is strongly recommended to also set the sea level override to a high " +
+                                                "value (e.g. 4096) via /flowingfluids advancedsettings sealeveloverride. ",
+                                        a -> FlowingFluids.config.preserveVanillaWaterInWetBiomes = a,
+                                        () -> FlowingFluids.config.preserveVanillaWaterInWetBiomes)
                                 )
                         ).then(drainAndFill()
                         )
