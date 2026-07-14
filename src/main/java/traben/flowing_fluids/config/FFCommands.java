@@ -18,6 +18,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -755,7 +756,9 @@ public class FFCommands {
                                         "When enabled, source water blocks (8/8) in ocean, river, and swamp biomes will not be processed " +
                                                 "by Flowing Fluids, preserving the original water layout (useful for 3D rivers). " +
                                                 "NOTE: It is strongly recommended to also set the sea level override to a high " +
-                                                "value (e.g. 4096) via /flowingfluids advancedsettings sealeveloverride. ",
+                                                "value (e.g. 4096) via /flowingfluids advancedsettings sealeveloverride. " +
+                                                "You should set /gamerule waterSourceConversion false, otherwise vanilla " +
+                                                "water mechanics may create infinite water sources in these biomes.",
                                         a -> FlowingFluids.config.preserveVanillaWaterInWetBiomes = a,
                                         () -> FlowingFluids.config.preserveVanillaWaterInWetBiomes)
                                 )
