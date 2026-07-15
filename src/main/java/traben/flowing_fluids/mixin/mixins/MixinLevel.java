@@ -1,5 +1,8 @@
 package traben.flowing_fluids.mixin.mixins;
 
+//#if NEOFORGE && MC >= 26.2
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+//#endif
 import com.llamalad7.mixinextras.sugar.Local;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
@@ -25,12 +28,28 @@ import java.util.Set;
 @Mixin(Level.class)
 public abstract class MixinLevel implements FFFlowListenerLevel {
 
+    //#if NEOFORGE && MC >= 26.2
+    @ModifyExpressionValue(method = "setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;II)Z",
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/world/level/chunk/LevelChunk;setBlockState(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;I)Lnet/minecraft/world/level/block/state/BlockState;"))
+    private BlockState flowing_fluids$displaceFluids(final BlockState originalState,
+                                                      @Local(argsOnly = true) final BlockPos pos,
+                                                      @Local(argsOnly = true) final BlockState state,
+                                                      @Local(argsOnly = true, ordinal = 0) final int flags,
+                                                      @Local final LevelChunk levelChunk) {
+        if (originalState != null) {
+            FFFluidUtils.displaceFluids((Level) (Object) this, pos, state, flags, levelChunk, originalState);
+        }
+        return originalState;
+    }
+    //#else
     @Inject(method = "setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;II)Z",
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/world/level/Level;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;"))
     private void flowing_fluids$displaceFluids(final BlockPos pos, final BlockState state, final int flags, final int recursionLeft, final CallbackInfoReturnable<Boolean> cir, @Local final LevelChunk levelChunk, @Local(ordinal = 1) final BlockState originalState) {
         FFFluidUtils.displaceFluids((Level) (Object) this, pos, state, flags, levelChunk, originalState);
     }
+    //#endif
 
     @Unique
     Object2ObjectOpenHashMap<BlockPos, Set<BlockPos>> ff$flowListenerPositions = null;
