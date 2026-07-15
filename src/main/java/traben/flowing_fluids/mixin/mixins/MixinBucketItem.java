@@ -1,7 +1,11 @@
 package traben.flowing_fluids.mixin.mixins;
 
 
+//#if MC >= 26.2
+//$$ import net.minecraft.advancements.triggers.CriteriaTriggers;
+//#else
 import net.minecraft.advancements.CriteriaTriggers;
+//#endif
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 //#if MC > 12001

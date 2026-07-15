@@ -128,6 +128,7 @@ dependencies {
 
     "SODIUM" setVar (
             modImpl("maven.modrinth:sodium:",
+                260200 to ver("2Yom1N68", null,  "KHPycol7"),
                 260100 to ver("Amr4VcZo", null,  "Fg5Mk6Y3"),
                 12109 to ver("sFfidWgd", null,  "PdQpfqPZ"),
                 12106 to ver("7pwil2dy", null,  "q6wdZywr"),
@@ -169,6 +170,7 @@ dependencies {
 
     if (platform.isFabric) {
         val fab = when {
+            mcVersion >= 26_02_00 -> "0.154.2+26.2"
             mcVersion >= 26_01_00 -> "0.143.14+26.1"
             mcVersion >= 1_21_09 -> "0.138.3+1.21.10"
             mcVersion >= 1_21_06 -> "0.128.2+1.21.6"
