@@ -1,4 +1,7 @@
 
+[1.0.7]
+- 26.2 release
+
 [1.0.6]
 - fixed a launch crash when Sable / Create: Aeronautics was installed
 - fixed an issue preventing the config file from loading or updating properly on NeoForge

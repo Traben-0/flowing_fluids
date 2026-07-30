@@ -18,7 +18,7 @@ plugins {
     // Otherwise you'll need to configure those as usual for (architectury) loom.
     id("gg.essential.defaults")
 
-    id("me.modmuss50.mod-publish-plugin") version "2.0.0-beta.1"
+    id("me.modmuss50.mod-publish-plugin") version "2.2.0" // https://modmuss50.github.io/mod-publish-plugin/#changelog
 }
 
 //tasks.compileKotlin.setJvmDefault("all")
@@ -348,6 +348,9 @@ private fun changelog(): String {
 }
 
 publishMods {
+    //TODO remove for next update
+    dryRun.set(mcVersion < 26_02_00)
+
     // https://modmuss50.github.io/mod-publish-plugin/
     file.set(
         (if (platform.isUnobfuscated) tasks.jar
