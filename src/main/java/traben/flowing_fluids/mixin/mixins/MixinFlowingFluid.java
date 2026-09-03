@@ -37,6 +37,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import traben.flowing_fluids.FFFlowListenerLevel;
 import traben.flowing_fluids.FFFluidUtils;
+import traben.flowing_fluids.FFSleepingFluids;
 import traben.flowing_fluids.FlowingFluids;
 import traben.flowing_fluids.IFFFlowListener;
 import traben.flowing_fluids.config.FFConfig;
@@ -255,6 +256,12 @@ public abstract class MixinFlowingFluid extends Fluid {
             if (FlowingFluids.config.dontTickAtLocation(blockPos, level)) {
                 level.scheduleTick(blockPos, this, 200 + level.random.nextInt(200)); // 10 - 20 seconds delay
                 return; // do not calculate and delay the tick
+            }
+
+            // Sleeping fluids (opt-in): fluid only processes while recently woken by a block
+            // update, with a per-tick budget for large active cascades - see FFSleepingFluids.
+            if (!FFSleepingFluids.allowScheduledTick(level, blockPos, fluidState.getType())) {
+                return; // swallowed (asleep) or deferred (over budget)
             }
 
             if (FlowingFluids.debug_killFluidUpdatesUntilTime > 0) {

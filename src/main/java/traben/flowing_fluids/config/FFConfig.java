@@ -55,6 +55,11 @@ public class FFConfig {
     public int minLavaLevelForObsidian = 6;
     public boolean fastBiomeRefillAtSeaLevelOnly = false;
     public int playerBlockDistanceForFlowing = 0;
+
+    // Sleeping fluids (opt-in performance mode, see FFSleepingFluids)
+    public boolean sleepingFluids = false;
+    public int sleepingFluidsMaxTicksPerTick = 1200;
+    public int sleepingFluidsNearPlayerRadius = 16;
     public float concreteDrainsWaterChance = 0.5f;
     public float displacementDepthMultiplier = 1f;
     public DisplacementSounds displacementSounds = DisplacementSounds.BOTH;
@@ -205,6 +210,11 @@ public class FFConfig {
         dimensionSeaLevelOverrides = buffer.readMap(Int2IntOpenHashMap::new, FriendlyByteBuf::readInt, FriendlyByteBuf::readInt);
 
         hideStartMessage = buffer.readBoolean();
+
+        // sleeping fluids
+        sleepingFluids = buffer.readBoolean();
+        sleepingFluidsMaxTicksPerTick = buffer.readVarInt();
+        sleepingFluidsNearPlayerRadius = buffer.readVarInt();
         ///////////////////////////////////////////////
     }
 
@@ -274,6 +284,11 @@ public class FFConfig {
         buffer.writeMap(dimensionSeaLevelOverrides, FriendlyByteBuf::writeInt, FriendlyByteBuf::writeInt);
 
         buffer.writeBoolean(hideStartMessage);
+
+        // sleeping fluids
+        buffer.writeBoolean(sleepingFluids);
+        buffer.writeVarInt(sleepingFluidsMaxTicksPerTick);
+        buffer.writeVarInt(sleepingFluidsNearPlayerRadius);
         ///////////////////////////////////////////////
     }
 

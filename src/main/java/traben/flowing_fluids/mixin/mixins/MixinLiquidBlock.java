@@ -23,8 +23,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import traben.flowing_fluids.FFFluidUtils;
+import traben.flowing_fluids.FFSleepingFluids;
 import traben.flowing_fluids.FlowingFluids;
 
 
@@ -42,6 +44,20 @@ public abstract class MixinLiquidBlock extends Block implements BucketPickup {
 
 
 
+
+    @Inject(method = "neighborChanged", at = @At("HEAD"))
+    private void ff$sleepingFluidsWakeOnNeighborChanged(final CallbackInfo ci,
+                                                        @Local(argsOnly = true) Level level,
+                                                        @Local(argsOnly = true, ordinal = 0) BlockPos pos) {
+        FFSleepingFluids.wake(level, pos);
+    }
+
+    @Inject(method = "onPlace", at = @At("HEAD"))
+    private void ff$sleepingFluidsWakeOnPlace(final CallbackInfo ci,
+                                              @Local(argsOnly = true) Level level,
+                                              @Local(argsOnly = true, ordinal = 0) BlockPos pos) {
+        FFSleepingFluids.wake(level, pos);
+    }
 
     @ModifyExpressionValue(method = "shouldSpreadLiquid", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/material/FluidState;is(Lnet/minecraft/tags/TagKey;)Z"))

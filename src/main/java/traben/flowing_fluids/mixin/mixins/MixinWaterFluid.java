@@ -26,6 +26,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import traben.flowing_fluids.FFFluidUtils;
+import traben.flowing_fluids.FFSleepingFluids;
 import traben.flowing_fluids.FlowingFluids;
 
 import java.util.Random;
@@ -56,6 +57,9 @@ public abstract class MixinWaterFluid extends FlowingFluid {
                 || !FlowingFluids.config.isFluidAllowed(fluidState)) return;
 
         if (FlowingFluids.config.dontTickAtLocation(blockPos, level)) return; // do not calculate
+
+        // Sleeping fluids (opt-in): ambient behaviours only run for recently-woken water.
+        if (!FFSleepingFluids.allowRandomTick(level, blockPos)) return;
 
         int amount = fluidState.getAmount();
 

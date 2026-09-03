@@ -623,6 +623,21 @@ public class FFCommands {
                                                     return messageAndSaveConfig(cont, "Random tick level check distance set to " + FlowingFluids.config.randomTickLevelingDistance);
                                                 })
                                         )
+                                ).then(Commands.literal("sleeping_fluids")
+                                        .executes(cont -> message(cont, "Opt-in performance mode: fluids only process while recently woken by a block update (placing/breaking blocks, buckets, pistons, and fluid flow itself), with a per-tick budget so huge active cascades progress at a bounded TPS-safe rate, and a guaranteed radius around players where fluid always flows smoothly.\nMade for worlds whose large waterbodies can never settle (endless ocean/cave drain lag).\nCurrently: " + (FlowingFluids.config.sleepingFluids ? "ENABLED" : "DISABLED")))
+                                        .then(booleanCommand("enabled",
+                                                "Enables or disables sleeping fluids.",
+                                                "Sleeping fluids are now enabled.\nFluids only tick after being woken by a block update, and awake fluid ticks are budgeted per game tick.",
+                                                "Sleeping fluids are now disabled.\nAll fluid ticks process normally again.",
+                                                a -> FlowingFluids.config.sleepingFluids = a, () -> FlowingFluids.config.sleepingFluids))
+                                        .then(intCommand("max_fluid_ticks_per_tick",
+                                                "The maximum awake fluid ticks processed per game tick; anything beyond is deferred for roughly 1.5-2.3 seconds (with positional jitter).\nDefault is 1200, roughly 5-8ms of fluid processing.",
+                                                "ticks", 100, 100000,
+                                                a -> FlowingFluids.config.sleepingFluidsMaxTicksPerTick = a, () -> FlowingFluids.config.sleepingFluidsMaxTicksPerTick))
+                                        .then(intCommand("near_player_radius",
+                                                "Fluids within this many blocks of a player bypass the budget (while still counting toward it), so interactive fluid always flows smoothly even during a large distant cascade.\n0 disables the bypass. Default is 16.",
+                                                "blocks", 0, 64,
+                                                a -> FlowingFluids.config.sleepingFluidsNearPlayerRadius = a, () -> FlowingFluids.config.sleepingFluidsNearPlayerRadius))
                                 ).then(Commands.literal("how_liquids_affect_entities")
                                         .then(booleanCommand("flow_pushes_boats",
                                                 "Controls if boats are pushed by the flow angle that water visually has at the surface.\nTHIS MUST BE OFF FOR BOATS TO WORK PROPERLY IN PARTIAL HEIGHT FLUIDS!!!",
