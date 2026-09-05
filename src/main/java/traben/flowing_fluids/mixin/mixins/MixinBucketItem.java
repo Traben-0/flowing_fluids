@@ -105,22 +105,14 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
                                                         //#endif
     ) {
         ff$preserveVanillaForThisUse.set(false);
-        if (FlowingFluids.config.enableMod
-                && this.content == Fluids.EMPTY
-                && FlowingFluids.config.preserveVanillaWaterInWetBiomes) {
-
+        if (this.content == Fluids.EMPTY) {
             BlockHitResult anyHit = getPlayerPOVHitResult(level, player, ClipContext.Fluid.ANY);
 
             if (anyHit.getType() == HitResult.Type.BLOCK) {
                 BlockPos pos = anyHit.getBlockPos();
                 var fluidState = level.getFluidState(pos);
-                boolean isRiverBiome = FFFluidUtils.matchInfiniteBiomes(level.getBiome(pos));
 
-                if (fluidState.is(FluidTags.WATER) && isRiverBiome) {
-                    if (fluidState.getAmount() < 8) {
-                        ff$preserveVanillaForThisUse.set(true);
-                        return;
-                    }
+                if (FFFluidUtils.isPreservedVanillaWater(level, pos, fluidState)) {
                     ff$preserveVanillaForThisUse.set(true);
                     return;
                 }

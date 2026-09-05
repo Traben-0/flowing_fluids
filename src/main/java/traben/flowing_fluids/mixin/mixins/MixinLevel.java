@@ -50,10 +50,8 @@ public abstract class MixinLevel implements FFFlowListenerLevel {
                     target = "Lnet/minecraft/world/level/Level;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;"))
     private void flowing_fluids$displaceFluids(final BlockPos pos, final BlockState state, final int flags, final int recursionLeft, final CallbackInfoReturnable<Boolean> cir, @Local final LevelChunk levelChunk, @Local(ordinal = 1) final BlockState originalState) {
         Level level = (Level)(Object) this;
-        // skip displacement entirely in protected wet biomes - let vanilla water physics happen naturally
-        if (FlowingFluids.config.preserveVanillaWaterInWetBiomes
-                && originalState.getFluidState().is(FluidTags.WATER)
-                && FFFluidUtils.matchInfiniteBiomes(level.getBiome(pos))) {
+        // Preserve vanilla water layouts in infinite biomes by skipping Flowing Fluids displacement.
+        if (FFFluidUtils.isPreservedVanillaWater(level, pos, originalState.getFluidState())) {
             return;
         }
         FFFluidUtils.displaceFluids(level, pos, state, flags, levelChunk, originalState);

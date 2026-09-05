@@ -18,7 +18,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -751,16 +750,15 @@ public class FFCommands {
                                         "Liquids at their minimum height will now flow to and over nearby edges, up to 4 blocks away.",
                                         "Liquids at their minimum height will no longer flow to and over nearby edges.",
                                         a -> FlowingFluids.config.flowToEdges = a, () -> FlowingFluids.config.flowToEdges)
-                                ).then(booleanCommand(
-                                        "preserve_vanilla_water_in_wet_biomes",
-                                        "When enabled, source water blocks (8/8) in ocean, river, and swamp biomes will not be processed " +
-                                                "by Flowing Fluids, preserving the original water layout (useful for 3D rivers). " +
-                                                "NOTE: It is strongly recommended to also set the sea level override to a high " +
-                                                "value (e.g. 4096) via /flowingfluids advancedsettings sealeveloverride. " +
-                                                "You should set /gamerule waterSourceConversion false, otherwise vanilla " +
-                                                "water mechanics may create infinite water sources in these biomes.",
-                                        a -> FlowingFluids.config.preserveVanillaWaterInWetBiomes = a,
-                                        () -> FlowingFluids.config.preserveVanillaWaterInWetBiomes)
+                                ).then(booleanCommand("preserve_vanilla_water_in_infinite_biomes",
+                                        "Prevents Flowing Fluids from processing water exposed to sky light in infinite water biomes, preserving the original water layout.\n" +
+                                                "By default, infinite water biomes are oceans, rivers, and swamps. This is useful for 3D river mods.\n" +
+                                                "NOTE: It is strongly recommended to set the sea level override to a high value (e.g. 4096) via " +
+                                                "/flowingfluids advanced_settings sea_level_override.\n" +
+                                                "You should also set /gamerule waterSourceConversion false to prevent vanilla water mechanics from " +
+                                                "creating infinite water sources in these biomes.",
+                                        a -> FlowingFluids.config.preserveVanillaWaterInInfiniteBiomes = a,
+                                        () -> FlowingFluids.config.preserveVanillaWaterInInfiniteBiomes)
                                 )
                         ).then(drainAndFill()
                         )

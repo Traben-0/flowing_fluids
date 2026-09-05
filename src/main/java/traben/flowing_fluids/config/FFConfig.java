@@ -48,7 +48,7 @@ public class FFConfig {
     public boolean waterFlowAffectsEntities = true;
     public boolean waterFlowAffectsPlayers = false;
     public boolean waterFlowAffectsItems = true;
-    public boolean preserveVanillaWaterInWetBiomes = false;
+    public boolean preserveVanillaWaterInInfiniteBiomes = false;
     public float infiniteWaterBiomeNonConsumeChance = 0.01f;
     public float infiniteWaterBiomeDrainSurfaceChance = 0.5f;
     public int minWaterLevelForIce = 4;
@@ -186,7 +186,7 @@ public class FFConfig {
         displacementSounds = buffer.readEnum(DisplacementSounds.class);
         flowSoundChance = buffer.readFloat();
         tickDelaySpread = buffer.readVarInt();
-        preserveVanillaWaterInWetBiomes = buffer.readBoolean();
+        preserveVanillaWaterInInfiniteBiomes = buffer.readBoolean();
 
         // Auto performance handling
         autoPerformanceMode = buffer.readEnum(AutoPerformance.class);
@@ -257,7 +257,7 @@ public class FFConfig {
         buffer.writeEnum(displacementSounds);
         buffer.writeFloat(flowSoundChance);
         buffer.writeVarInt(tickDelaySpread);
-        buffer.writeBoolean(preserveVanillaWaterInWetBiomes);
+        buffer.writeBoolean(preserveVanillaWaterInInfiniteBiomes);
 
         // Auto performance handling
         buffer.writeEnum(autoPerformanceMode);

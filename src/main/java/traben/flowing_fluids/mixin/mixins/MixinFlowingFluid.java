@@ -27,6 +27,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -51,6 +52,7 @@ import java.util.List;
 import java.util.function.BiConsumer;
 
 import static traben.flowing_fluids.FFFluidUtils.getStateForFluidByAmount;
+import static traben.flowing_fluids.FFFluidUtils.matchInfiniteBiomes;
 
 
 @Mixin(FlowingFluid.class)
@@ -138,6 +140,7 @@ public abstract class MixinFlowingFluid extends Fluid {
                 && level.getChunkAt(pos).getFluidTicks().count() < 16 //ignore chunks with many updating fluids
                 && FlowingFluids.config.isFluidAllowed(this)
                 && !level.getFluidState(pos.above()).getType().isSame(this)//don't settle if there is a fluid above
+                && !FFFluidUtils.isPreservedVanillaWater(level, pos, state)
         ) {
             //search in a random direction up to 32 blocks for a lower fluid to level out with
 
@@ -247,11 +250,9 @@ public abstract class MixinFlowingFluid extends Fluid {
                     BlockState thisState,
                     //#endif
                     final FluidState fluidState, final CallbackInfo ci) {
-        if (FlowingFluids.config.preserveVanillaWaterInWetBiomes
-                && fluidState.is(FluidTags.WATER)
-                && FFFluidUtils.matchInfiniteBiomes(level.getBiome(blockPos))) {
-            return;
-        }
+          if(FFFluidUtils.isPreservedVanillaWater(level, blockPos, fluidState)) {
+              return;
+          }
         if (FlowingFluids.config.enableMod
                 && FlowingFluids.config.isFluidAllowed(fluidState)) {
             // cancel the original tick
@@ -280,7 +281,7 @@ public abstract class MixinFlowingFluid extends Fluid {
 
             boolean isWaterAndInfiniteBiome = fluidState.is(FluidTags.WATER)
                     && withinInfBiomeHeights
-                    && FFFluidUtils.matchInfiniteBiomes(level.getBiome(blockPos))
+                    && matchInfiniteBiomes(level.getBiome(blockPos))
                     && level.getBrightness(LightLayer.SKY, blockPos) > 0;
 
             boolean dontConsumeWater = isWaterAndInfiniteBiome
@@ -505,7 +506,15 @@ public abstract class MixinFlowingFluid extends Fluid {
             //$$ Level level,
             //#endif
             final BlockPos blockPos, final BlockState blockState, final CallbackInfoReturnable<FluidState> cir) {
-        if (FlowingFluids.config.preserveVanillaWaterInWetBiomes){
+        // TODO: using this check did not work correctly - had to use this condition directly instead.
+        //  Not sure why the shared helper behaves differently in this specific method.
+        // if (FFFluidUtils.isPreservedVanillaWater(level, blockPos, level.getFluidState(blockPos))) {
+        //     return;
+        // }
+        if (FlowingFluids.config.preserveVanillaWaterInInfiniteBiomes
+                && this.isSame(Fluids.WATER)
+                && matchInfiniteBiomes(level.getBiome(blockPos))
+                && level.getBrightness(LightLayer.SKY, blockPos) > 0) {
             return;
         }
         if (FlowingFluids.config.enableMod
