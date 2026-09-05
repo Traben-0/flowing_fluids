@@ -13,11 +13,13 @@ import net.minecraft.data.worldgen.DimensionTypes;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
@@ -595,6 +597,16 @@ public class FFFluidUtils {
                 || FlowingFluids.infiniteBiomes.stream().anyMatch(biome::is);
     }
 
+    public static boolean isPreservedVanillaWater(
+            final Level level,
+            final BlockPos pos,
+            final FluidState fluidState
+    ) {
+        return FlowingFluids.config.preserveVanillaWaterInInfiniteBiomes
+                && fluidState.is(FluidTags.WATER)
+                && matchInfiniteBiomes(level.getBiome(pos))
+                && level.getBrightness(LightLayer.SKY, pos) > 0;
+    }
 
     private static long lastFlowSoundTime = 0;
 
