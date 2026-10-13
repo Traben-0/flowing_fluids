@@ -199,10 +199,23 @@ public class FFConfig {
         create_waterWheelFlowMaxTickInterval = buffer.readVarInt();
 
         // blacklist
-        fluidBlacklist = buffer.readCollection(ObjectOpenHashSet::new, FriendlyByteBuf::readUtf);
+        // Builtin read collection removed in 26.3
+        int size = buffer.readVarInt();
+        fluidBlacklist = new ObjectOpenHashSet<>(size);
+        for (int i = 0; i < size; i++) {
+            fluidBlacklist.add(buffer.readUtf());
+        }
 
         defaultSeaLevelOverride = buffer.readVarInt();
-        dimensionSeaLevelOverrides = buffer.readMap(Int2IntOpenHashMap::new, FriendlyByteBuf::readInt, FriendlyByteBuf::readInt);
+
+        // readmap removed in 26.3
+        dimensionSeaLevelOverrides = new Int2IntOpenHashMap();
+        int mapSize = buffer.readVarInt();
+        for (int i = 0; i < mapSize; i++) {
+            int key = buffer.readInt();
+            int value = buffer.readInt();
+            dimensionSeaLevelOverrides.put(key, value);
+        }
 
         hideStartMessage = buffer.readBoolean();
         ///////////////////////////////////////////////
@@ -268,10 +281,22 @@ public class FFConfig {
         buffer.writeVarInt(create_waterWheelFlowMaxTickInterval);
 
         // blacklist
-        buffer.writeCollection(fluidBlacklist, FriendlyByteBuf::writeUtf);
+        // buffer.writeCollection(fluidBlacklist, FriendlyByteBuf::writeUtf);
+        // Method removed in 26.3
+        buffer.writeVarInt(fluidBlacklist.size());
+        for (String fluid : fluidBlacklist) {
+            buffer.writeUtf(fluid);
+        }
 
         buffer.writeVarInt(defaultSeaLevelOverride);
-        buffer.writeMap(dimensionSeaLevelOverrides, FriendlyByteBuf::writeInt, FriendlyByteBuf::writeInt);
+
+        //buffer.writeMap(dimensionSeaLevelOverrides, FriendlyByteBuf::writeInt, FriendlyByteBuf::writeInt);
+        // Method removed in 26.3
+        buffer.writeVarInt(dimensionSeaLevelOverrides.size());
+        for (Int2IntOpenHashMap.Entry entry : dimensionSeaLevelOverrides.int2IntEntrySet()) {
+            buffer.writeInt(entry.getIntKey());
+            buffer.writeInt(entry.getIntValue());
+        }
 
         buffer.writeBoolean(hideStartMessage);
         ///////////////////////////////////////////////

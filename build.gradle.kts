@@ -55,6 +55,7 @@ base.archivesName.set("flowing_fluids-$modVersion-${project.name}")
 
 val manuallyAccessTransform = mcVersion >= 26_00_00 && platform.isNeoForge
 val accessWidener = "flowing_fluids_" + when {
+    mcVersion >= 26_03_00 -> 14
     mcVersion >= 26_01_00 -> 13
     mcVersion >= 1_21_09 -> 12
     mcVersion >= 1_21_06 -> 11
@@ -158,10 +159,10 @@ dependencies {
         modImplementation("dev.engine-room.flywheel:flywheel-forge-1.20.1:1.0.5")
         preprocess.vars.put("CREATE", 1)
     } else if (platform.isNeoForge && mcVersion == 12100) {
-        modImplementation("com.simibubi.create:create-1.21.1:6.0.8-168:slim") { isTransitive = false }
-        implementation("net.createmod.ponder:Ponder-NeoForge-1.21.1:1.0.64")
-//        modImplementation("com.tterrag.registrate:Registrate:MC1.21-1.3.0+62")
-        modImplementation("dev.engine-room.flywheel:flywheel-neoforge-1.21.1:1.0.5")
+        modImplementation("com.simibubi.create:create-1.21.1:6.0.10-280:slim") { isTransitive = false }
+        implementation("net.createmod.ponder:ponder-neoforge:1.0.82+mc1.21.1")
+//        modImplementation("com.tterrag.registrate:Registrate:MC1.21-1.3.0+67")
+        modImplementation("dev.engine-room.flywheel:flywheel-neoforge-1.21.1:1.0.6")
         preprocess.vars.put("CREATE", 1)
     } else {
         preprocess.vars.put("CREATE", 0)
@@ -349,7 +350,7 @@ private fun changelog(): String {
 
 publishMods {
     //TODO remove for next update
-    dryRun.set(mcVersion < 26_02_00)
+    //dryRun.set(mcVersion < 26_03_00)
 
     // https://modmuss50.github.io/mod-publish-plugin/
     file.set(
