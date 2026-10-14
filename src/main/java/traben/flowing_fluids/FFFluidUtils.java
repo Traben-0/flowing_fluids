@@ -48,7 +48,7 @@ import java.util.stream.IntStream;
 
 public class FFFluidUtils {
     private static final List<List<Direction>> HORIZONTAL_PERMUTATIONS =
-            List.copyOf(Collections2.permutations(Direction.Plane.HORIZONTAL.stream().toList()));
+            new ArrayList<>(Collections2.permutations(Direction.Plane.HORIZONTAL.stream().toList()));
 
     public static int seaLevel(LevelReader level) {
         // Dimension override
@@ -89,7 +89,7 @@ public class FFFluidUtils {
     }
 
     public static boolean canFluidFlowToNeighbourFromPos(LevelAccessor accessor, BlockPos pos, FlowingFluid fluid, int amount) {
-        for (Direction direction :Direction.Plane.HORIZONTAL) {
+        for (Direction direction : Direction.Plane.HORIZONTAL) {
             if (FFFluidUtils.canFluidFlowFromPosToDirection(fluid, amount, accessor, pos, direction)) {
                 return true;
             }
@@ -524,8 +524,8 @@ public class FFFluidUtils {
                     boolean lava = flowSource.isSame(Fluids.LAVA);
                     level.playSound(null, pos,
                             amountRemaining > 0
-                                    ? lava ? SoundEvents.BUCKET_FILL_LAVA : SoundEvents.BUCKET_FILL
-                                    : lava ? SoundEvents.BUCKET_EMPTY_LAVA : SoundEvents.BUCKET_EMPTY,
+                                    ? (lava ? SoundEvents.BUCKET_FILL_LAVA : SoundEvents.BUCKET_FILL)
+                                    : (lava ? SoundEvents.BUCKET_EMPTY_LAVA : SoundEvents.BUCKET_EMPTY),
                             SoundSource.BLOCKS, 1.0F, 1.0F
                     );
                 }

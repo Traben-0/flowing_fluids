@@ -319,7 +319,7 @@ private val versionRangeMap: Map<String, Array<String>> = mapOf(
 private val String.versionRange: Array<String>
     get() = versionRangeMap[this] ?: arrayOf(this)
 
-private fun changelog(): String {
+private fun changelog(): String? {
     val lines = rootProject.rootDir.resolve("CHANGELOG.MD").readText(Charsets.UTF_8).lines()
     val sb = StringBuilder()
     var inside = false
@@ -343,7 +343,7 @@ private fun changelog(): String {
         }
     }
 
-    if (sb.isEmpty()) throw IllegalStateException("No changelog found for version: $modVersion")
+    if (sb.isEmpty()) return null
 
     return sb.toString()
 }
@@ -352,13 +352,15 @@ publishMods {
     //TODO remove for next update
     //dryRun.set(mcVersion < 26_03_00)
 
+    var changelogStr = changelog() ?: return@publishMods
+
     // https://modmuss50.github.io/mod-publish-plugin/
     file.set(
         (if (platform.isUnobfuscated) tasks.jar
         else tasks.named<net.fabricmc.loom.task.RemapJarTask>("remapJar"))
             .get().archiveFile
     )
-    changelog.set(changelog())
+    changelog.set(changelogStr)
     type.set(STABLE)
     val ver = "$modVersion-${platform.loaderStr}-${platform.mcVersionStr}"
     version.set(ver)
