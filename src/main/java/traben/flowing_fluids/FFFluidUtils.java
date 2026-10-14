@@ -38,6 +38,7 @@ import org.spongepowered.asm.mixin.Unique;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -614,13 +615,22 @@ public class FFFluidUtils {
     }
 
     public static void notifyListeners(LevelAccessor level, BlockPos pos, Direction direction, Fluid fluid, boolean downAlso) {
-        if (!(level instanceof FFFlowListenerLevel)) return;
-        Map<BlockPos, Set<BlockPos>> listeners = ((FFFlowListenerLevel) level).ff$getFlowListenerPositions();
+        if (level.isClientSide() || !(level instanceof FFFlowListenerLevel flowListenerLevel)) return;
+
+        Map<BlockPos, Set<BlockPos>> listeners = flowListenerLevel.ff$getFlowListenerPositions();
         Set<BlockPos> positions = listeners.get(pos);
         if (positions != null) {
-            for (BlockPos listenerPos : positions) {
-                if (level.getBlockEntity(pos) instanceof IFFFlowListener listener) {
-                    listener.ff$acceptRecentFlow(listenerPos, direction, fluid, downAlso);
+            if (positions.isEmpty()) {
+                listeners.remove(pos);
+                return;
+            }
+
+            for (Iterator<BlockPos> iterator = positions.iterator(); iterator.hasNext(); ) {
+                BlockPos listenerPos = iterator.next();
+                if (level.getBlockEntity(listenerPos) instanceof IFFFlowListener listener) {
+                    listener.ff$acceptRecentFlow(pos, direction, fluid, downAlso);
+                } else {
+                    iterator.remove(); // No longer a valid listener, remove it from the set
                 }
             }
         }
