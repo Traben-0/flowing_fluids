@@ -7,6 +7,7 @@ import com.llamalad7.mixinextras.sugar.Local;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.core.BlockPos;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -19,6 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import traben.flowing_fluids.FFFlowListenerLevel;
 import traben.flowing_fluids.FFFluidUtils;
+import traben.flowing_fluids.FlowingFluids;
 import traben.flowing_fluids.IFFFlowListener;
 
 import java.util.List;
@@ -47,7 +49,12 @@ public abstract class MixinLevel implements FFFlowListenerLevel {
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/world/level/Level;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;"))
     private void flowing_fluids$displaceFluids(final BlockPos pos, final BlockState state, final int flags, final int recursionLeft, final CallbackInfoReturnable<Boolean> cir, @Local final LevelChunk levelChunk, @Local(ordinal = 1) final BlockState originalState) {
-        FFFluidUtils.displaceFluids((Level) (Object) this, pos, state, flags, levelChunk, originalState);
+        Level level = (Level)(Object) this;
+        // Preserve vanilla water layouts in infinite biomes by skipping Flowing Fluids displacement.
+        if (FFFluidUtils.isPreservedVanillaWater(level, pos, originalState.getFluidState())) {
+            return;
+        }
+        FFFluidUtils.displaceFluids(level, pos, state, flags, levelChunk, originalState);
     }
     //#endif
 

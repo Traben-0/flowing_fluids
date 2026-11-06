@@ -57,6 +57,8 @@ public abstract class MixinWaterFluid extends FlowingFluid {
 
         if (FlowingFluids.config.dontTickAtLocation(blockPos, level)) return; // do not calculate
 
+        if (FFFluidUtils.isPreservedVanillaWater(level, blockPos, fluidState)) return;
+
         int amount = fluidState.getAmount();
 
         // Twilight forest presents its fluid state as water at level 1

@@ -41,6 +41,7 @@ import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
@@ -60,6 +61,8 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
     @Final
     private Fluid content;
 
+    @Unique
+    private static final ThreadLocal<Boolean> ff$preserveVanillaForThisUse = ThreadLocal.withInitial(() -> false);
     public MixinBucketItem(final Properties properties) {
         super(properties);
     }
@@ -83,6 +86,9 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
             index = 2
     )
     private ClipContext.Fluid flowing_fluids$allowAnyFluid(final ClipContext.Fluid par3) {
+        if (ff$preserveVanillaForThisUse.get()) {
+            return par3;
+        }
         if (FlowingFluids.config.enableMod && par3 == ClipContext.Fluid.SOURCE_ONLY) {
             return ClipContext.Fluid.ANY;
         }
@@ -98,6 +104,20 @@ public abstract class MixinBucketItem extends Item implements FFBucketItem {
                                                         //$$ CallbackInfoReturnable<InteractionResultHolder<ItemStack>> cir
                                                         //#endif
     ) {
+        ff$preserveVanillaForThisUse.set(false);
+        if (this.content == Fluids.EMPTY) {
+            BlockHitResult anyHit = getPlayerPOVHitResult(level, player, ClipContext.Fluid.ANY);
+
+            if (anyHit.getType() == HitResult.Type.BLOCK) {
+                BlockPos pos = anyHit.getBlockPos();
+                var fluidState = level.getFluidState(pos);
+
+                if (FFFluidUtils.isPreservedVanillaWater(level, pos, fluidState)) {
+                    ff$preserveVanillaForThisUse.set(true);
+                    return;
+                }
+            }
+        }
         if (FlowingFluids.config.enableMod
                 && content instanceof FlowingFluid
                 && FlowingFluids.config.isFluidAllowed(content)
