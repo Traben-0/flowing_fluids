@@ -6,6 +6,8 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.shorts.Short2BooleanMap;
 import it.unimi.dsi.fastutil.shorts.Short2BooleanOpenHashMap;
+import it.unimi.dsi.fastutil.shorts.Short2IntMap;
+import it.unimi.dsi.fastutil.shorts.Short2IntOpenHashMap;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectMap;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
@@ -530,14 +532,16 @@ public abstract class MixinFlowingFluid extends Fluid {
         List<Direction> directionsCanSpreadToSortedByAmount = new ArrayList<>();
         final int amountMinusOne = amount - 1;
 
+        var blockState = level.getBlockState(blockPos);
+        var type = fluidState.getType();
         for (Direction direction : toSort) {
             BlockPos posDir = blockPos.relative(direction);
             var statesDir = flowing_fluids$getSetPosCache(ffCacheKey(blockPos, posDir), level, statesAtPos, posDir);
             BlockState stateDir = statesDir.first();
             var fluidStateDir = statesDir.second();
             int amountDir = fluidStateDir.getAmount();
-            boolean canFlow = flowing_fluids$canSpreadToOptionallySameOrEmpty(fluidState.getType(), amount, level, blockPos,
-                    level.getBlockState(blockPos), direction, posDir, stateDir, fluidStateDir, requiresSlope);
+            boolean canFlow = flowing_fluids$canSpreadToOptionallySameOrEmpty(type, amount, level, blockPos,
+                    blockState, direction, posDir, stateDir, fluidStateDir, requiresSlope);
             if (canFlow) {
                 if (!anyFlowableNeighbours2LevelsLowerOrMore) {
                     anyFlowableNeighbours2LevelsLowerOrMore = amountDir < amountMinusOne;
@@ -563,9 +567,15 @@ public abstract class MixinFlowingFluid extends Fluid {
     }
 
     @Unique
-    private @Nullable Direction flowing_fluids$getValidDirectionFromDeepSpreadSearch(final Level level, final BlockPos blockPos, final FluidState fluidState, final int amount, final boolean requiresSlope, final List<Direction> directionsCanSpreadToSortedByAmount, final Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos) {
-
-        // vanilla slope distance factor
+    private @Nullable Direction flowing_fluids$getValidDirectionFromDeepSpreadSearch(
+            final Level level,
+            final BlockPos blockPos,
+            final FluidState fluidState,
+            final int amount,
+            final boolean requiresSlope,
+            final List<Direction> directionsCanSpreadToSortedByAmount,
+            final Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos
+    ) {
         int slopeFindDistance = getSlopeFindDistance(level);
         if (slopeFindDistance < 1) return null;
 
@@ -573,6 +583,8 @@ public abstract class MixinFlowingFluid extends Fluid {
         Short2BooleanMap posCanFlowDown = new Short2BooleanOpenHashMap();
         posCanFlowDown.put(ffCacheKey(blockPos, blockPos), false); // set not to flow back into source
 
+        Short2IntMap slopeSearchCache = new Short2IntOpenHashMap();
+        slopeSearchCache.defaultReturnValue(Integer.MAX_VALUE);
 
         // perform a deep search for the best direction to spread to with the nearest slope
         // filter out any directions that are too far away to be considered unless we don't require a slope, in which
@@ -598,8 +610,10 @@ public abstract class MixinFlowingFluid extends Fluid {
                 distance = flowing_fluids$getSlopeDistance(
                         level, blockPos, 1, dir.getOpposite(),
                         fluidState.getType(), amount + 1, posDir, statesAtPos,
-                        posCanFlowDown, requiresSlope, slopeFindDistance);
+                        posCanFlowDown, slopeSearchCache, requiresSlope, slopeFindDistance
+                );
             }
+
             if (!requiresSlope || distance <= slopeFindDistance) {
                 if (distance < minimalDistance) {
                     minimalDistance = distance;
@@ -611,26 +625,31 @@ public abstract class MixinFlowingFluid extends Fluid {
     }
 
     @Unique
-    protected int flowing_fluids$getSlopeDistance(LevelReader level, BlockPos sourcePosForKey, int distance, Direction fromDir, Fluid sourceFluid, int sourceAmount,
-                                                  BlockPos newPos, Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos, Short2BooleanMap posCanFlowDown,
-                                                  boolean forceSlopeDownSameOrEmpty, int slopeFindDistance) {
-        // currently in a worse case scenario, water spreading on flat ground, this deep search will perform:
-        // 160 side spread, flowing_fluids$canSpreadToOptionallySameOrEmpty() checks
-        // 40 downwards spread, flowing_fluids$getSetFlowDownCache() checks,
-        // for a total of 200 checks per original source on totally flat ground
+    protected int flowing_fluids$getSlopeDistance(
+            LevelReader level,
+            BlockPos sourcePosForKey,
+            int distance,
+            Direction fromDir,
+            Fluid sourceFluid,
+            int sourceAmount,
+            BlockPos newPos,
+            Short2ObjectMap<Pair<BlockState, FluidState>> statesAtPos,
+            Short2BooleanMap posCanFlowDown,
+            Short2IntMap slopeSearchCache,
+            boolean forceSlopeDownSameOrEmpty,
+            int slopeFindDistance
+    ) {
+        final short currentKey = ffCacheKey(sourcePosForKey, newPos);
+        final int previousBestDistance = slopeSearchCache.getOrDefault(currentKey, Integer.MAX_VALUE);
+        if (previousBestDistance <= distance) {
+            return 1000;
+        }
+        slopeSearchCache.put(currentKey, distance);
 
-        // the 40 checks are perfectly cached and optimized and cannot be improved as there are exactly 40 possible blocks requiring downwards checks
-
-        // the 160 checks can infact be optimized down to 130 by storing the results of checks using the to and from positions as the key as well as
-        // the distance accepting any previously cached values that had lower or equal search distances (meaning those cached results searched further)
-        // However, in practise the additional overhead of storing and checking the cache for all 160 searches, was not worth the 30 checks saved.
-        // With the result cache we did 130 checks averaging 0.8~ms per spread check, without the cache we did 160 checks averaging 0.4~ms per tick
-        // further result caching is detrimental!
-
-        // default distance return
         int smallest = 1000;
-
         int searchDistance = distance + 1;
+
+        var state = flowing_fluids$getSetPosCache(currentKey, level, statesAtPos, newPos).first();
 
         //check all directions except the one we came from
         for (final Direction searchDir : Direction.Plane.HORIZONTAL) {
@@ -642,7 +661,7 @@ public abstract class MixinFlowingFluid extends Fluid {
 
                 // if we can spread to the searched direction
                 if (flowing_fluids$canSpreadToOptionallySameOrEmpty(sourceFluid, sourceAmount, level, newPos,
-                        level.getBlockState(newPos), searchDir, searchPos,
+                        state, searchDir, searchPos,
                         searchStates.first(), searchStates.second(), forceSlopeDownSameOrEmpty)) {
 
                     // if we can flow down, cache the result of this and return this distance as it's the smallest
@@ -653,9 +672,12 @@ public abstract class MixinFlowingFluid extends Fluid {
                     }
                     // if we can't flow down here, check the next distance via iteration as long as we are within the slope search distance
                     if (searchDistance < slopeFindDistance) {
-                        int next = flowing_fluids$getSlopeDistance(level, sourcePosForKey, searchDistance,
+                        int next = flowing_fluids$getSlopeDistance(
+                                level, sourcePosForKey, searchDistance,
                                 searchDir.getOpposite(), sourceFluid, sourceAmount, searchPos,
-                                statesAtPos, posCanFlowDown, forceSlopeDownSameOrEmpty, slopeFindDistance);
+                                statesAtPos, posCanFlowDown, slopeSearchCache,
+                                forceSlopeDownSameOrEmpty, slopeFindDistance
+                        );
                         // if the next distance is less than the current smallest, update the smallest
                         if (next < smallest) {
                             smallest = next;

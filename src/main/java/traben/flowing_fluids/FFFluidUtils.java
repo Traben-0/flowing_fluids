@@ -38,6 +38,7 @@ import org.spongepowered.asm.mixin.Unique;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,7 +48,7 @@ import java.util.stream.IntStream;
 
 public class FFFluidUtils {
     private static final List<List<Direction>> HORIZONTAL_PERMUTATIONS =
-            List.copyOf(Collections2.permutations(Direction.Plane.HORIZONTAL.stream().toList()));
+            new ArrayList<>(Collections2.permutations(Direction.Plane.HORIZONTAL.stream().toList()));
 
     public static int seaLevel(LevelReader level) {
         // Dimension override
@@ -88,7 +89,7 @@ public class FFFluidUtils {
     }
 
     public static boolean canFluidFlowToNeighbourFromPos(LevelAccessor accessor, BlockPos pos, FlowingFluid fluid, int amount) {
-        for (Direction direction :Direction.Plane.HORIZONTAL) {
+        for (Direction direction : Direction.Plane.HORIZONTAL) {
             if (FFFluidUtils.canFluidFlowFromPosToDirection(fluid, amount, accessor, pos, direction)) {
                 return true;
             }
@@ -523,8 +524,8 @@ public class FFFluidUtils {
                     boolean lava = flowSource.isSame(Fluids.LAVA);
                     level.playSound(null, pos,
                             amountRemaining > 0
-                                    ? lava ? SoundEvents.BUCKET_FILL_LAVA : SoundEvents.BUCKET_FILL
-                                    : lava ? SoundEvents.BUCKET_EMPTY_LAVA : SoundEvents.BUCKET_EMPTY,
+                                    ? (lava ? SoundEvents.BUCKET_FILL_LAVA : SoundEvents.BUCKET_FILL)
+                                    : (lava ? SoundEvents.BUCKET_EMPTY_LAVA : SoundEvents.BUCKET_EMPTY),
                             SoundSource.BLOCKS, 1.0F, 1.0F
                     );
                 }
@@ -614,13 +615,22 @@ public class FFFluidUtils {
     }
 
     public static void notifyListeners(LevelAccessor level, BlockPos pos, Direction direction, Fluid fluid, boolean downAlso) {
-        if (!(level instanceof FFFlowListenerLevel)) return;
-        Map<BlockPos, Set<BlockPos>> listeners = ((FFFlowListenerLevel) level).ff$getFlowListenerPositions();
+        if (level.isClientSide() || !(level instanceof FFFlowListenerLevel flowListenerLevel)) return;
+
+        Map<BlockPos, Set<BlockPos>> listeners = flowListenerLevel.ff$getFlowListenerPositions();
         Set<BlockPos> positions = listeners.get(pos);
         if (positions != null) {
-            for (BlockPos listenerPos : positions) {
-                if (level.getBlockEntity(pos) instanceof IFFFlowListener listener) {
-                    listener.ff$acceptRecentFlow(listenerPos, direction, fluid, downAlso);
+            if (positions.isEmpty()) {
+                listeners.remove(pos);
+                return;
+            }
+
+            for (Iterator<BlockPos> iterator = positions.iterator(); iterator.hasNext(); ) {
+                BlockPos listenerPos = iterator.next();
+                if (level.getBlockEntity(listenerPos) instanceof IFFFlowListener listener) {
+                    listener.ff$acceptRecentFlow(pos, direction, fluid, downAlso);
+                } else {
+                    iterator.remove(); // No longer a valid listener, remove it from the set
                 }
             }
         }

@@ -26,6 +26,7 @@ public abstract class MixinWaterWheel{
 //$$ import net.minecraft.world.level.material.Fluids;
 //$$ import org.spongepowered.asm.mixin.Pseudo;
 //$$ import org.spongepowered.asm.mixin.Shadow;
+//$$ import org.spongepowered.asm.mixin.Unique;
 //$$ import org.spongepowered.asm.mixin.injection.At;
 //$$ import org.spongepowered.asm.mixin.injection.Inject;
 //$$ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -37,9 +38,7 @@ public abstract class MixinWaterWheel{
 //$$ import traben.flowing_fluids.config.FFConfig;
 //$$ import it.unimi.dsi.fastutil.Pair;
 //$$
-//$$ import java.util.LinkedList;
 //$$ import java.util.HashSet;
-//$$ import java.util.List;
 //$$ import java.util.Map;
 //$$ import java.util.Set;
 //$$
@@ -61,19 +60,49 @@ public abstract class MixinWaterWheel{
 //$$
 //$$     @Override
 //$$     public void invalidate() {
-//$$         // remove listeners
+//$$         unMountListeners();
+//$$
+//$$         super.invalidate();
+//$$     }
+//$$
+//$$     @Unique private BlockState setupState = null;
+//$$     @Unique private final Set<BlockPos> setupOffsets = new HashSet<>();
+//$$
+//$$     @Unique
+//$$     private void mountListeners() {
+//$$         // Not sure if same entity is kept for rotation changes from the wrench, so gonna just check for blockstate changes to re-assert listeners
+//$$         var state = getBlockState();
+//$$         if (state == setupState) return;
+//$$         setupState = state;
+//$$
+//$$         if (!setupOffsets.isEmpty()) {
+//$$             unMountListeners();
+//$$         }
+//$$
+//$$         // assert listeners
 //$$         if (level instanceof FFFlowListenerLevel listenerGetter) {
 //$$             var listeners = listenerGetter.ff$getFlowListenerPositions();
 //$$             for (final BlockPos blockPos : this.getOffsetsToCheck()) {
+//$$                 var list = listeners.computeIfAbsent(blockPos.offset(worldPosition), k -> new HashSet<>());
+//$$                 list.add(worldPosition);
+//$$                 setupOffsets.add(blockPos);
+//$$             }
+//$$         }
+//$$     }
+//$$
+//$$     @Unique
+//$$     private void unMountListeners() {
+//$$         if (level instanceof FFFlowListenerLevel listenerGetter) {
+//$$             var listeners = listenerGetter.ff$getFlowListenerPositions();
+//$$             for (final BlockPos blockPos : setupOffsets) {
 //$$                 var pos = blockPos.offset(worldPosition);
 //$$                 var list = listeners.get(pos);
 //$$                 if  (list == null) continue;
 //$$                 list.remove(worldPosition);
 //$$                 if (list.isEmpty()) listeners.remove(pos);
 //$$             }
+//$$             setupOffsets.clear();
 //$$         }
-//$$
-//$$         super.invalidate();
 //$$     }
 //$$
 //$$     @Inject(method = "determineAndApplyFlowScore",
@@ -87,19 +116,14 @@ public abstract class MixinWaterWheel{
 //$$                     || level == null
 //$$             ) return;
 //$$
-//$$             // assert listeners
-//$$             if (level instanceof FFFlowListenerLevel listenerGetter) {
-//$$                 var listeners = listenerGetter.ff$getFlowListenerPositions();
-//$$                 for (final BlockPos blockPos : this.getOffsetsToCheck()) {
-//$$                     var list = listeners.computeIfAbsent(blockPos.offset(worldPosition), k -> new HashSet<>());
-//$$                     list.add(worldPosition);
-//$$                 }
-//$$             }
+//$$             mountListeners();
 //$$
 //$$             //if REQUIRE_FLOW_OR_RIVER, check for river else fallback to regular flow check
 //$$             if (FlowingFluids.config.create_waterWheelMode.isRiver()
-//$$                     && !(level.getBiome(worldPosition).is(BiomeTags.IS_RIVER)
-//$$                     && Math.abs(worldPosition.getY() - FFFluidUtils.seaLevel(level)) <= 5)
+//$$                     && !(
+//$$                             level.getBiome(worldPosition).is(BiomeTags.IS_RIVER)
+//$$                                     && Math.abs(worldPosition.getY() - FFFluidUtils.seaLevel(level)) <= 5
+//$$                     )
 //$$             ) {
 //$$                 if (FlowingFluids.config.create_waterWheelMode.isRiverOnly()) {
 //$$                     ci.cancel();
@@ -149,6 +173,7 @@ public abstract class MixinWaterWheel{
 //$$         }catch (final Exception ignored){}
 //$$     }
 //$$
+//$$     @Unique
 //$$     private final Map<BlockPos, Pair<Vec3, Long>> recentDirections = new Object2ObjectOpenHashMap<>();
 //$$
 //$$     @Override
