@@ -1,5 +1,5 @@
 
-[?]
+[1.0.8]
 - 26.3 release
 - fixed an issue preventing create water wheels from working correctly
 
